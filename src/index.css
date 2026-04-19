@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* SmartSplit Finance — Cobalt Light design system.
+   Inspired by clean fintech UIs: white cards, soft grey bg, bold cobalt accent. */
+
+@layer base {
+  :root {
+    --background: 220 16% 96%;
+    --foreground: 222 25% 12%;
+
+    --surface: 0 0% 100%;
+    --surface-soft: 220 18% 94%;
+    --ink: 222 25% 12%;
+    --ink-soft: 220 10% 45%;
+    --hairline: 220 14% 90%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 25% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 25% 12%;
+
+    /* Bold cobalt blue */
+    --brand: 232 90% 52%;
+    --brand-foreground: 0 0% 100%;
+    --brand-soft: 226 100% 94%;
+    --brand-soft-foreground: 232 90% 30%;
+
+    --primary: 222 25% 12%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 18% 94%;
+    --secondary-foreground: 222 25% 12%;
+
+    --muted: 220 18% 94%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 226 100% 94%;
+    --accent-foreground: 232 90% 30%;
+
+    --success: 152 55% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    --destructive: 0 75% 56%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 14% 90%;
+    --input: 220 14% 90%;
+    --ring: 232 90% 52%;
+
+    --radius: 1.25rem;
+
+    --shadow-soft: 0 1px 2px hsl(222 25% 12% / 0.04), 0 4px 16px hsl(222 25% 12% / 0.04);
+    --shadow-card: 0 2px 6px hsl(222 25% 12% / 0.05), 0 12px 32px hsl(222 25% 12% / 0.06);
+    --shadow-float: 0 12px 40px hsl(222 25% 12% / 0.12);
+    --shadow-brand: 0 10px 30px hsl(232 90% 52% / 0.35);
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 25% 12%;
+    --sidebar-primary: 232 90% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 18% 94%;
+    --sidebar-accent-foreground: 222 25% 12%;
+    --sidebar-border: 220 14% 90%;
+    --sidebar-ring: 232 90% 52%;
+  }
+
+  .dark {
+    --background: 222 25% 8%;
+    --foreground: 220 16% 96%;
+
+    --surface: 222 22% 12%;
+    --surface-soft: 222 18% 16%;
+    --ink: 220 16% 96%;
+    --ink-soft: 220 10% 65%;
+    --hairline: 222 18% 20%;
+
+    --card: 222 22% 12%;
+    --card-foreground: 220 16% 96%;
+
+    --popover: 222 22% 12%;
+    --popover-foreground: 220 16% 96%;
+
+    --brand: 232 90% 60%;
+    --brand-foreground: 0 0% 100%;
+    --brand-soft: 232 60% 22%;
+    --brand-soft-foreground: 226 100% 88%;
+
+    --primary: 220 16% 96%;
+    --primary-foreground: 222 25% 8%;
+
+    --secondary: 222 18% 16%;
+    --secondary-foreground: 220 16% 96%;
+
+    --muted: 222 18% 16%;
+    --muted-foreground: 220 10% 65%;
+
+    --accent: 232 60% 22%;
+    --accent-foreground: 226 100% 88%;
+
+    --success: 152 55% 50%;
+    --warning: 38 92% 60%;
+    --destructive: 0 75% 60%;
+
+    --border: 222 18% 20%;
+    --input: 222 18% 20%;
+    --ring: 232 90% 60%;
+
+    --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.3), 0 4px 16px hsl(0 0% 0% / 0.3);
+    --shadow-card: 0 2px 6px hsl(0 0% 0% / 0.4), 0 12px 32px hsl(0 0% 0% / 0.4);
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html, body, #root { @apply h-full; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
+  }
+  .tracking-tightest { letter-spacing: -0.04em; }
+}
+
+@layer utilities {
+  .bg-surface { background-color: hsl(var(--surface)); }
+  .bg-surface-soft { background-color: hsl(var(--surface-soft)); }
+  .bg-brand { background-color: hsl(var(--brand)); }
+  .bg-brand-soft { background-color: hsl(var(--brand-soft)); }
+  .text-brand { color: hsl(var(--brand)); }
+  .text-brand-soft-foreground { color: hsl(var(--brand-soft-foreground)); }
+  .text-ink { color: hsl(var(--ink)); }
+  .text-ink-soft { color: hsl(var(--ink-soft)); }
+  .border-hairline { border-color: hsl(var(--hairline)); }
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-float { box-shadow: var(--shadow-float); }
+  .shadow-brand { box-shadow: var(--shadow-brand); }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+}

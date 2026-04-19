@@ -1,0 +1,361 @@
+import { useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { SurfaceCard } from "@/components/SurfaceCard";
+import { AvatarStack, PersonAvatar } from "@/components/Avatar";
+import { QRCode } from "@/components/QRCode";
+import { useStore, netBalances, simplifyDebts, personById, SettleMethod } from "@/lib/store";
+import { fmt } from "@/lib/finance";
+import { groupIcons } from "@/lib/icons";
+import { cn } from "@/lib/utils";
+import { ArrowLeft, ArrowRight, Plus, Check, X, QrCode, UserPlus, Trash2, UserMinus } from "lucide-react";
+import { toast } from "sonner";
+
+const METHODS: SettleMethod[] = ["Cash", "UPI", "Bank Transfer", "Other"];
+
+export default function GroupDetail() {
+  const { id = "" } = useParams();
+  const navigate = useNavigate();
+  const { groups, expenses, settlements, people, friendIds, addSettlement, updateGroupMembers, userId, profile, deleteGroup } = useStore();
+  const cur = profile?.currency || "USD";
+  const group = groups.find((g) => g.id === id);
+
+  const [settleIdx, setSettleIdx] = useState<number | null>(null);
+  const [method, setMethod] = useState<SettleMethod>("UPI");
+  const [showQR, setShowQR] = useState(false);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+
+  const net = useMemo(() => group ? netBalances(group, expenses, settlements) : {}, [group, expenses, settlements]);
+  const plan = useMemo(() => simplifyDebts(net), [net]);
+  const groupExpenses = useMemo(
+    () => expenses.filter((e) => e.groupId === id).sort((a, b) => b.createdAt - a.createdAt),
+    [expenses, id],
+  );
+  const groupSettlements = useMemo(
+    () => settlements.filter((s) => s.groupId === id).sort((a, b) => b.createdAt - a.createdAt),
+    [settlements, id],
+  );
+
+  const availableFriends = useMemo(() => {
+    if (!group) return [];
+    return friendIds
+      .filter((fid) => !group.memberIds.includes(fid))
+      .map((fid) => personById(people, fid))
+      .filter(Boolean) as ReturnType<typeof personById>[];
+  }, [friendIds, group, people]);
+
+  if (!group) {
+    return (
+      <div className="px-5 pt-10 text-center">
+        <p className="text-ink-soft">Group not found.</p>
+        <Link to="/groups" className="text-brand font-semibold text-sm mt-3 inline-block">Back to groups</Link>
+      </div>
+    );
+  }
+
+  const Icon = groupIcons[group.type];
+  const members = group.memberIds.map((mid) => personById(people, mid)!).filter(Boolean);
+  const total = groupExpenses.reduce((a, e) => a + e.amount, 0);
+  const myNet = net[userId || ""] ?? 0;
+
+  const confirmSettle = () => {
+    if (settleIdx === null) return;
+    const s = plan[settleIdx];
+    addSettlement({ groupId: group.id, from: s.from, to: s.to, amount: s.amount, date: new Date().toISOString().slice(0, 10), method, createdAt: Date.now() });
+    toast.success("Settled", { description: `${personById(people, s.from)?.name} → ${personById(people, s.to)?.name} · ${fmt(s.amount)} · ${method}` });
+    setSettleIdx(null);
+  };
+
+  const addMember = (pid: string) => {
+    updateGroupMembers(group.id, [...group.memberIds, pid]);
+    toast.success("Member added");
+  };
+
+  return (
+    <div>
+      <header className="px-5 pt-8 pb-5 flex items-center justify-between gap-4">
+        <button onClick={() => navigate(-1)} className="size-10 rounded-full bg-surface border border-hairline flex items-center justify-center">
+          <ArrowLeft className="size-4" />
+        </button>
+        <div className="text-center min-w-0 flex items-center gap-2">
+          <Icon className="size-4 text-brand shrink-0" strokeWidth={2.25} />
+          <div className="min-w-0">
+            <p className="text-xs text-ink-soft">{group.type}</p>
+            <h1 className="text-lg font-bold tracking-tightest text-ink truncate">{group.name}</h1>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              if (window.confirm("Are you sure you want to delete this group? All expenses will be lost.")) {
+                deleteGroup(group.id);
+                navigate("/groups");
+              }
+            }}
+            className="size-10 rounded-full bg-surface border border-hairline flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors"
+            aria-label="Delete group"
+          >
+            <Trash2 className="size-4" strokeWidth={2.25} />
+          </button>
+          <button
+            onClick={() => setShowQR(true)}
+            className="size-10 rounded-full bg-surface border border-hairline flex items-center justify-center"
+            aria-label="Group QR"
+          >
+            <QrCode className="size-4" strokeWidth={2.25} />
+          </button>
+          <button
+            onClick={() => navigate(`/split?group=${group.id}`)}
+            className="size-10 rounded-full bg-ink text-background flex items-center justify-center"
+            aria-label="Add expense"
+          >
+            <Plus className="size-4" strokeWidth={2.5} />
+          </button>
+        </div>
+      </header>
+
+      <div className="px-5 space-y-4">
+        <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden">
+          <p className="text-sm font-medium opacity-90 mb-2">
+            {myNet >= 0 ? "You are owed" : "You owe in this group"}
+          </p>
+          <p className="text-5xl font-bold tracking-tightest tabular-nums">
+            {myNet >= 0 ? "+" : ""}{fmt(myNet, cur)}
+          </p>
+          <div className="mt-5 flex items-center justify-between">
+            <AvatarStack people={members} max={6} size="sm" />
+            <div className="text-right flex flex-col items-end">
+              <span className="text-[11px] opacity-80">Total {fmt(total, cur)}</span>
+              {members.length > 0 && total > 0 && (
+                <span className="text-[10px] opacity-60 mt-0.5">{fmt(total / members.length, cur)} / person</span>
+              )}
+            </div>
+          </div>
+          <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />
+        </SurfaceCard>
+
+        <SurfaceCard padding="lg">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-bold text-ink">Members · {members.length}</h3>
+            <button
+              onClick={() => setShowAddMembers(true)}
+              className="text-xs font-semibold text-brand flex items-center gap-1"
+            >
+              <UserPlus className="size-3.5" strokeWidth={2.5} /> Add
+            </button>
+          </div>
+          <ul className="space-y-3">
+            {members.map((p) => {
+              const v = net[p.id] ?? 0;
+              return (
+                <li key={p.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <PersonAvatar person={p} size="md" />
+                    <p className="text-sm font-semibold text-ink">{p.id === userId ? "You" : p.name}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className={cn("text-sm font-bold tabular-nums", v > 0.01 ? "text-success" : v < -0.01 ? "text-destructive" : "text-ink-soft")}>
+                      {v > 0.01 ? "+" : ""}{fmt(v, cur)}
+                    </p>
+                    {p.id !== userId && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Remove ${p.name} from group?`)) {
+                            updateGroupMembers(group.id, group.memberIds.filter(id => id !== p.id));
+                          }
+                        }}
+                        className="size-8 rounded-full flex items-center justify-center text-ink-soft hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        aria-label="Remove member"
+                      >
+                        <UserMinus className="size-3.5" strokeWidth={2.5} />
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </SurfaceCard>
+
+        <SurfaceCard padding="lg">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-base font-bold text-ink">Settle up</h3>
+            <span className="text-[11px] text-ink-soft">{plan.length} payment{plan.length === 1 ? "" : "s"}</span>
+          </div>
+          <p className="text-xs text-ink-soft mb-4">Minimum payments to settle everyone.</p>
+          {plan.length === 0 ? (
+            <p className="text-sm text-success py-4 text-center font-medium">All settled up</p>
+          ) : (
+            <ul className="space-y-3">
+              {plan.map((s, i) => {
+                const from = personById(people, s.from)!;
+                const to = personById(people, s.to)!;
+                return (
+                  <li key={i} className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <PersonAvatar person={from} size="sm" />
+                      <ArrowRight className="size-3 text-ink-soft shrink-0" />
+                      <PersonAvatar person={to} size="sm" />
+                      <div className="min-w-0 ml-1">
+                        <p className="text-xs font-semibold text-ink truncate">
+                          {from.id === userId ? "You" : from.name.split(" ")[0]} → {to.id === userId ? "you" : to.name.split(" ")[0]}
+                        </p>
+                        <p className="text-[11px] text-ink-soft tabular-nums">{fmt(s.amount, cur)}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSettleIdx(i)}
+                      className="size-8 rounded-full bg-brand-soft text-brand-soft-foreground hover:bg-brand hover:text-brand-foreground transition-colors flex items-center justify-center"
+                    >
+                      <Check className="size-3.5" strokeWidth={2.5} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </SurfaceCard>
+
+        <SurfaceCard padding="lg">
+          <h3 className="text-base font-bold text-ink mb-4">Expenses</h3>
+          {groupExpenses.length === 0 ? (
+            <p className="text-sm text-ink-soft text-center py-4">No expenses yet.</p>
+          ) : (
+            <ul className="space-y-4">
+              {groupExpenses.map((e) => {
+                const payer = personById(people, e.paidBy)!;
+                return (
+                  <li key={e.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <PersonAvatar person={payer} size="md" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
+                        <p className="text-[11px] text-ink-soft">
+                          {payer.id === userId ? "You" : payer.name.split(" ")[0]} paid · {e.category} · {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </SurfaceCard>
+
+        {groupSettlements.length > 0 && (
+          <SurfaceCard padding="lg">
+            <h3 className="text-base font-bold text-ink mb-4">Settled payments</h3>
+            <ul className="space-y-3">
+              {groupSettlements.map((s) => {
+                const from = personById(people, s.from)!;
+                const to = personById(people, s.to)!;
+                return (
+                  <li key={s.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <PersonAvatar person={from} size="sm" />
+                      <ArrowRight className="size-3 text-ink-soft shrink-0" />
+                      <PersonAvatar person={to} size="sm" />
+                      <p className="text-xs font-semibold text-ink ml-1">
+                        {from.id === userId ? "You" : from.name.split(" ")[0]} paid {to.id === userId ? "you" : to.name.split(" ")[0]}{s.method ? ` · ${s.method}` : ""}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold tabular-nums text-success">{fmt(s.amount, cur)}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          </SurfaceCard>
+        )}
+      </div>
+
+      {settleIdx !== null && (
+        <div className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center" onClick={() => setSettleIdx(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full md:max-w-md bg-surface rounded-t-3xl md:rounded-3xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold tracking-tightest text-ink">Mark as settled</h2>
+              <button onClick={() => setSettleIdx(null)} className="size-8 rounded-full bg-surface-soft flex items-center justify-center">
+                <X className="size-4" />
+              </button>
+            </div>
+            <p className="text-sm text-ink-soft">
+              {personById(people, plan[settleIdx].from)?.name} → {personById(people, plan[settleIdx].to)?.name} · <span className="font-bold text-ink">{fmt(plan[settleIdx].amount, cur)}</span>
+            </p>
+            <div>
+              <label className="text-xs font-semibold text-ink-soft">Payment method</label>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {METHODS.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMethod(m)}
+                    className={cn(
+                      "rounded-2xl py-3 text-sm font-semibold transition-all",
+                      method === m ? "bg-brand text-brand-foreground" : "bg-surface-soft text-ink",
+                    )}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={confirmSettle}
+              className="w-full bg-brand text-brand-foreground py-4 rounded-full font-semibold text-sm shadow-brand hover:opacity-90 active:scale-[0.98] transition"
+            >
+              Confirm payment
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showQR && (
+        <div className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center" onClick={() => setShowQR(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full md:max-w-md bg-surface rounded-t-3xl md:rounded-3xl p-6 space-y-4 text-center">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold tracking-tightest text-ink">Group QR code</h2>
+              <button onClick={() => setShowQR(false)} className="size-8 rounded-full bg-surface-soft flex items-center justify-center">
+                <X className="size-4" />
+              </button>
+            </div>
+            <p className="text-xs text-ink-soft">Friends scan to instantly join this group.</p>
+            <div className="flex justify-center">
+              <QRCode value={`smartsplit://group/${group.id}`} size={200} label={`${group.name} · ${members.length} members`} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddMembers && (
+        <div className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center" onClick={() => setShowAddMembers(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full md:max-w-md bg-surface rounded-t-3xl md:rounded-3xl p-6 space-y-4 max-h-[80vh] overflow-auto">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold tracking-tightest text-ink">Add members</h2>
+              <button onClick={() => setShowAddMembers(false)} className="size-8 rounded-full bg-surface-soft flex items-center justify-center">
+                <X className="size-4" />
+              </button>
+            </div>
+            {availableFriends.length === 0 ? (
+              <p className="text-sm text-ink-soft text-center py-6">All your friends are already in this group.</p>
+            ) : (
+              <ul className="space-y-2">
+                {availableFriends.map((p) => p && (
+                  <li key={p.id} className="flex items-center justify-between p-3 bg-surface-soft rounded-2xl">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <PersonAvatar person={p} size="sm" />
+                      <span className="text-sm font-semibold text-ink truncate">{p.name}</span>
+                    </div>
+                    <button
+                      onClick={() => addMember(p.id)}
+                      className="px-3 py-1.5 rounded-full bg-brand text-brand-foreground text-xs font-semibold active:scale-95 transition"
+                    >
+                      Add
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
