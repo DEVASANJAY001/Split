@@ -75,7 +75,7 @@ export default function Friends() {
 
   return (
     <div>
-      <PageHeader title="Friends" subtitle="Connect & split together" showActions={false} showBack />
+      <PageHeader title="Friends" subtitle="Connect & split together" showActions={false} />
 
       <div className="px-5 space-y-5">
         <div className="flex gap-2">

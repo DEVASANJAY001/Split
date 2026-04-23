@@ -18,7 +18,8 @@ const CAT_COLORS: Record<Category, string> = {
 };
 
 export default function Reports() {
-  const { expenses, groups, people, userId } = useStore();
+  const { expenses, groups, people, userId, profile } = useStore();
+  const cur = profile?.currency || "USD";
 
   const byCategory = useMemo(() => {
     const m: Record<string, number> = {};
@@ -74,7 +75,7 @@ export default function Reports() {
                 </Pie>
                 <Tooltip
                   contentStyle={{ background: "hsl(var(--surface))", border: "1px solid hsl(var(--hairline))", borderRadius: 12, fontSize: 12 }}
-                  formatter={(v: number) => fmt(v)}
+                  formatter={(v: number) => fmt(v, cur)}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -100,7 +101,7 @@ export default function Reports() {
                 <Tooltip
                   cursor={{ fill: "hsl(var(--surface-soft))" }}
                   contentStyle={{ background: "hsl(var(--surface))", border: "1px solid hsl(var(--hairline))", borderRadius: 12, fontSize: 12 }}
-                  formatter={(v: number) => fmt(v)}
+                  formatter={(v: number) => fmt(v, cur)}
                 />
                 <Bar dataKey="v" fill="hsl(var(--brand))" radius={[8, 8, 0, 0]} />
               </BarChart>
@@ -117,7 +118,7 @@ export default function Reports() {
                 <li key={m.name}>
                   <div className="flex items-center justify-between text-xs mb-1">
                     <span className="font-semibold text-ink">{m.name}</span>
-                    <span className="text-ink-soft tabular-nums">{fmt(m.v)} · {Math.round(pct)}%</span>
+                    <span className="text-ink-soft tabular-nums">{fmt(m.v, cur)} · {Math.round(pct)}%</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-surface-soft overflow-hidden">
                     <div className="h-full bg-brand rounded-full" style={{ width: `${pct}%` }} />

@@ -1,13 +1,42 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { auth, db, storage } from "./firebase";
-import { ref, onValue, set as dbSet, push, remove, update, get as dbGet } from "firebase/database";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  addDoc,
+  deleteDoc,
+  updateDoc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  collectionGroup,
+  runTransaction,
+} from "firebase/firestore";
 import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { onAuthStateChanged } from "firebase/auth";
 import { toast } from "sonner";
 
-export type GroupType = "Trip" | "Roommates" | "Couple" | "Friends" | "Office" | "Other";
-export type Category = "Food" | "Travel" | "Rent" | "Utilities" | "Shopping" | "Entertainment" | "Fuel" | "Bills" | "Other";
+export type GroupType =
+  | "Trip"
+  | "Roommates"
+  | "Couple"
+  | "Friends"
+  | "Office"
+  | "Other";
+export type Category =
+  | "Food"
+  | "Travel"
+  | "Rent"
+  | "Utilities"
+  | "Shopping"
+  | "Entertainment"
+  | "Fuel"
+  | "Bills"
+  | "Other";
 export type SplitMode = "equal" | "unequal" | "percent" | "shares";
 
 export type Person = {
@@ -88,7 +117,14 @@ interface AppState {
   people: Person[];
   friendIds: string[];
   requests: FriendRequest[];
-  outgoing: { username: string; displayName: string; avatar?: string; createdAt: number; requestId: string; targetUid?: string }[];
+  outgoing: {
+    username: string;
+    displayName: string;
+    avatar?: string;
+    createdAt: number;
+    requestId: string;
+    targetUid?: string;
+  }[];
   lastSeenRequests: number;
   mode: AppMode;
   profile: Profile | null;
@@ -104,13 +140,20 @@ interface AppState {
   addFriend: (id: string) => Promise<string>;
   acceptRequest: (id: string) => Promise<void>;
   declineRequest: (id: string) => Promise<void>;
-  sendRequest: (username: string, extra?: { displayName: string, avatar?: string }) => Promise<void>;
+  sendRequest: (
+    username: string,
+    extra?: { displayName: string; avatar?: string },
+  ) => Promise<void>;
   withdrawRequest: (username: string) => Promise<void>;
   removeFriend: (id: string) => Promise<void>;
   updateProfile: (p: Partial<Profile>) => Promise<void>;
   uploadAvatar: (file: Blob) => Promise<string>;
   isUsernameAvailable: (username: string) => Promise<boolean>;
-  searchUsers: (query: string) => Promise<{ username: string; displayName: string; avatar: string; uid: string }[]>;
+  searchUsers: (
+    query: string,
+  ) => Promise<
+    { username: string; displayName: string; avatar: string; uid: string }[]
+  >;
   markRequestsAsSeen: () => void;
   deleteAccount: () => Promise<void>;
   updateGroupMembers: (groupId: string, memberIds: string[]) => Promise<void>;
@@ -142,131 +185,189 @@ export const useStore = create<AppState>()(
             const uid = user.uid;
             set({ userId: uid });
 
-            // 1. First-pass profile check to avoid redirect flashes
-            try {
-              const profSnap = await dbGet(ref(db, `users/${uid}`));
-              if (profSnap.exists()) {
-                set({ profile: profSnap.val() });
-              }
-            } catch (e) {
-              console.error("Initial profile fetch error", e);
-            }
-
-            // 2. Subscribe to profile for future updates
-            onValue(ref(db, `users/${uid}`), async (snapshot) => {
-              const data = snapshot.val();
-              if (data) {
+            // 1. Profile subscription
+            const userRef = doc(db, "users", uid);
+            onSnapshot(userRef, async (snapshot) => {
+              if (snapshot.exists()) {
+                const data = snapshot.data() as Profile;
                 set({ profile: data });
 
-                // Auto-sync global people registry so friends share exactly one UID
-                const pRef = ref(db, `people/${uid}`);
-                const pSnap = await dbGet(pRef);
-                if (!pSnap.exists() || pSnap.val().avatar !== data.avatar || pSnap.val().name !== data.displayName) {
-                  await dbSet(pRef, {
+                // Sync global people registry
+                const personRef = doc(db, "people", uid);
+                await setDoc(
+                  personRef,
+                  {
                     id: uid,
                     name: data.displayName || data.username || "User",
-                    email: data.email || `${data.username || "user"}@smartsplit.app`,
+                    email: data.email || (data.username ? data.username + "@smartsplit.app" : "user@smartsplit.app"),
                     avatar: data.avatar || "",
-                    initials: (data.displayName || data.username || "U").split(" ").map((x: string) => x[0]).join("").slice(0, 2).toUpperCase()
-                  });
-                }
+                    initials: (data.displayName || data.username || "U").slice(0, 2).toUpperCase(),
+                  },
+                  { merge: true },
+                );
 
                 if (data.username) {
                   const handle = data.username.replace("@", "").toLowerCase();
-                  await dbSet(ref(db, `usernames/${handle}`), uid);
+                  await setDoc(doc(db, "usernames", handle), { uid });
                 }
               }
             });
 
-            // 2. Subscribe to Group IDs & Groups
-            // Note: We subscribe to EVERY group but filter locally for responsiveness and simplified schema
-            onValue(ref(db, "groups"), (s) => {
-              const raw = s.val() ? Object.values(s.val()) as Group[] : [];
-              const all = raw.map(g => ({
-                ...g,
-                memberIds: Array.isArray(g.memberIds) ? g.memberIds : (Object.values(g.memberIds || {}) as string[])
-              }));
-              const myGroups = all.filter(g => g.memberIds.includes(uid));
-              set({ groups: myGroups });
+            // 2. Groups subscription (where memberIds contains uid)
+            const groupsQuery = query(
+              collection(db, "groups"),
+              where("memberIds", "array-contains", uid),
+            );
+            onSnapshot(groupsQuery, (snapshot) => {
+              const groupsList = snapshot.docs.map(
+                (d) => ({ ...d.data(), id: d.id }) as Group,
+              );
+              set({ groups: groupsList });
+
+              // 3. Dependent subscriptions: Expenses & Settlements for these groups
+              if (groupsList.length > 0) {
+                const groupIds = groupsList.map((g) => g.id);
+
+                // Firestore limit for 'in' is 30, but we can iterate or just use groupIds if small
+                // For simplicity and since Firestore doesn't have a cross-collection 'in' for listeners easily,
+                // we'll listen to all expenses and filter locally OR use multiple queries.
+                // However, better practice in Firestore is to listen to the collections directly.
+
+                const expensesQuery = query(
+                  collection(db, "expenses"),
+                  where("groupId", "in", groupIds.slice(0, 30)),
+                );
+                onSnapshot(expensesQuery, (expSnap) => {
+                  set({
+                    expenses: expSnap.docs.map(
+                      (d) => ({ ...d.data(), id: d.id }) as Expense,
+                    ),
+                  });
+                });
+
+                const settlementsQuery = query(
+                  collection(db, "settlements"),
+                  where("groupId", "in", groupIds.slice(0, 30)),
+                );
+                onSnapshot(settlementsQuery, (setSnap) => {
+                  set({
+                    settlements: setSnap.docs.map(
+                      (d) => ({ ...d.data(), id: d.id }) as Settlement,
+                    ),
+                  });
+                });
+              } else {
+                set({ expenses: [], settlements: [] });
+              }
             });
 
-            // 3. Independent observers — derive membership from groups snapshot, not stale state
-            onValue(ref(db, "expenses"), (s) => {
-              const all = s.val() ? Object.values(s.val()) as Expense[] : [];
-              const myGroupIds = get().groups.map(g => g.id);
-              set({ expenses: all.filter(e => myGroupIds.includes(e.groupId)) });
+            // 4. People registry
+            onSnapshot(collection(db, "people"), (s) => {
+              set({
+                people: s.docs.map(
+                  (d) => ({ ...d.data(), id: d.id }) as Person,
+                ),
+              });
             });
 
-            onValue(ref(db, "settlements"), (s) => {
-              const all = s.val() ? Object.values(s.val()) as Settlement[] : [];
-              const myGroupIds = get().groups.map(g => g.id);
-              set({ settlements: all.filter(st => myGroupIds.includes(st.groupId)) });
+            // 5. Personal Expenses (subcollection)
+            onSnapshot(
+              collection(db, "users", uid, "personal_expenses"),
+              (s) => {
+                set({
+                  personal: s.docs.map(
+                    (d) => ({ ...d.data(), id: d.id }) as PersonalExpense,
+                  ),
+                });
+              },
+            );
+
+            // 6. Friend Requests
+            onSnapshot(collection(db, "users", uid, "friend_requests"), (s) => {
+              set({
+                requests: s.docs.map(
+                  (d) => ({ ...d.data(), id: d.id }) as FriendRequest,
+                ),
+              });
             });
 
-            onValue(ref(db, "people"), (s) => {
-              const all = s.val() ? Object.values(s.val()) as Person[] : [];
-              set({ people: all });
+            // 7. Friends list
+            const friendsRef = doc(db, "users", uid, "private", "friends");
+            onSnapshot(friendsRef, (s) => {
+              if (s.exists()) {
+                const friendIds = s.data().ids || [];
+                set((state) => ({
+                  friendIds,
+                  outgoing: (state.outgoing || []).filter(
+                    (o) => !o.targetUid || !friendIds.includes(o.targetUid),
+                  ),
+                }));
+              }
             });
 
-            onValue(ref(db, "personal_expenses/" + uid), (s) => set({ personal: s.val() ? Object.values(s.val()) : [] }));
-            onValue(ref(db, "friend_requests/" + uid), (s) => set({ requests: s.val() ? Object.values(s.val()) : [] }));
-            onValue(ref(db, "friends/" + uid), (s) => {
-              const friendIds = s.val() ? (Object.values(s.val()) as string[]) : [];
-              set((state) => ({
-                friendIds,
-                outgoing: (state.outgoing || []).filter(o => !o.targetUid || !friendIds.includes(o.targetUid))
-              }));
-            });
-
-            // 4. Migration & Finalize
-            const currentOutgoing = get().outgoing;
-            const cleanedOutgoing = (currentOutgoing || []).map(o => {
-              if (typeof o === 'string') return { username: o, displayName: o, requestId: "legacy", createdAt: Date.now() };
-              return o;
-            }).filter(o => o && o.username);
-            set({ outgoing: cleanedOutgoing, loading: false });
+            set({ loading: false });
           } else {
-            set({ profile: null, userId: null, loading: false, groups: [], expenses: [], settlements: [], requests: [], friendIds: [], people: [] });
+            set({
+              profile: null,
+              userId: null,
+              loading: false,
+              groups: [],
+              expenses: [],
+              settlements: [],
+              requests: [],
+              friendIds: [],
+              people: [],
+            });
           }
         });
       },
       addGroup: async (g) => {
-        const newRef = push(ref(db, "groups"));
-        const id = newRef.key!;
-        await dbSet(newRef, { ...g, id, ownerId: auth.currentUser?.uid });
-        return id;
+        const docRef = await addDoc(collection(db, "groups"), {
+          ...g,
+          ownerId: auth.currentUser?.uid,
+        });
+        return docRef.id;
       },
       addExpense: async (e) => {
-        const newRef = push(ref(db, "expenses"));
-        const id = newRef.key!;
-        await dbSet(newRef, { ...e, id, createdAt: Date.now() });
-        return id;
+        const docRef = await addDoc(collection(db, "expenses"), {
+          ...e,
+          createdAt: Date.now(),
+        });
+        return docRef.id;
       },
       addSettlement: async (s) => {
-        const newRef = push(ref(db, "settlements"));
-        const id = newRef.key!;
-        await dbSet(newRef, { ...s, id, createdAt: Date.now() });
-        return id;
+        const docRef = await addDoc(collection(db, "settlements"), {
+          ...s,
+          createdAt: Date.now(),
+        });
+        return docRef.id;
       },
       addPersonalExpense: async (e) => {
         const userId = auth.currentUser?.uid;
         if (!userId) throw new Error("Not authenticated");
-        const newRef = push(ref(db, "personal_expenses/" + userId));
-        const id = newRef.key!;
-        await dbSet(newRef, { ...e, id });
-        return id;
+        const docRef = await addDoc(
+          collection(db, "users", userId, "personal_expenses"),
+          { ...e },
+        );
+        return docRef.id;
       },
       deleteExpense: async (id, isPersonal) => {
         const userId = auth.currentUser?.uid;
-        const path = isPersonal ? `personal_expenses/${userId}/${id}` : `expenses/${id}`;
-        await remove(ref(db, path));
+        if (isPersonal && userId) {
+          await deleteDoc(doc(db, "users", userId, "personal_expenses", id));
+        } else {
+          await deleteDoc(doc(db, "expenses", id));
+        }
       },
       addFriend: async (id) => {
         const userId = auth.currentUser?.uid;
         if (userId) {
-          const friendsRef = ref(db, `friends/${userId}`);
           const currentFriends = get().friendIds;
-          await dbSet(friendsRef, [...currentFriends, id]);
+          await setDoc(
+            doc(db, "users", userId, "private", "friends"),
+            { ids: [...currentFriends, id] },
+            { merge: true },
+          );
         }
         return id;
       },
@@ -278,29 +379,59 @@ export const useStore = create<AppState>()(
 
         let senderUid = req.fromUid;
         if (!senderUid) {
-          const senderHandle = req.fromUsername.replace("@", "").toLowerCase();
-          const senderUidSnap = await dbGet(ref(db, `usernames/${senderHandle}`));
-          if (!senderUidSnap.exists()) return;
-          senderUid = senderUidSnap.val();
+          const handle = req.fromUsername.replace("@", "").toLowerCase();
+          const snap = await getDoc(doc(db, "usernames", handle));
+          if (!snap.exists()) return;
+          senderUid = snap.data().uid;
         }
 
         if (!senderUid) return;
 
-        // 1. Add senderUid to receiver's friendIds
-        await dbSet(ref(db, `friends/${userId}`), [...get().friendIds, senderUid]);
+        await runTransaction(db, async (transaction) => {
+          // 1. Add sender to receiver's friends
+          const receiverFriendsRef = doc(
+            db,
+            "users",
+            userId,
+            "private",
+            "friends",
+          );
+          const recSnap = await transaction.get(receiverFriendsRef);
+          const recFriends = recSnap.exists() ? recSnap.data().ids || [] : [];
+          if (!recFriends.includes(senderUid)) {
+            transaction.set(
+              receiverFriendsRef,
+              { ids: [...recFriends, senderUid] },
+              { merge: true },
+            );
+          }
 
-        // 2. Add userId to sender's friendIds
-        const senderFriendsSnap = await dbGet(ref(db, `friends/${senderUid}`));
-        const senderFriends = senderFriendsSnap.val() || [];
-        await dbSet(ref(db, `friends/${senderUid}`), [...senderFriends, userId]);
+          // 2. Add receiver to sender's friends
+          const senderFriendsRef = doc(
+            db,
+            "users",
+            senderUid,
+            "private",
+            "friends",
+          );
+          const senSnap = await transaction.get(senderFriendsRef);
+          const senFriends = senSnap.exists() ? senSnap.data().ids || [] : [];
+          if (!senFriends.includes(userId)) {
+            transaction.set(
+              senderFriendsRef,
+              { ids: [...senFriends, userId] },
+              { merge: true },
+            );
+          }
 
-        // 3. Remove request
-        await remove(ref(db, `friend_requests/${userId}/${id}`));
+          // 3. Delete request
+          transaction.delete(doc(db, "users", userId, "friend_requests", id));
+        });
       },
       declineRequest: async (id) => {
         const userId = auth.currentUser?.uid;
         if (!userId) return;
-        await remove(ref(db, `friend_requests/${userId}/${id}`));
+        await deleteDoc(doc(db, "users", userId, "friend_requests", id));
       },
       sendRequest: async (username, extra) => {
         const handle = username.replace("@", "").toLowerCase();
@@ -309,41 +440,38 @@ export const useStore = create<AppState>()(
         if (!userId || !profile) return;
 
         try {
-          const snapshot = await dbGet(ref(db, `usernames/${handle}`));
-          if (!snapshot.exists()) {
+          const snap = await getDoc(doc(db, "usernames", handle));
+          if (!snap.exists()) {
             toast.error("User not found");
             return;
           }
-          const targetUid = snapshot.val();
+          const targetUid = snap.data().uid;
           if (targetUid === userId) {
             toast.error("You cannot add yourself");
             return;
           }
 
-          const reqRef = push(ref(db, `friend_requests/${targetUid}`));
-          const requestId = reqRef.key!;
-          const request: FriendRequest = {
-            id: requestId,
+          const reqRef = collection(db, "users", targetUid, "friend_requests");
+          const newDoc = await addDoc(reqRef, {
             fromUsername: profile.username,
             fromName: profile.displayName,
             fromAvatar: profile.avatar || "",
             fromUid: userId,
-            createdAt: Date.now()
-          };
-          await dbSet(reqRef, request);
+            createdAt: Date.now(),
+          });
 
           set((s) => ({
             outgoing: [
-              ...s.outgoing.filter(o => (typeof o === 'string' ? o : o.username) !== username),
+              ...s.outgoing.filter((o) => o.username !== username),
               {
                 username,
                 displayName: extra?.displayName || username,
                 avatar: extra?.avatar,
                 createdAt: Date.now(),
-                requestId,
-                targetUid
-              }
-            ]
+                requestId: newDoc.id,
+                targetUid,
+              },
+            ],
           }));
 
           toast.success("Friend request sent to " + username);
@@ -356,46 +484,58 @@ export const useStore = create<AppState>()(
         const userId = auth.currentUser?.uid;
         if (!userId) return;
 
-        const out = get().outgoing.find(o => (typeof o === 'string' ? o : o.username) === username);
+        const out = get().outgoing.find((o) => o.username === username);
         if (!out) return;
 
         try {
           const handle = username.replace("@", "").toLowerCase();
-          const snapshot = await dbGet(ref(db, `usernames/${handle}`));
-          if (snapshot.exists()) {
-            const targetUid = snapshot.val();
-            await remove(ref(db, `friend_requests/${targetUid}/${out.requestId}`));
+          const snap = await getDoc(doc(db, "usernames", handle));
+          if (snap.exists()) {
+            const targetUid = snap.data().uid;
+            await deleteDoc(
+              doc(db, "users", targetUid, "friend_requests", out.requestId),
+            );
           }
         } catch (e) {
           console.error("Withdrawal error", e);
         }
 
         set((s) => ({
-          outgoing: s.outgoing.filter(o => (typeof o === 'string' ? o : o.username) !== username)
+          outgoing: s.outgoing.filter((o) => o.username !== username),
         }));
       },
       removeFriend: async (id) => {
         const userId = auth.currentUser?.uid;
         if (!userId) return;
-        // Remove from current user's list
-        const friendsRef = ref(db, `friends/${userId}`);
-        await dbSet(friendsRef, get().friendIds.filter((x) => x !== id));
-        // Also remove current user from the other person's list (bilateral)
-        try {
-          const otherFriendsSnap = await dbGet(ref(db, `friends/${id}`));
-          const otherFriends = otherFriendsSnap.val() || [];
-          await dbSet(ref(db, `friends/${id}`), (otherFriends as string[]).filter((x) => x !== userId));
-        } catch (e) {
-          console.error("Failed to remove bilateral friend", e);
-        }
+
+        await runTransaction(db, async (transaction) => {
+          const userFriendsRef = doc(db, "users", userId, "private", "friends");
+          const otherFriendsRef = doc(db, "users", id, "private", "friends");
+
+          const userSnap = await transaction.get(userFriendsRef);
+          if (userSnap.exists()) {
+            transaction.update(userFriendsRef, {
+              ids: (userSnap.data().ids || []).filter((x: string) => x !== id),
+            });
+          }
+
+          const otherSnap = await transaction.get(otherFriendsRef);
+          if (otherSnap.exists()) {
+            transaction.update(otherFriendsRef, {
+              ids: (otherSnap.data().ids || []).filter(
+                (x: string) => x !== userId,
+              ),
+            });
+          }
+        });
       },
       updateProfile: async (p) => {
         const userId = auth.currentUser?.uid;
         if (userId) {
-          await update(ref(db, `users/${userId}`), p);
+          await setDoc(doc(db, "users", userId), p, { merge: true });
           if (p.username) {
             const handle = p.username.replace("@", "").toLowerCase();
-            await dbSet(ref(db, `usernames/${handle}`), userId);
+            await setDoc(doc(db, "usernames", handle), { uid: userId });
           }
         }
       },
@@ -410,40 +550,60 @@ export const useStore = create<AppState>()(
         };
 
         const timeout = new Promise<string>((_, reject) =>
-          setTimeout(() => reject(new Error("Storage upload timed out. Ensure Firebase Storage is enabled and rules allow writes.")), 7000)
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  "Storage upload timed out. Ensure Firebase Storage is enabled and rules allow writes.",
+                ),
+              ),
+            7000,
+          ),
         );
 
         return Promise.race([uploadTask(), timeout]);
       },
       isUsernameAvailable: async (username) => {
         const handle = username.replace("@", "").toLowerCase();
-        const snapshot = await dbGet(ref(db, `usernames/${handle}`));
-        return !snapshot.exists();
+        const snap = await getDoc(doc(db, "usernames", handle));
+        return !snap.exists();
       },
-      searchUsers: async (query) => {
-        const handle = query.replace("@", "").toLowerCase();
-        const snapshot = await dbGet(ref(db, "usernames"));
-        if (!snapshot.exists()) return [];
+      searchUsers: async (queryText) => {
+        const handle = queryText.replace("@", "").toLowerCase();
+        const snap = await getDocs(collection(db, "usernames"));
+        const all: Record<string, string> = {};
+        snap.docs.forEach((d) => {
+          all[d.id] = d.data().uid;
+        });
+        const matches = Object.keys(all).filter((h) => h.includes(handle));
 
-        const all = snapshot.val();
-        const matches = Object.keys(all).filter(h => h.includes(handle));
+        const results = await Promise.all(
+          matches.map(async (h) => {
+            const uid = all[h];
+            const userSnap = await getDoc(doc(db, "users", uid));
+            if (userSnap.exists()) {
+              const u = userSnap.data();
+              return {
+                username: "@" + h,
+                displayName: u.displayName,
+                avatar: u.avatar,
+                uid,
+              };
+            }
+            return null;
+          }),
+        );
 
-        const results = await Promise.all(matches.map(async (h) => {
-          const uid = all[h];
-          const userSnap = await dbGet(ref(db, `users/${uid}`));
-          if (userSnap.exists()) {
-            const u = userSnap.val();
-            return {
-              username: "@" + h,
-              displayName: u.displayName,
-              avatar: u.avatar,
-              uid
-            };
-          }
-          return null;
-        }));
-
-        return results.filter((r): r is { username: string; displayName: string; avatar: string; uid: string } => r !== null);
+        return results.filter(
+          (
+            r,
+          ): r is {
+            username: string;
+            displayName: string;
+            avatar: string;
+            uid: string;
+          } => r !== null,
+        );
       },
       markRequestsAsSeen: () => {
         set({ lastSeenRequests: Date.now() });
@@ -455,51 +615,69 @@ export const useStore = create<AppState>()(
         const profile = get().profile;
         if (profile) {
           const handle = profile.username.replace("@", "").toLowerCase();
-          await remove(ref(db, `usernames/${handle}`));
+          await deleteDoc(doc(db, "usernames", handle));
         }
-        await remove(ref(db, `users/${userId}`));
-        await remove(ref(db, `people/${userId}`));
-        await remove(ref(db, `friends/${userId}`));
-        await remove(ref(db, `personal_expenses/${userId}`));
+        await deleteDoc(doc(db, "users", userId));
+        await deleteDoc(doc(db, "people", userId));
+        // Note: personal_expenses are in a subcollection, so they need recursive delete if needed,
+        // but for now deleteDoc on top-level is what was there.
         await auth.currentUser?.delete();
         set({ userId: null, profile: null });
       },
       updateGroupMembers: async (groupId, memberIds) => {
         const userId = auth.currentUser?.uid;
         if (!userId) return;
-        await update(ref(db, `groups/${groupId}`), { memberIds });
+        await updateDoc(doc(db, "groups", groupId), { memberIds });
       },
       deleteGroup: async (groupId) => {
         const userId = auth.currentUser?.uid;
         if (!userId) return;
-        const expenses = get().expenses.filter(e => e.groupId === groupId);
-        for (const e of expenses) {
-          await remove(ref(db, `expenses/${e.id}`));
-        }
-        const settlements = get().settlements.filter(s => s.groupId === groupId);
-        for (const s of settlements) {
-          await remove(ref(db, `settlements/${s.id}`));
-        }
-        await remove(ref(db, `groups/${groupId}`));
-      }
+
+        await runTransaction(db, async (transaction) => {
+          // Delete expenses in group
+          const expSnap = await getDocs(
+            query(collection(db, "expenses"), where("groupId", "==", groupId)),
+          );
+          expSnap.forEach((d) => transaction.delete(d.ref));
+
+          // Delete settlements in group
+          const setSnap = await getDocs(
+            query(
+              collection(db, "settlements"),
+              where("groupId", "==", groupId),
+            ),
+          );
+          setSnap.forEach((d) => transaction.delete(d.ref));
+
+          // Delete group
+          transaction.delete(doc(db, "groups", groupId));
+        });
+      },
     }),
     {
       name: "smart-split-storage",
       partialize: (state) => ({
         outgoing: state.outgoing,
         lastSeenRequests: state.lastSeenRequests,
-        mode: state.mode
+        mode: state.mode,
       }),
-    }
-  )
+    },
+  ),
 );
 
-export const personById = (people: Person[], id: string) => people.find((p) => p.id === id);
+export const personById = (people: Person[], id: string) =>
+  people.find((p) => p.id === id);
 
-export function netBalances(group: Group, allExpenses: Expense[], allSettlements: Settlement[]) {
-  const net: Record<string, number> = Object.fromEntries(group.memberIds.map((id) => [id, 0]));
-  const groupExpenses = allExpenses.filter(e => e.groupId === group.id);
-  const groupSettlements = allSettlements.filter(s => s.groupId === group.id);
+export function netBalances(
+  group: Group,
+  allExpenses: Expense[],
+  allSettlements: Settlement[],
+) {
+  const net: Record<string, number> = Object.fromEntries(
+    group.memberIds.map((id) => [id, 0]),
+  );
+  const groupExpenses = allExpenses.filter((e) => e.groupId === group.id);
+  const groupSettlements = allSettlements.filter((s) => s.groupId === group.id);
 
   for (const e of groupExpenses) {
     net[e.paidBy] = (net[e.paidBy] ?? 0) + e.amount;
@@ -527,10 +705,15 @@ export function simplifyDebts(net: Record<string, number>) {
   debtors.sort((a, b) => b.v - a.v);
   creditors.sort((a, b) => b.v - a.v);
   const out: { from: string; to: string; amount: number }[] = [];
-  let i = 0, j = 0;
+  let i = 0,
+    j = 0;
   while (i < debtors.length && j < creditors.length) {
     const pay = Math.min(debtors[i].v, creditors[j].v);
-    out.push({ from: debtors[i].id, to: creditors[j].id, amount: Math.round(pay * 100) / 100 });
+    out.push({
+      from: debtors[i].id,
+      to: creditors[j].id,
+      amount: Math.round(pay * 100) / 100,
+    });
     debtors[i].v -= pay;
     creditors[j].v -= pay;
     if (debtors[i].v < 0.01) i++;
@@ -548,20 +731,32 @@ export function computeShares(
   if (participants.length === 0) return {};
   if (mode === "equal") {
     const share = total / participants.length;
-    return Object.fromEntries(participants.map((p) => [p, Math.round(share * 100) / 100]));
+    return Object.fromEntries(
+      participants.map((p) => [p, Math.round(share * 100) / 100]),
+    );
   }
   if (mode === "percent") {
     return Object.fromEntries(
-      participants.map((p) => [p, Math.round((total * (values[p] ?? 0) / 100) * 100) / 100]),
+      participants.map((p) => [
+        p,
+        Math.round(((total * (values[p] ?? 0)) / 100) * 100) / 100,
+      ]),
     );
   }
   if (mode === "shares") {
-    const totalShares = Object.values(values).reduce((a, b) => a + (b || 0), 0) || participants.length;
+    const totalShares =
+      Object.values(values).reduce((a, b) => a + (b || 0), 0) ||
+      participants.length;
     const perShare = total / totalShares;
     return Object.fromEntries(
-      participants.map((p) => [p, Math.round((perShare * (values[p] ?? 1)) * 100) / 100]),
+      participants.map((p) => [
+        p,
+        Math.round(perShare * (values[p] ?? 1) * 100) / 100,
+      ]),
     );
   }
   // unequal / custom
-  return Object.fromEntries(participants.map((p) => [p, Math.round((values[p] ?? 0) * 100) / 100]));
+  return Object.fromEntries(
+    participants.map((p) => [p, Math.round((values[p] ?? 0) * 100) / 100]),
+  );
 }

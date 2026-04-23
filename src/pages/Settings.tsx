@@ -90,7 +90,7 @@ export default function Settings() {
         </SurfaceCard>
 
         <SurfaceCard padding="md">
-          <button onClick={exportCSV} className="w-full">
+          <button onClick={exportCSV} className="w-full text-left">
             <Row icon={Download} title="Export data" subtitle="Download as CSV" trailing={<span className="text-ink-soft">→</span>} />
           </button>
         </SurfaceCard>
@@ -106,7 +106,7 @@ export default function Settings() {
                 location.reload();
               }
             }}
-            className="w-full"
+            className="w-full text-left"
           >
             <Row icon={LogOut} title="Reset app" subtitle="Clear all local data" trailing={<span className="text-destructive font-semibold text-xs">Reset</span>} />
           </button>
@@ -118,17 +118,19 @@ export default function Settings() {
 
 function Row({ icon: Icon, title, subtitle, trailing }: { icon: any; title: string; subtitle: string; trailing: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="size-10 rounded-full bg-surface-soft text-ink flex items-center justify-center shrink-0">
-          <Icon className="size-4" strokeWidth={2.25} />
+    <div className="flex items-center justify-between gap-4 py-1">
+      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+        <div className="size-11 rounded-2xl bg-surface-soft text-ink flex items-center justify-center shrink-0 border border-hairline/50">
+          <Icon className="size-5" strokeWidth={2} />
         </div>
-        <div className="min-w-0 text-left">
-          <p className="text-sm font-bold text-ink truncate">{title}</p>
-          <p className="text-[11px] text-ink-soft truncate">{subtitle}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-bold text-ink leading-tight truncate">{title}</p>
+          <p className="text-[11px] text-ink-soft leading-tight mt-0.5 truncate">{subtitle}</p>
         </div>
       </div>
-      <div className="shrink-0">{trailing}</div>
+      <div className="shrink-0 flex items-center">
+        {trailing}
+      </div>
     </div>
   );
 }
@@ -137,9 +139,17 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   return (
     <button
       onClick={() => onChange(!on)}
-      className={cn("w-11 h-6 rounded-full transition-colors relative", on ? "bg-brand" : "bg-surface-soft")}
+      className={cn(
+        "w-11 h-6 rounded-full transition-all duration-300 relative outline-none",
+        on ? "bg-brand" : "bg-ink/10"
+      )}
     >
-      <span className={cn("absolute top-0.5 size-5 rounded-full bg-surface shadow-soft transition-transform", on ? "translate-x-5" : "translate-x-0.5")} />
+      <div 
+        className={cn(
+          "absolute top-0.5 left-0.5 size-5 rounded-full bg-surface shadow-md transition-all duration-300 transform",
+          on ? "translate-x-5 scale-100" : "translate-x-0 scale-90"
+        )} 
+      />
     </button>
   );
 }

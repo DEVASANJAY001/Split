@@ -16,8 +16,8 @@ export default function GroupDetail() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { groups, expenses, settlements, people, friendIds, addSettlement, updateGroupMembers, userId, profile, deleteGroup } = useStore();
-  const cur = profile?.currency || "USD";
   const group = groups.find((g) => g.id === id);
+  const cur = group?.currency || profile?.currency || "USD";
 
   const [settleIdx, setSettleIdx] = useState<number | null>(null);
   const [method, setMethod] = useState<SettleMethod>("UPI");
@@ -61,7 +61,7 @@ export default function GroupDetail() {
     if (settleIdx === null) return;
     const s = plan[settleIdx];
     addSettlement({ groupId: group.id, from: s.from, to: s.to, amount: s.amount, date: new Date().toISOString().slice(0, 10), method, createdAt: Date.now() });
-    toast.success("Settled", { description: `${personById(people, s.from)?.name} → ${personById(people, s.to)?.name} · ${fmt(s.amount)} · ${method}` });
+    toast.success("Settled", { description: `${personById(people, s.from)?.name} → ${personById(people, s.to)?.name} · ${fmt(s.amount, group.currency)} · ${method}` });
     setSettleIdx(null);
   };
 
@@ -199,7 +199,7 @@ export default function GroupDetail() {
                         <p className="text-xs font-semibold text-ink truncate">
                           {from.id === userId ? "You" : from.name.split(" ")[0]} → {to.id === userId ? "you" : to.name.split(" ")[0]}
                         </p>
-                        <p className="text-[11px] text-ink-soft tabular-nums">{fmt(s.amount, cur)}</p>
+                        <p className="text-[11px] text-ink-soft tabular-nums">{fmt(s.amount, group.currency)}</p>
                       </div>
                     </div>
                     <button
@@ -259,7 +259,7 @@ export default function GroupDetail() {
                         {from.id === userId ? "You" : from.name.split(" ")[0]} paid {to.id === userId ? "you" : to.name.split(" ")[0]}{s.method ? ` · ${s.method}` : ""}
                       </p>
                     </div>
-                    <p className="text-sm font-bold tabular-nums text-success">{fmt(s.amount, cur)}</p>
+                    <p className="text-sm font-bold tabular-nums text-success">{fmt(s.amount, group.currency)}</p>
                   </li>
                 );
               })}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/AppLayout";
 import { SurfaceCard } from "@/components/SurfaceCard";
@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { fmt } from "@/lib/finance";
-import { Settings, QrCode, X, Pencil, Users, Receipt, Camera, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Settings, QrCode, X, Pencil, Users, Receipt, Camera, Loader2, CheckCircle2, AlertCircle, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -21,12 +21,14 @@ const currencies = [
 
 export default function Profile() {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { profile, updateProfile, uploadAvatar, friendIds, groups, expenses, personal, userId, isUsernameAvailable } = useStore();
   const [showQR, setShowQR] = useState(false);
   const [editing, setEditing] = useState(false);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "available" | "taken">("idle");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [draft, setDraft] = useState(profile || { displayName: "", username: "", email: "", avatar: "", currency: "USD" });
 
   useEffect(() => {
@@ -35,6 +37,25 @@ export default function Profile() {
       setDraft(profile);
     }
   }, [profile, editing]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      return toast.error("File size must be less than 2MB");
+    }
+
+    try {
+      setIsUploading(true);
+      await uploadAvatar(file);
+      toast.success("Avatar updated");
+    } catch (err: any) {
+      toast.error("Failed to upload: " + err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Debounced username check
   useEffect(() => {
@@ -46,9 +67,15 @@ export default function Profile() {
     const delay = setTimeout(async () => {
       if (draft.username.length < 3) return;
       setIsCheckingUsername(true);
-      const available = await isUsernameAvailable(draft.username);
-      setIsCheckingUsername(false);
-      setUsernameStatus(available ? "available" : "taken");
+      try {
+        const available = await isUsernameAvailable(draft.username);
+        setUsernameStatus(available ? "available" : "taken");
+      } catch (error: any) {
+        console.error("Username check failed:", error);
+        setUsernameStatus("idle");
+      } finally {
+        setIsCheckingUsername(false);
+      }
     }, 500);
 
     return () => clearTimeout(delay);
@@ -85,11 +112,33 @@ export default function Profile() {
     <div>
       <PageHeader title="Profile" subtitle="Your account" showActions={false} showBack />
 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+
       <div className="px-5 space-y-4">
         <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden">
           <div className="flex items-center gap-4">
-            <div className="size-xl rounded-full overflow-hidden ring-2 ring-surface relative group">
-              <img key={profile.avatar} src={profile.avatar} alt="" className="size-full object-cover" />
+            <div className="relative group shrink-0">
+              <div className="size-xl rounded-full overflow-hidden ring-2 ring-surface relative shadow-sm">
+                <img key={profile.avatar} src={profile.avatar} alt="" className={cn("size-full object-cover transition-opacity", isUploading && "opacity-40")} />
+                {isUploading && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="size-6 text-brand-foreground animate-spin" />
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="absolute -bottom-1 -right-1 size-8 rounded-full bg-surface shadow-md border border-hairline flex items-center justify-center text-ink hover:text-brand transition-colors active:scale-90"
+              >
+                <Camera className="size-4" strokeWidth={2.5} />
+              </button>
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xl font-bold tracking-tightest truncate">{profile.displayName}</p>
@@ -104,7 +153,7 @@ export default function Profile() {
               aria-label="Edit profile"
               className="size-10 rounded-full bg-brand-foreground/20 flex items-center justify-center shrink-0 active:scale-90 transition-all z-10"
             >
-              <Pencil className="size-5" strokeWidth={2.5} />
+              <Edit2 className="size-5" strokeWidth={2.5} />
             </button>
           </div>
           <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />

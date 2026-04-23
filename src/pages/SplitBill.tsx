@@ -8,6 +8,7 @@ import { fmt } from "@/lib/finance";
 import { categoryIcons, groupIcons } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ALL_CURRENCIES } from "@/lib/currency-data";
 
 const MODES: { id: SplitMode; label: string }[] = [
   { id: "equal", label: "Equally" },
@@ -21,8 +22,9 @@ const CATEGORIES: Category[] = ["Food", "Travel", "Rent", "Utilities", "Shopping
 export default function SplitBill() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { groups, people, expenses, addExpense, addPersonalExpense, mode: appMode, userId, profile } = useStore();
-  const cur = profile?.currency || "USD";
+  const [groupId, setGroupId] = useState(initialGroupId);
+  const group = groups.find((g) => g.id === groupId);
+  const cur = group?.currency || profile?.currency || "USD";
 
   const recentGroupId = useMemo(() => {
     if (expenses.length > 0) {
@@ -35,8 +37,6 @@ export default function SplitBill() {
 
   const initialGroupId = params.get("group") || recentGroupId;
 
-  const [groupId, setGroupId] = useState(initialGroupId);
-  const group = groups.find((g) => g.id === groupId);
   const memberIds = group?.memberIds ?? [];
 
   const [title, setTitle] = useState("");
@@ -157,7 +157,7 @@ export default function SplitBill() {
             className="w-full bg-transparent text-base font-medium outline-none placeholder:text-brand-foreground/60"
           />
           <div className="mt-4 flex items-baseline gap-1">
-            <span className="text-4xl font-bold tracking-tightest">$</span>
+            <span className="text-4xl font-bold tracking-tightest">{ALL_CURRENCIES.find(c => c.code === cur)?.symbol || "$"}</span>
             <input
               type="number"
               inputMode="decimal"
@@ -245,7 +245,7 @@ export default function SplitBill() {
                                   className="w-14 bg-transparent text-right text-sm tabular-nums outline-none font-semibold"
                                 />
                                 <span className="text-xs text-ink-soft">
-                                  {splitMode === "percent" ? "%" : splitMode === "shares" ? "x" : "$"}
+                                  {splitMode === "percent" ? "%" : splitMode === "shares" ? "x" : (ALL_CURRENCIES.find(c => c.code === cur)?.symbol || "$")}
                                 </span>
                               </div>
                             )}

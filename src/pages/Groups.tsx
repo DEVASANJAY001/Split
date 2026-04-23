@@ -104,8 +104,11 @@ export default function Groups() {
       </div>
 
       {showCreate && (
-        <div className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center p-0 md:p-6" onClick={() => setShowCreate(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full md:max-w-md bg-surface rounded-t-3xl md:rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-auto animate-in slide-in-from-bottom">
+        <div className="fixed inset-0 z-50 bg-ink/40 flex items-center justify-center p-6 pb-36 md:p-6 backdrop-blur-sm transition-all" onClick={() => setShowCreate(false)}>
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="w-full md:max-w-md bg-surface rounded-3xl p-6 space-y-4 max-h-[85vh] overflow-auto shadow-2xl animate-in zoom-in-95 duration-200"
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold tracking-tightest text-ink">New group</h2>
               <button onClick={() => setShowCreate(false)} className="size-8 rounded-full bg-surface-soft flex items-center justify-center">

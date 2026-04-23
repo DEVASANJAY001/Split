@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound.tsx";
 import LoginPage from "./pages/Auth/LoginPage";
 import SignUpPage from "./pages/Auth/SignUpPage";
 import ProfileSetup from "./pages/Auth/ProfileSetup";
+import GetStarted from "./pages/Auth/GetStarted";
 import { useStore } from "./lib/store";
 
 const queryClient = new QueryClient();
@@ -31,13 +32,18 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     </div>
   );
 
-  if (!userId) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!userId) {
+    if (location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/get-started") {
+      return <>{children}</>;
+    }
+    return <Navigate to="/get-started" replace />;
+  }
 
   if (!profile && location.pathname !== "/profile-setup") {
     return <Navigate to="/profile-setup" replace />;
   }
 
-  if (profile && location.pathname === "/profile-setup") {
+  if (profile && (location.pathname === "/profile-setup" || location.pathname === "/get-started" || location.pathname === "/login" || location.pathname === "/signup")) {
     return <Navigate to="/" replace />;
   }
 
@@ -51,8 +57,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/get-started" element={<ProtectedRoute><GetStarted /></ProtectedRoute>} />
+          <Route path="/login" element={<ProtectedRoute><LoginPage /></ProtectedRoute>} />
+          <Route path="/signup" element={<ProtectedRoute><SignUpPage /></ProtectedRoute>} />
           <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
 
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

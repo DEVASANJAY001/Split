@@ -227,7 +227,7 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right shrink-0">
                       <p className={cn("text-sm font-bold tabular-nums", v > 0.01 ? "text-success" : v < -0.01 ? "text-destructive" : "text-ink-soft")}>
-                        {v > 0.01 ? "+" : ""}{fmt(v, cur)}
+                        {v > 0.01 ? "+" : ""}{fmt(v, g.currency)}
                       </p>
                       <p className="text-[10px] text-ink-soft">{v > 0.01 ? "you get back" : v < -0.01 ? "you owe" : "settled"}</p>
                     </div>

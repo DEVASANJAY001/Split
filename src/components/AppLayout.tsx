@@ -21,32 +21,34 @@ export default function AppLayout() {
   return (
     <div className="min-h-screen bg-background">
       <main className="mx-auto max-w-md md:max-w-2xl pb-32">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
+            transition={{ 
+              duration: 0.2, 
+              ease: "linear"
+            }}
           >
             <Outlet />
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Floating + FAB */}
+      {/* Floating FAB - Adjusted for bottom bar */}
       <button
         onClick={() => navigate("/split")}
         aria-label="Add expense"
-        className="fixed bottom-24 right-6 md:right-[calc(50%-18rem)] z-40 size-14 rounded-full bg-brand text-brand-foreground flex items-center justify-center shadow-brand hover:scale-105 active:scale-95 transition-transform"
+        className="fixed bottom-28 right-6 md:right-[calc(50%-18rem)] z-40 size-14 rounded-full bg-brand text-brand-foreground flex items-center justify-center shadow-brand-lg hover:scale-105 active:scale-95 transition-transform"
       >
         <Plus className="size-6" strokeWidth={2.5} />
       </button>
 
-      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-        <div className="flex items-center gap-0.5 bg-surface/95 backdrop-blur-xl border border-hairline rounded-full p-1.5 shadow-float">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-xl border-t border-hairline safe-area-pb">
+        <div className="mx-auto max-w-md md:max-w-2xl flex items-center justify-around px-2 py-2">
           {tabs.map(({ to, label, icon: Icon, hasBadge }) => {
-
             return (
               <NavLink
                 key={to}
@@ -54,26 +56,26 @@ export default function AppLayout() {
                 end={to === "/"}
                 className={({ isActive }) =>
                   cn(
-                    "relative flex flex-col items-center justify-center rounded-full transition-colors size-12 px-1",
-                    isActive ? "text-ink" : "text-ink-soft hover:text-ink",
+                    "flex flex-col items-center justify-center gap-1 min-w-[64px] py-1 transition-all relative",
+                    isActive ? "text-brand" : "text-ink-soft hover:text-ink",
                   )
                 }
               >
                 {({ isActive }) => (
                   <>
                     <div className="relative">
-                      <Icon className="size-5" strokeWidth={1.75} />
+                      <Icon className={cn("size-6 transition-transform", isActive && "scale-110")} strokeWidth={isActive ? 2.25 : 1.75} />
                       {hasBadge && unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 size-2.5 bg-destructive border-2 border-surface rounded-full shadow-sm animate-in zoom-in" />
+                        <span className="absolute -top-0.5 -right-0.5 size-2.5 bg-destructive border-2 border-surface rounded-full" />
                       )}
                     </div>
-                    <span className={cn("text-[9px] mt-0.5 tracking-wide", isActive ? "opacity-100" : "opacity-70")}>
+                    <span className={cn("text-[10px] font-bold tracking-tight transition-all", isActive ? "opacity-100" : "opacity-60")}>
                       {label}
                     </span>
                     {isActive && (
-                      <motion.span
-                        layoutId="navdot"
-                        className="absolute -bottom-0.5 size-1 rounded-full bg-brand"
+                      <motion.div
+                        layoutId="navTab"
+                        className="absolute -top-2 inset-x-2 h-0.5 bg-brand rounded-full"
                       />
                     )}
                   </>

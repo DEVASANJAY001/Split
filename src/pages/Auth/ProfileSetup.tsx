@@ -38,9 +38,15 @@ export default function ProfileSetup() {
 
         const delay = setTimeout(async () => {
             setIsCheckingUsername(true);
-            const available = await isUsernameAvailable(finalUsername);
-            setIsCheckingUsername(false);
-            setUsernameStatus(available ? "available" : "taken");
+            try {
+                const available = await isUsernameAvailable(finalUsername);
+                setUsernameStatus(available ? "available" : "taken");
+            } catch (error: any) {
+                console.error("Username check failed:", error);
+                setUsernameStatus("idle");
+            } finally {
+                setIsCheckingUsername(false);
+            }
         }, 500);
 
         return () => clearTimeout(delay);

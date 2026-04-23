@@ -40,7 +40,7 @@ export default function Transactions() {
                 </p>
               </div>
             </div>
-            <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
+            <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, g.currency)}</p>
           </li>
         ),
       });
@@ -70,7 +70,7 @@ export default function Transactions() {
                 <p className="text-[11px] text-ink-soft truncate">Settled{s.method ? ` · ${s.method}` : ""} · {g.name}</p>
               </div>
             </div>
-            <p className="text-sm font-bold tabular-nums text-success shrink-0">{fmt(s.amount, cur)}</p>
+            <p className="text-sm font-bold tabular-nums text-success shrink-0">{fmt(s.amount, g.currency)}</p>
           </li>
         ),
       });
@@ -89,7 +89,7 @@ export default function Transactions() {
 
   return (
     <div>
-      <PageHeader title="Activity" subtitle="All expenses & settlements" showActions={false} showBack />
+      <PageHeader title="Activity" subtitle="All expenses & settlements" showActions={false} />
 
       <div className="px-5 space-y-4">
         <div className="relative">

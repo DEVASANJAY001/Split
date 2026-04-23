@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, db, googleProvider } from "@/lib/firebase";
-import { ref, set } from "firebase/database";
+import { doc, setDoc } from "firebase/firestore";
 import { useStore } from "@/lib/store";
 import { motion } from "framer-motion";
 import { Mail, Lock, UserPlus, User } from "lucide-react";
@@ -28,8 +28,8 @@ export default function SignUpPage() {
         try {
             const { user } = await createUserWithEmailAndPassword(auth, email, password);
 
-            // Initialize profile in Realtime Database
-            await set(ref(db, `users/${user.uid}`), {
+            // Initialize profile in Firestore
+            await setDoc(doc(db, "users", user.uid), {
                 username: `@${name.toLowerCase().replace(/\s/g, "")}`,
                 displayName: name,
                 email: email,
