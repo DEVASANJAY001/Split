@@ -101,9 +101,6 @@ export default function GetStarted() {
             <span>Get Started</span>
             <ArrowRight className="size-5" strokeWidth={3} />
           </button>
-          <p className="text-center text-[10px] text-ink-soft mt-4 font-black uppercase tracking-widest opacity-40">
-            Davns Industries • 2026
-          </p>
         </motion.div>
       </main>
     </div>
