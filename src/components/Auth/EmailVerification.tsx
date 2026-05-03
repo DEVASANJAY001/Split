@@ -44,8 +44,9 @@ export default function EmailVerification({ email, onVerify, onResend }: EmailVe
         try {
             await onVerify(otp);
         } catch (err: any) {
-            toast.error(err.message || "Invalid OTP");
-            setError("Entered OTP is invalid");
+            const errorMsg = err.message || "Invalid OTP";
+            toast.error(errorMsg);
+            setError(errorMsg.includes("OTP") ? errorMsg : "Entered email or password is invalid");
             setShake(true);
             setTimeout(() => setShake(false), 500);
         } finally {
