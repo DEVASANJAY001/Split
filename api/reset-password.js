@@ -1,4 +1,4 @@
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // Set CORS headers early
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const admin = require('firebase-admin');
+    const admin = await import('firebase-admin');
 
   try {
     if (!admin.apps.length) {

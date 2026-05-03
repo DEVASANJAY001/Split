@@ -1,4 +1,4 @@
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // Set CORS headers early
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,8 +14,8 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const admin = require('firebase-admin');
-    const nodemailer = require('nodemailer');
+    const admin = await import('firebase-admin');
+    const nodemailer = await import('nodemailer');
 
   try {
     if (!admin.apps.length) {
@@ -88,7 +88,18 @@ module.exports = async (req, res) => {
     }
 
     // 3. Send Email
-    const transporter = nodemailer.createTransport({
+    const transporter = nodemailer.default ? nodemailer.default.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    }) : nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 587,
       secure: false,
