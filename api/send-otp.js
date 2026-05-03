@@ -1,16 +1,7 @@
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
-  });
-}
+// admin initialization moved inside the handler
 
 module.exports = async (req, res) => {
   // Set CORS headers
@@ -21,6 +12,25 @@ module.exports = async (req, res) => {
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
+
+  try {
+    if (!admin.apps.length) {
+      if (!process.env.FIREBASE_PRIVATE_KEY) {
+        throw new Error("Missing FIREBASE_PRIVATE_KEY environment variable");
+      }
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        }),
+        databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
+      });
+    }
+  } catch (initError) {
+    console.error("Firebase Admin Init Error:", initError);
+    return res.status(500).json({ error: "Failed to initialize server resources" });
+  }
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
