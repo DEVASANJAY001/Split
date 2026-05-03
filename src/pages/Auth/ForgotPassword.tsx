@@ -67,7 +67,7 @@ export default function ForgotPassword() {
                 }
                 setStep("new-password");
             } else {
-                throw new Error("Invalid OTP");
+                throw new Error("OTP is wrong");
             }
         } else {
             throw new Error("Verification code not found. Please resend.");

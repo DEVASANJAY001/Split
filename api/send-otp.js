@@ -54,7 +54,7 @@ module.exports = async (req, res) => {
           const userData = userQuery.docs[0].data();
           finalName = userData.displayName || userData.username || "User";
         } else {
-          return res.status(404).json({ error: "No account found with this email." });
+          return res.status(404).json({ error: "Email is wrong" });
         }
       } catch (fsError) {
         console.warn("Firestore name lookup failed (possibly gRPC cert issue). Continuing with default name.", fsError.message);

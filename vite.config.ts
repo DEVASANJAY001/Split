@@ -73,8 +73,13 @@ export default defineConfig(({ mode }) => {
                         if (!userQuery.empty) {
                           const userData = userQuery.docs[0].data();
                           finalName = userData.displayName || userData.username || "User";
+                        } else {
+                          // Match the production API behavior
+                          throw new Error("Email is wrong");
                         }
                       } catch (fsError: any) {
+                        if (fsError.message === "Email is wrong") throw fsError;
+                        
                         // Silent error for gRPC/Firestore lookup in dev server
                         if (fsError.message?.includes("cert.pem") || fsError.message?.includes("ENOENT")) {
                            console.warn("Firestore lookup skipped (gRPC cert issue). Using default name.");

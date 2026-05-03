@@ -128,7 +128,7 @@ export default function SignUpPage() {
                 toast.success("Account created and verified!");
                 navigate("/profile-setup");
             } else {
-                throw new Error("Invalid OTP");
+                throw new Error("OTP is wrong");
             }
         } else {
             throw new Error("Verification code not found. Please resend.");
