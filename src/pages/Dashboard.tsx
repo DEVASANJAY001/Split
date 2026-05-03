@@ -106,7 +106,7 @@ export default function Dashboard() {
   if (mode === "personal") {
     return (
       <div>
-        <PageHeader title="SmartSplit" subtitle="Personal expenses" showModeSwitch />
+        <PageHeader title="Split" subtitle="Personal expenses" showModeSwitch />
         <div className="px-5 space-y-4">
           <div>
             <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden">
@@ -177,7 +177,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageHeader title="SmartSplit" subtitle="Shared expenses, simplified" showModeSwitch />
+      <PageHeader title="Split" subtitle="Shared expenses, simplified" showModeSwitch />
 
       <div className="px-5 space-y-4">
         <div>

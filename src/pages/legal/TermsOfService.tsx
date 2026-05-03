@@ -10,12 +10,12 @@ export default function TermsOfService() {
         <SurfaceCard padding="lg" className="prose prose-sm prose-slate dark:prose-invert max-w-none">
           <h2 className="text-lg font-bold text-ink">1. Agreement to Terms</h2>
           <p className="text-sm text-ink-soft leading-relaxed">
-            By accessing or using SmartSplit, provided by DAVNS Industries, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the service.
+            By accessing or using Split, provided by DAVNS Industries, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the service.
           </p>
 
           <h2 className="text-lg font-bold text-ink mt-6">2. Use of Service</h2>
           <p className="text-sm text-ink-soft leading-relaxed">
-            SmartSplit is a tool for tracking shared expenses. You are responsible for the accuracy of the data you enter. We do not handle actual financial transactions between users.
+            Split is a tool for tracking shared expenses. You are responsible for the accuracy of the data you enter. We do not handle actual financial transactions between users.
           </p>
 
           <h2 className="text-lg font-bold text-ink mt-6">3. User Accounts</h2>

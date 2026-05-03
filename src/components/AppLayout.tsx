@@ -1,9 +1,8 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Home, Users, BarChart3, Receipt, Plus, UserPlus, User, ArrowLeft } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { PersonAvatar } from "@/components/Avatar";
-import { motion, AnimatePresence } from "framer-motion";
 
 const tabs = [
   { to: "/", label: "Home", icon: Home },
@@ -14,6 +13,7 @@ const tabs = [
 ];
 
 export default function AppLayout() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { requests, lastSeenRequests } = useStore();
   const unreadCount = requests.filter(r => r.createdAt > lastSeenRequests).length;

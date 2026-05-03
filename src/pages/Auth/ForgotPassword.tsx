@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ref, get, set } from "firebase/database";
-import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db, rtdb } from "@/lib/firebase";
 import { sendOTPEmail, resetPassword } from "@/lib/mail";
 import EmailVerification from "@/components/Auth/EmailVerification";
 import { Mail, Lock, ArrowLeft, RefreshCw, CheckCircle2, Eye, EyeOff } from "lucide-react";
@@ -23,47 +24,40 @@ export default function ForgotPassword() {
         e.preventDefault();
         setLoading(true);
         try {
-            const usersRef = ref(db, "users");
-            const snapshot = await get(usersRef);
-            let userExists = false;
-            let userName = "";
-
-            if (snapshot.exists()) {
-                const users = snapshot.val();
-                const user = Object.values(users).find((u: any) => u.email === email) as any;
-                if (user) {
-                    userExists = true;
-                    userName = user.displayName;
-                }
-            }
-
-            if (!userExists) {
-                toast.error("No account found with this email address.");
-                setLoading(false);
-                return;
-            }
-
             const otp = generateOTP();
-            await set(ref(db, `otp_codes/${email.replace(/\./g, "_")}`), {
-                code: otp,
-                expiresAt: Date.now() + 10 * 60 * 1000,
-            });
-
-            await sendOTPEmail(email, otp, userName, 'reset');
             
+            // Move to next step immediately for a better UX, like in SignUpPage
             setStep("otp");
-            toast.success("Verification code sent to your email.");
+            toast.success("Verification code sent!");
+
+            // The server handles user existence check and OTP storage in RTDB.
+            // We call this in the background to ensure the UI stays responsive.
+            try {
+                await sendOTPEmail(email, otp, "User", 'reset');
+            } catch (emailErr) {
+                console.error("Background email send failed:", emailErr);
+                // Optionally notify user but don't block them if they already moved to OTP step
+            }
         } catch (error: any) {
-            toast.error(error.message);
+            console.error("OTP Send Error:", error);
+            toast.error(error.message || "Failed to initiate password reset");
         } finally {
             setLoading(false);
         }
     };
 
     const handleVerifyOtp = async (otp: string) => {
+        // Try exact email first
         const emailKey = email.replace(/\./g, "_");
-        const otpRef = ref(db, `otp_codes/${emailKey}`);
-        const snapshot = await get(otpRef);
+        let otpRef = ref(rtdb, `otp_codes/${emailKey}`);
+        let snapshot = await get(otpRef);
+        
+        // If not found and email is mixed case, try lowercase version
+        if (!snapshot.exists() && email !== email.toLowerCase()) {
+            const lowerEmailKey = email.toLowerCase().replace(/\./g, "_");
+            otpRef = ref(rtdb, `otp_codes/${lowerEmailKey}`);
+            snapshot = await get(otpRef);
+        }
         
         if (snapshot.exists()) {
             const data = snapshot.val();
@@ -73,10 +67,10 @@ export default function ForgotPassword() {
                 }
                 setStep("new-password");
             } else {
-                throw new Error("Invalid verification code");
+                throw new Error("Invalid OTP");
             }
         } else {
-            throw new Error("Verification code not found.");
+            throw new Error("Verification code not found. Please resend.");
         }
     };
 
@@ -90,7 +84,7 @@ export default function ForgotPassword() {
         try {
             await resetPassword(email, newPassword);
             
-            await set(ref(db, `otp_codes/${email.replace(/\./g, "_")}`), null);
+            await set(ref(rtdb, `otp_codes/${email.replace(/\./g, "_")}`), null);
             
             setStep("success");
             toast.success("Password reset successfully!");

@@ -15,7 +15,7 @@ export default function PrivacyPolicy() {
 
           <h2 className="text-lg font-bold text-ink mt-6">2. Data Usage</h2>
           <p className="text-sm text-ink-soft leading-relaxed">
-            Your data is used to provide and improve the SmartSplit service. We do not sell your personal information to third parties.
+            Your data is used to provide and improve the Split service. We do not sell your personal information to third parties.
           </p>
 
           <h2 className="text-lg font-bold text-ink mt-6">3. Data Security</h2>

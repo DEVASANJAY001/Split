@@ -356,7 +356,7 @@ export default function Friends() {
                 </button>
               </div>
               <div className="flex justify-center py-6 bg-white rounded-3xl shadow-soft border border-hairline">
-                <QRCode value={`smartsplit://user/${userId}`} size={240} label={`@${profile?.username || "you"}`} />
+                <QRCode value={`split://user/${userId}`} size={240} label={`@${profile?.username || "you"}`} />
               </div>
               <div className="p-4 bg-brand/5 rounded-2xl border border-brand/10">
                 <p className="text-sm font-bold text-brand">Your unique link is ready</p>

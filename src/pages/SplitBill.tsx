@@ -23,8 +23,8 @@ const CATEGORIES: Category[] = ["Food", "Travel", "Rent", "Utilities", "Shopping
 export default function SplitBill() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { groups, addExpense, addPersonalExpense, people, userId, appMode, profile, expenses } = useStore();
-  
+  const { groups, expenses, profile, userId, addExpense, addPersonalExpense, people, mode: appMode } = useStore();
+ 
   const recentGroupId = useMemo(() => {
     if (expenses.length > 0) {
       const sorted = [...expenses].sort((a, b) => b.createdAt - a.createdAt);
@@ -33,8 +33,9 @@ export default function SplitBill() {
     }
     return groups[groups.length - 1]?.id || "";
   }, [expenses, groups]);
-
-  const [groupId, setGroupId] = useState(params.get("group") || recentGroupId);
+ 
+  const initialGroupId = params.get("group") || recentGroupId;
+  const [groupId, setGroupId] = useState(initialGroupId);
   const group = groups.find((g) => g.id === groupId);
   const cur = group?.currency || profile?.currency || "USD";
 

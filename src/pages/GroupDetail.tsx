@@ -69,7 +69,7 @@ export default function GroupDetail() {
 
   const addMember = (pid: string) => {
     updateGroupMembers(group.id, [...group.memberIds, pid]);
-    toast.success("Member added");
+    // Removed success toast
   };
 
   return (
@@ -86,18 +86,6 @@ export default function GroupDetail() {
           </div>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => {
-              if (window.confirm("Are you sure you want to delete this group? All expenses will be lost.")) {
-                deleteGroup(group.id);
-                navigate("/groups");
-              }
-            }}
-            className="size-10 rounded-full bg-surface border border-hairline flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors"
-            aria-label="Delete group"
-          >
-            <Trash2 className="size-4" strokeWidth={2.25} />
-          </button>
           <button
             onClick={() => setShowChat(true)}
             className="size-10 rounded-full bg-surface border border-hairline flex items-center justify-center relative"
@@ -233,8 +221,7 @@ export default function GroupDetail() {
           ) : (
             <ul className="space-y-4">
               {groupExpenses.map((e) => {
-                const payer = personById(people, e.paidBy);
-                if (!payer) return null;
+                const payer = personById(people, e.paidBy)!;
                 return (
                   <li key={e.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
@@ -259,9 +246,8 @@ export default function GroupDetail() {
             <h3 className="text-base font-bold text-ink mb-4">Settled payments</h3>
             <ul className="space-y-3">
               {groupSettlements.map((s) => {
-                const from = personById(people, s.from);
-                const to = personById(people, s.to);
-                if (!from || !to) return null;
+                const from = personById(people, s.from)!;
+                const to = personById(people, s.to)!;
                 return (
                   <li key={s.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
@@ -331,7 +317,7 @@ export default function GroupDetail() {
             </div>
             <p className="text-xs text-ink-soft">Friends scan to instantly join this group.</p>
             <div className="flex justify-center">
-              <QRCode value={`smartsplit://group/${group.id}`} size={200} label={`${group.name} · ${members.length} members`} />
+              <QRCode value={`split://group/${group.id}`} size={200} label={`${group.name} · ${members.length} members`} />
             </div>
           </div>
         </div>

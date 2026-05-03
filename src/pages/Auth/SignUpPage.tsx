@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, signInWithPopup, fetchSignInMethodsForEmail } from "firebase/auth";
-import { auth, db, googleProvider } from "@/lib/firebase";
-import { doc, setDoc, getDoc, deleteDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { auth, db, rtdb, googleProvider } from "@/lib/firebase";
+import { ref, set, get } from "firebase/database";
 import EmailVerification from "@/components/Auth/EmailVerification";
 import { useStore } from "@/lib/store";
 import { sendOTPEmail } from "@/lib/mail";
 import { Mail, Lock, UserPlus, User, Eye, EyeOff, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { fetchSignInMethodsForEmail } from "firebase/auth";
 
 export default function SignUpPage() {
     const [email, setEmail] = useState("");
@@ -19,18 +20,20 @@ export default function SignUpPage() {
     const navigate = useNavigate();
 
     const [step, setStep] = useState<"signup" | "otp">("signup");
+    const [userIdState, setUserIdState] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
     const [emailStatus, setEmailStatus] = useState<"idle" | "available" | "taken">("idle");
 
     useEffect(() => {
-        if (!authLoading && userId && profile?.completedSetup && step === "signup") {
+        if (!authLoading && userId && profile?.isVerified && step === "signup") {
             navigate("/");
             return;
         }
 
         if (!authLoading && userId && profile && profile.isVerified === false && step === "signup") {
             setStep("otp");
+            setUserIdState(userId);
         }
     }, [userId, authLoading, navigate, step, profile]);
     
@@ -72,8 +75,7 @@ export default function SignUpPage() {
             }
 
             const otp = generateOTP();
-            const emailKey = email.replace(/\./g, "_");
-            await setDoc(doc(db, "otp_codes", emailKey), {
+            await set(ref(rtdb, `otp_codes/${email.replace(/\./g, "_")}`), {
                 code: otp,
                 expiresAt: Date.now() + 10 * 60 * 1000,
             });
@@ -95,11 +97,11 @@ export default function SignUpPage() {
 
     const handleVerifyOtp = async (otp: string) => {
         const emailKey = email.replace(/\./g, "_");
-        const otpRef = doc(db, "otp_codes", emailKey);
-        const snapshot = await getDoc(otpRef);
+        const otpRef = ref(rtdb, `otp_codes/${emailKey}`);
+        const snapshot = await get(otpRef);
         
         if (snapshot.exists()) {
-            const data = snapshot.data();
+            const data = snapshot.val();
             if (data.code === otp) {
                 if (Date.now() > data.expiresAt) {
                     throw new Error("OTP has expired. Please resend.");
@@ -107,22 +109,29 @@ export default function SignUpPage() {
                 
                 const { user } = await createUserWithEmailAndPassword(auth, email, password);
                 
+                // Use Firestore for user profile consistency
+                const { setDoc, doc } = await import("firebase/firestore");
                 await setDoc(doc(db, "users", user.uid), {
                     username: `@${name.toLowerCase().replace(/\s/g, "")}`,
                     displayName: name,
                     email: email,
-                    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
+                    avatar: "",
                     currency: "USD",
                     isVerified: true,
                     completedSetup: false,
                 });
+
+                // Add to usernames collection for searchability
+                await setDoc(doc(db, "usernames", name.toLowerCase().replace(/\s/g, "")), {
+                    uid: user.uid
+                });
                 
-                await deleteDoc(otpRef);
+                await set(otpRef, null);
                 
                 toast.success("Account created and verified!");
                 navigate("/profile-setup");
             } else {
-                throw new Error("Invalid verification code");
+                throw new Error("Invalid OTP");
             }
         } else {
             throw new Error("Verification code not found. Please resend.");
@@ -131,8 +140,7 @@ export default function SignUpPage() {
 
     const handleResendOtp = async () => {
         const otp = generateOTP();
-        const emailKey = email.replace(/\./g, "_");
-        await setDoc(doc(db, "otp_codes", emailKey), {
+        await set(ref(rtdb, `otp_codes/${email.replace(/\./g, "_")}`), {
             code: otp,
             expiresAt: Date.now() + 10 * 60 * 1000,
         });

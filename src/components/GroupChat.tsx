@@ -11,15 +11,12 @@ interface GroupChatProps {
 }
 
 export function GroupChat({ groupId, onClose }: GroupChatProps) {
-  const { messages: allMessages, sendMessage, userId, people } = useStore();
+  const { messages: allMessages, sendMessage, userId, people, groups } = useStore();
+  const group = groups.find(g => g.id === groupId);
   const messages = allMessages[groupId] || [];
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  // Shared motion value for swiping all messages at once (Instagram style)
-  const x = useMotionValue(0);
-  const timeOpacity = useTransform(x, [-60, -20], [1, 0]);
-
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({
@@ -42,108 +39,107 @@ export function GroupChat({ groupId, onClose }: GroupChatProps) {
 
   return (
     <motion.div 
-      initial={{ x: "100%" }}
-      animate={{ x: 0 }}
-      exit={{ x: "100%" }}
-      transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="fixed inset-0 z-[80] bg-surface flex flex-col shadow-2xl overflow-hidden"
+      initial={{ y: "100%", opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: "100%", opacity: 0 }}
+      transition={{ type: "spring", damping: 30, stiffness: 300 }}
+      className="fixed inset-0 z-[80] bg-[#F8FAFC] flex flex-col overflow-hidden"
     >
-      <header className="px-5 pt-8 pb-4 border-b border-hairline flex items-center justify-between bg-surface/90 backdrop-blur-xl sticky top-0 z-30">
-        <div className="flex items-center gap-3">
+      {/* Immersive Background Layer */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand/5 blur-[100px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand/5 blur-[100px] rounded-full" />
+      </div>
+
+      {/* Modern Header */}
+      <header className="px-5 py-4 flex items-center justify-between bg-white/80 backdrop-blur-2xl border-b border-slate-200/50 z-20 relative">
+        <div className="flex items-center gap-4">
           <button 
             onClick={onClose} 
-            className="size-10 rounded-full bg-surface-soft flex items-center justify-center hover:bg-hairline active:scale-90 transition-all"
+            className="size-10 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center hover:bg-slate-50 active:scale-95 transition-all text-slate-400"
           >
             <X className="size-5" />
           </button>
-          <div>
-            <h2 className="text-sm font-bold text-ink">Group Chat</h2>
-            <div className="flex items-center gap-1.5">
-              <div className="size-1.5 rounded-full bg-success animate-pulse" />
-              <p className="text-[10px] text-ink-soft uppercase tracking-widest font-black">Online</p>
+          <div className="flex flex-col">
+            <h2 className="text-base font-black text-slate-900 tracking-tightest leading-tight">
+              {group?.name || "Conversation"}
+            </h2>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Secure Channel</span>
             </div>
           </div>
         </div>
-        <div className="size-10 rounded-full bg-brand/10 text-brand flex items-center justify-center shadow-inner">
-          <MessageCircle className="size-5" />
+        <div className="flex -space-x-2">
+          {group?.memberIds?.slice(0, 3).map(id => {
+            const p = people.find(x => x.id === id);
+            return p ? <PersonAvatar key={id} person={p} size="sm" ring className="border-2 border-white shadow-sm" /> : null;
+          })}
         </div>
       </header>
 
-      {/* Main chat area with global drag */}
-      <div className="flex-1 overflow-hidden relative bg-surface-soft/30">
-        <div 
-          ref={scrollRef}
-          className="h-full overflow-y-auto scroll-smooth"
-        >
-          <motion.div
-            drag="x"
-            dragConstraints={{ left: -100, right: 0 }}
-            dragElastic={0.05}
-            dragDirectionLock
-            onDragEnd={() => animate(x, 0, { type: "spring", bounce: 0, duration: 0.4 })}
-            style={{ x }}
-            className="min-h-full p-5 space-y-1 relative"
-          >
-            <AnimatePresence initial={false}>
-              {messages.length === 0 ? (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="h-full min-h-[60vh] flex flex-col items-center justify-center text-center opacity-40 pointer-events-none"
-                >
-                  <div className="size-20 rounded-full bg-surface flex items-center justify-center mb-6 shadow-soft">
-                    <MessageCircle className="size-10 text-brand" />
-                  </div>
-                  <p className="text-sm font-bold text-ink">No messages yet</p>
-                  <p className="text-[11px] text-ink-soft mt-1">Be the first to say hi!</p>
-                </motion.div>
-              ) : (
-                messages.map((m, i) => {
-                  const isMe = m.senderId === userId;
-                  const sender = personById(people, m.senderId);
-                  const isSameAsNext = i < messages.length - 1 && messages[i + 1].senderId === m.senderId;
-                  const isSameAsPrev = i > 0 && messages[i - 1].senderId === m.senderId;
-                  const showAvatar = !isMe && !isSameAsNext;
-                  const showName = !isMe && !isSameAsPrev;
-                  const time = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      {/* Main Message Stream */}
+      <div 
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-6 py-6 space-y-1.5 scroll-smooth z-10 relative"
+      >
+        <AnimatePresence initial={false}>
+          {messages.length === 0 ? (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="h-full flex flex-col items-center justify-center text-center opacity-30"
+            >
+              <MessageCircle className="size-12 mb-4" strokeWidth={1.5} />
+              <p className="text-sm font-bold tracking-tightest uppercase">Start Chatting</p>
+            </motion.div>
+          ) : (
+            messages.map((m, i) => {
+              const isMe = m.senderId === userId;
+              const sender = personById(people, m.senderId);
+              const isNextSame = i < messages.length - 1 && messages[i + 1].senderId === m.senderId;
+              const isPrevSame = i > 0 && messages[i - 1].senderId === m.senderId;
+              const time = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                  return (
-                    <MessageBubble 
-                      key={m.id}
-                      message={m}
-                      isMe={isMe}
-                      sender={sender}
-                      showAvatar={showAvatar}
-                      showName={showName}
-                      isSameAsNext={isSameAsNext}
-                      time={time}
-                      timeOpacity={timeOpacity}
-                    />
-                  );
-                })
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </div>
+              return (
+                <MessageItem 
+                  key={m.id}
+                  message={m}
+                  isMe={isMe}
+                  sender={sender}
+                  isFirst={!isPrevSame}
+                  isLast={!isNextSame}
+                  time={time}
+                />
+              );
+            })
+          )}
+        </AnimatePresence>
       </div>
 
-      <div className="p-4 bg-surface border-t border-hairline safe-area-bottom z-30">
-        <form onSubmit={handleSend} className="flex items-center gap-3 bg-surface-soft rounded-[1.75rem] p-1.5 pr-2 focus-within:ring-2 focus-within:ring-brand/20 transition-all border border-hairline/30 shadow-sm">
+      {/* Input Area */}
+      <div className="p-4 bg-white/60 backdrop-blur-xl border-t border-slate-200/50 z-20 relative safe-area-bottom">
+        <form 
+          onSubmit={handleSend} 
+          className="flex items-center gap-3 bg-slate-100/50 rounded-[28px] p-1.5 pl-6 border border-slate-200/30"
+        >
           <input 
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1 bg-transparent px-4 py-2.5 text-sm font-medium outline-none placeholder:text-ink-soft/60"
+            className="flex-1 bg-transparent py-2.5 text-sm font-bold outline-none placeholder:text-slate-400 text-slate-800"
           />
           <button 
             type="submit"
             disabled={!text.trim()}
             className={cn(
-              "size-10 rounded-full flex items-center justify-center transition-all shadow-lg active:scale-90",
-              text.trim() ? "bg-brand text-white shadow-brand/20" : "bg-ink-soft/10 text-ink-soft grayscale opacity-50"
+              "size-10 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-sm",
+              text.trim() 
+                ? "bg-slate-900 text-white" 
+                : "bg-slate-200 text-slate-400"
             )}
           >
-            <Send className="size-5" />
+            <Send className="size-5" strokeWidth={2.5} />
           </button>
         </form>
       </div>
@@ -151,51 +147,66 @@ export function GroupChat({ groupId, onClose }: GroupChatProps) {
   );
 }
 
-function MessageBubble({ message, isMe, sender, showAvatar, showName, isSameAsNext, time, timeOpacity }: any) {
+function MessageItem({ message, isMe, sender, isFirst, isLast, time }: any) {
+  const x = useMotionValue(0);
+  // Sent (isMe): Drag Right to see time on Left
+  // Received (!isMe): Drag Left to see time on Right
+  const timeOpacity = useTransform(x, isMe ? [20, 60] : [-60, -20], isMe ? [0, 1] : [1, 0]);
+
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
       className={cn(
-        "w-full flex flex-col relative",
+        "flex flex-col relative",
         isMe ? "items-end" : "items-start",
-        !isSameAsNext && "mb-3"
+        isLast ? "mb-4" : "mb-0.5"
       )}
     >
-      {showName && !isMe && (
-        <span className="text-[10px] font-bold text-ink-soft ml-11 mb-1 opacity-60 uppercase tracking-widest">{sender?.name.split(" ")[0]}</span>
+      {isFirst && !isMe && (
+        <span className="text-[9px] font-black text-slate-400 ml-1 mb-1.5 uppercase tracking-widest leading-none opacity-60">{sender?.name.split(" ")[0]}</span>
       )}
-      <div className="flex items-end gap-2 max-w-[85%] relative">
-        {!isMe && (
-          <div className="size-8 shrink-0">
-            {showAvatar ? (
-              <PersonAvatar person={sender!} size="sm" />
-            ) : (
-              <div className="size-8" />
-            )}
-          </div>
+      
+      <div className="flex items-end gap-3 max-w-[85%] relative">
+        {/* Sent Time (Left Reveal) */}
+        {isMe && (
+          <motion.div 
+            style={{ opacity: timeOpacity }}
+            className="absolute left-[-60px] whitespace-nowrap text-[9px] font-black text-slate-400 flex items-center h-full pointer-events-none uppercase tracking-widest"
+          >
+            {time}
+          </motion.div>
         )}
-        
-        <div
+
+        <motion.div
+          drag="x"
+          dragConstraints={isMe ? { left: 0, right: 80 } : { left: -80, right: 0 }}
+          dragElastic={0.1}
+          style={{ x }}
+          onDragEnd={() => animate(x, 0, { type: "spring", bounce: 0, duration: 0.5 })}
           className={cn(
-            "px-4 py-2.5 rounded-2xl text-sm font-medium shadow-sm transition-colors relative z-10",
+            "px-4 py-2.5 text-sm font-bold shadow-sm transition-all cursor-grab active:cursor-grabbing select-none",
             isMe 
-              ? "bg-brand text-white rounded-tr-sm" 
-              : "bg-white text-ink rounded-tl-sm border border-hairline/50"
+              ? "bg-slate-900 text-white" 
+              : "bg-white text-slate-800 border border-slate-100",
+            isMe
+              ? (isFirst ? "rounded-[20px] rounded-tr-none" : isLast ? "rounded-[20px] rounded-br-[4px]" : "rounded-[20px] rounded-r-[4px]")
+              : (isFirst ? "rounded-[20px] rounded-tl-none" : isLast ? "rounded-[20px] rounded-bl-[4px]" : "rounded-[20px] rounded-l-[4px]")
           )}
         >
           {message.text}
-        </div>
-      </div>
+        </motion.div>
 
-      {/* Timestamp reveal - Instagram style (fixed relative to row) */}
-      <motion.div 
-        style={{ opacity: timeOpacity }}
-        className="absolute left-[calc(100%+1rem)] whitespace-nowrap text-[10px] font-bold text-ink-soft flex items-center h-full pointer-events-none"
-      >
-        <Clock className="size-3 mr-1 opacity-30" />
-        {time}
-      </motion.div>
+        {/* Received Time (Right Reveal) */}
+        {!isMe && (
+          <motion.div 
+            style={{ opacity: timeOpacity }}
+            className="absolute right-[-60px] whitespace-nowrap text-[9px] font-black text-slate-400 flex items-center h-full pointer-events-none uppercase tracking-widest"
+          >
+            {time}
+          </motion.div>
+        )}
+      </div>
     </motion.div>
   );
 }

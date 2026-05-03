@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ALL_CURRENCIES } from "@/lib/currency-data";
 import { auth } from "@/lib/firebase";
+import ImageCropper from "@/components/ImageCropper";
 
 export default function ProfileSetup() {
     const { profile, updateProfile, uploadAvatar, loading, isUsernameAvailable } = useStore();
@@ -16,6 +17,11 @@ export default function ProfileSetup() {
     const [isCheckingUsername, setIsCheckingUsername] = useState(false);
     const [usernameStatus, setUsernameStatus] = useState<"idle" | "available" | "taken">("idle");
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    
+    // Cropper state
+    const [cropperOpen, setCropperOpen] = useState(false);
+    const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -29,6 +35,35 @@ export default function ProfileSetup() {
             setIsInitialLoad(false);
         }
     }, [profile, isInitialLoad]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setImageToCrop(reader.result as string);
+            setCropperOpen(true);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleCropComplete = async (croppedBlob: Blob) => {
+        setCropperOpen(false);
+        const file = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+        
+        try {
+            setSaving(true);
+            const url = await uploadAvatar(file);
+            await updateProfile({ avatar: url });
+            toast.success("Photo updated");
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setSaving(false);
+            setImageToCrop(null);
+        }
+    };
 
     useEffect(() => {
         const finalUsername = username.startsWith("@") ? username : `@${username}`;
@@ -113,21 +148,21 @@ export default function ProfileSetup() {
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
-                                onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-                                    try {
-                                        const url = await uploadAvatar(file);
-                                        await updateProfile({ avatar: url });
-                                        toast.success("Photo updated");
-                                    } catch (err: any) {
-                                        toast.error(err.message);
-                                    }
-                                }}
+                                onChange={handleFileChange}
                             />
                         </label>
                     </div>
                 </div>
+
+                <ImageCropper
+                    image={imageToCrop}
+                    open={cropperOpen}
+                    onCropComplete={handleCropComplete}
+                    onCancel={() => {
+                        setCropperOpen(false);
+                        setImageToCrop(null);
+                    }}
+                />
 
                 <form onSubmit={handleSave} className="space-y-5">
                     <div className="space-y-2">

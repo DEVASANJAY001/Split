@@ -11,6 +11,7 @@ import { fmt } from "@/lib/finance";
 import { Settings, QrCode, X, Pencil, Users, Receipt, Camera, Loader2, CheckCircle2, AlertCircle, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import ImageCropper from "@/components/ImageCropper";
 
 const currencies = [
   { code: "USD", symbol: "$" },
@@ -22,7 +23,7 @@ const currencies = [
 export default function Profile() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { profile, updateProfile, uploadAvatar, friendIds, groups, expenses, personal, userId, isUsernameAvailable } = useStore();
+  const { profile, updateProfile, uploadAvatar, friendIds, groups, expenses, personal, userId, isUsernameAvailable, loading } = useStore();
   const [showQR, setShowQR] = useState(false);
   const [editing, setEditing] = useState(false);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
@@ -30,6 +31,8 @@ export default function Profile() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [draft, setDraft] = useState(profile || { displayName: "", username: "", email: "", avatar: "", currency: "USD" });
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
   useEffect(() => {
     // Only update draft from profile if NOT editing
@@ -38,22 +41,36 @@ export default function Profile() {
     }
   }, [profile, editing]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      return toast.error("File size must be less than 2MB");
+    if (file.size > 5 * 1024 * 1024) {
+      return toast.error("File size must be less than 5MB");
     }
 
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageToCrop(reader.result as string);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setCropperOpen(false);
+    const file = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+    
     try {
       setUploading(true);
-      await uploadAvatar(file);
+      const url = await uploadAvatar(file);
+      await updateProfile({ avatar: url });
       toast.success("Avatar updated");
     } catch (err: any) {
       toast.error("Failed to upload: " + err.message);
     } finally {
       setUploading(false);
+      setImageToCrop(null);
     }
   };
 
@@ -81,6 +98,14 @@ export default function Profile() {
     return () => clearTimeout(delay);
   }, [draft.username, editing, profile?.username, isUsernameAvailable]);
 
+  if (loading || (!profile && userId)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="size-8 text-brand animate-spin" />
+      </div>
+    );
+  }
+
   if (!profile) return null;
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,6 +113,7 @@ export default function Profile() {
     if (!file) return;
 
     setUploading(true);
+    // Removed loading and success toasts per user request
     try {
       const url = await uploadAvatar(file);
       setDraft({ ...draft, avatar: url });
@@ -107,6 +133,7 @@ export default function Profile() {
     try {
       await updateProfile(draft as any);
       setEditing(false);
+      // Removed "Profile saved" toast per user request
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -134,59 +161,95 @@ export default function Profile() {
       />
 
       <div className="px-5 space-y-4">
-        <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden">
-          <div className="flex items-center gap-4">
-            <div className="relative group shrink-0">
-              <div className="size-xl rounded-full overflow-hidden ring-2 ring-surface relative shadow-sm">
-                <img key={profile.avatar} src={profile.avatar} alt="" className={cn("size-full object-cover transition-opacity", uploading && "opacity-40")} />
+        <div className="bg-brand rounded-[32px] p-8 relative overflow-hidden shadow-brand shadow-lg">
+          <div className="flex flex-col items-center text-center gap-4 relative z-10">
+            <div className="relative group">
+              <div className="size-24 rounded-full border-4 border-white/20 shadow-xl overflow-hidden relative bg-white/10 backdrop-blur-md">
+                <img 
+                  key={profile.avatar} 
+                  src={profile.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.displayName || "User"}`} 
+                  alt="" 
+                  className={cn("size-full object-cover transition-opacity", uploading && "opacity-40")} 
+                />
                 {uploading && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="size-6 text-brand-foreground animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <Loader2 className="size-8 text-white animate-spin" />
                   </div>
                 )}
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="absolute -bottom-1 -right-1 size-8 rounded-full bg-surface shadow-md border border-hairline flex items-center justify-center text-ink hover:text-brand transition-colors active:scale-90"
+                className="absolute -bottom-1 -right-1 size-9 rounded-full bg-white shadow-xl flex items-center justify-center text-brand hover:scale-110 transition-all active:scale-90 border-2 border-brand"
               >
-                <Camera className="size-4" strokeWidth={2.5} />
+                <Camera className="size-4" strokeWidth={3} />
               </button>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xl font-bold tracking-tightest truncate">{profile.displayName}</p>
-              <p className="text-sm opacity-90 truncate">{profile.username}</p>
-              <p className="text-[11px] opacity-80 truncate">{profile.email}</p>
+            
+            <div className="space-y-1">
+              <h2 className="text-2xl font-black text-white tracking-tightest leading-none">{profile.displayName}</h2>
+              <div className="flex items-center justify-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold text-white uppercase tracking-wider backdrop-blur-md border border-white/10">
+                  {profile.username}
+                </span>
+              </div>
             </div>
+
             <button
               onClick={() => {
-                setDraft(profile); // Reset draft to current profile before editing
+                setDraft(profile);
                 setEditing(true);
               }}
-              aria-label="Edit profile"
-              className="size-10 rounded-full bg-brand-foreground/20 flex items-center justify-center shrink-0 active:scale-90 transition-all z-10"
+              className="mt-2 bg-white/10 hover:bg-white/20 text-white/90 px-6 py-2 rounded-full text-xs font-bold border border-white/10 backdrop-blur-md transition-all active:scale-95"
             >
-              <Edit2 className="size-5" strokeWidth={2.5} />
+              Edit Profile
             </button>
           </div>
-          <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />
-        </SurfaceCard>
 
-        <div className="grid grid-cols-3 gap-3">
-          <SurfaceCard padding="md" className="text-center">
-            <Users className="size-4 text-brand mx-auto" />
-            <p className="text-lg font-bold text-ink mt-1">{friendIds.length}</p>
-            <p className="text-[10px] text-ink-soft">Friends</p>
+          {/* Decorative background elements */}
+          <div className="absolute -right-10 -top-10 size-40 rounded-full bg-white/10 blur-2xl" />
+          <div className="absolute -left-10 -bottom-10 size-40 rounded-full bg-white/5 blur-2xl" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <SurfaceCard padding="md" className="flex items-center gap-3">
+            <div className="size-10 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
+              <Users className="size-5" />
+            </div>
+            <div>
+              <p className="text-lg font-black text-ink leading-none">{friendIds.length}</p>
+              <p className="text-[10px] text-ink-soft font-bold uppercase tracking-wider mt-1">Friends</p>
+            </div>
           </SurfaceCard>
-          <SurfaceCard padding="md" className="text-center">
-            <Users className="size-4 text-brand mx-auto" />
-            <p className="text-lg font-bold text-ink mt-1">{groups.length}</p>
-            <p className="text-[10px] text-ink-soft">Groups</p>
+          
+          <SurfaceCard padding="md" className="flex items-center gap-3">
+            <div className="size-10 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
+              <Users className="size-5" />
+            </div>
+            <div>
+              <p className="text-lg font-black text-ink leading-none">{groups.length}</p>
+              <p className="text-[10px] text-ink-soft font-bold uppercase tracking-wider mt-1">Groups</p>
+            </div>
           </SurfaceCard>
-          <SurfaceCard padding="md" className="text-center">
-            <Receipt className="size-4 text-brand mx-auto" />
-            <p className="text-lg font-bold text-ink mt-1 tabular-nums">{expenses.length + personal.length}</p>
-            <p className="text-[10px] text-ink-soft">Expenses</p>
+
+          <SurfaceCard padding="md" className="flex items-center gap-3 border-emerald-500/10">
+            <div className="size-10 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+              <Receipt className="size-5" />
+            </div>
+            <div>
+              <p className="text-lg font-black text-ink leading-none tabular-nums">{personal.length}</p>
+              <p className="text-[10px] text-ink-soft font-bold uppercase tracking-wider mt-1">Personal</p>
+            </div>
+          </SurfaceCard>
+
+          <SurfaceCard padding="md" className="flex items-center gap-3 border-brand/10">
+            <div className="size-10 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
+              <Receipt className="size-5" />
+            </div>
+            <div>
+              <p className="text-lg font-black text-ink leading-none tabular-nums">{expenses.length}</p>
+              <p className="text-[10px] text-ink-soft font-bold uppercase tracking-wider mt-1">Shared</p>
+            </div>
           </SurfaceCard>
         </div>
 
@@ -243,49 +306,7 @@ export default function Profile() {
         >
           Sign Out
         </button>
-
-        <SurfaceCard padding="lg" className="border-destructive/20 bg-destructive/5 mt-8">
-          <h3 className="text-base font-bold text-destructive mb-2">Danger Zone</h3>
-          <p className="text-xs text-ink-soft mb-4">Deleting your account is permanent and will remove all your data.</p>
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="w-full bg-destructive text-destructive-foreground py-3.5 rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all"
-          >
-            Delete Account
-          </button>
-        </SurfaceCard>
       </div>
-
-      {confirmDelete && (
-        <div className="fixed inset-0 z-[70] bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setConfirmDelete(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 text-center shadow-2xl animate-in zoom-in-95 duration-200">
-            <AlertCircle className="size-12 text-destructive mx-auto mb-3" />
-            <h3 className="text-xl font-bold tracking-tightest text-ink">Delete Account?</h3>
-            <p className="text-sm text-ink-soft mt-2 mb-6">This action is permanent and will remove all your data. This cannot be undone.</p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="py-3.5 rounded-xl bg-surface-soft font-bold text-ink hover:bg-surface transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    await useStore.getState().deleteAccount();
-                    navigate("/login");
-                  } catch (error: any) {
-                    toast.error("Failed to delete: " + error.message);
-                  }
-                }}
-                className="py-3.5 rounded-xl bg-destructive font-bold text-white shadow-sm active:scale-95 transition-all"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showQR && (
         <div className="fixed inset-0 z-[70] bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowQR(false)}>
@@ -298,11 +319,12 @@ export default function Profile() {
             </div>
             <p className="text-sm text-ink-soft">Friends scan this to add you instantly.</p>
             <div className="flex justify-center">
-              <QRCode value={`smartsplit://user/${userId}`} size={220} label={`${profile.username}`} />
+              <QRCode value={`split://user/${userId}`} size={220} label={`${profile.username}`} />
             </div>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(`https://${window.location.host}/user/${userId}`);
+                // Removed success toast
               }}
               className="w-full bg-brand/10 text-brand py-3 rounded-xl font-bold hover:bg-brand/20 active:scale-95 transition-all text-sm mt-4"
             >
@@ -402,6 +424,15 @@ export default function Profile() {
       )
       }
 
+      <ImageCropper
+        image={imageToCrop}
+        open={cropperOpen}
+        onCropComplete={handleCropComplete}
+        onCancel={() => {
+          setCropperOpen(false);
+          setImageToCrop(null);
+        }}
+      />
     </div>
   );
 }

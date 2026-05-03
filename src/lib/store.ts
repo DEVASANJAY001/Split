@@ -13,7 +13,7 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
+  collectionGroup,
   runTransaction,
 } from "firebase/firestore";
 import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -192,19 +192,24 @@ export const useStore = create<AppState>()(
       profile: null,
       userId: null,
       loading: true,
+      unsubs: [] as (() => void)[],
       setMode: (m) => set({ mode: m }),
       initialize: () => {
         onAuthStateChanged(auth, async (user) => {
+          // Unsubscribe from all existing listeners
+          get().unsubs.forEach((unsub) => unsub());
+          const newUnsubs: (() => void)[] = [];
+
           if (user) {
             const uid = user.uid;
             set({ userId: uid });
 
             // 1. Profile subscription
             const userRef = doc(db, "users", uid);
-            onSnapshot(userRef, async (snapshot) => {
+            newUnsubs.push(onSnapshot(userRef, async (snapshot) => {
               if (snapshot.exists()) {
                 const data = snapshot.data() as Profile;
-                set({ profile: data });
+                set({ profile: data, loading: false });
 
                 // Sync global people registry
                 const personRef = doc(db, "people", uid);
@@ -213,7 +218,7 @@ export const useStore = create<AppState>()(
                   {
                     id: uid,
                     name: data.displayName || data.username || "User",
-                    email: data.email || (data.username ? data.username + "@smartsplit.app" : "user@smartsplit.app"),
+                    email: data.email || (data.username ? data.username + "@split.app" : "user@split.app"),
                     avatar: data.avatar || "",
                     initials: (data.displayName || data.username || "U").slice(0, 2).toUpperCase(),
                   },
@@ -224,80 +229,67 @@ export const useStore = create<AppState>()(
                   const handle = data.username.replace("@", "").toLowerCase();
                   await setDoc(doc(db, "usernames", handle), { uid });
                 }
+              } else {
+                set({ profile: null, loading: false });
               }
-            });
+            }, (error) => {
+              console.error("Profile fetch error:", error);
+              set({ loading: false });
+            }));
 
             // 2. Groups subscription
             const groupsQuery = query(
               collection(db, "groups"),
               where("memberIds", "array-contains", uid),
             );
-            onSnapshot(groupsQuery, (snapshot) => {
+            newUnsubs.push(onSnapshot(groupsQuery, (snapshot) => {
               const groupsList = snapshot.docs.map(
                 (d) => ({ ...d.data(), id: d.id }) as Group,
               );
               set({ groups: groupsList });
 
-              // 3. Dependent subscriptions: Expenses, Settlements & Messages
+              // 3. Dependent subscriptions (Expenses/Settlements)
               if (groupsList.length > 0) {
                 const groupIds = groupsList.map((g) => g.id);
-
-                // Expenses
                 const expensesQuery = query(
                   collection(db, "expenses"),
                   where("groupId", "in", groupIds.slice(0, 30)),
                 );
-                onSnapshot(expensesQuery, (expSnap) => {
+                newUnsubs.push(onSnapshot(expensesQuery, (expSnap) => {
                   set({
                     expenses: expSnap.docs.map(
                       (d) => ({ ...d.data(), id: d.id }) as Expense,
                     ),
                   });
-                });
+                }));
 
-                // Settlements
                 const settlementsQuery = query(
                   collection(db, "settlements"),
                   where("groupId", "in", groupIds.slice(0, 30)),
                 );
-                onSnapshot(settlementsQuery, (setSnap) => {
+                newUnsubs.push(onSnapshot(settlementsQuery, (setSnap) => {
                   set({
                     settlements: setSnap.docs.map(
                       (d) => ({ ...d.data(), id: d.id }) as Settlement,
                     ),
                   });
-                });
-
-                // Messages (Realtime listener for each group)
-                groupsList.forEach(g => {
-                    const messagesQuery = query(
-                        collection(db, "groups", g.id, "messages"),
-                        orderBy("createdAt", "asc")
-                    );
-                    onSnapshot(messagesQuery, (msgSnap) => {
-                        const msgs = msgSnap.docs.map(d => ({ ...d.data(), id: d.id }) as Message);
-                        set(state => ({
-                            messages: { ...state.messages, [g.id]: msgs }
-                        }));
-                    });
-                });
-
+                }));
               } else {
-                set({ expenses: [], settlements: [], messages: {} });
+                set({ expenses: [], settlements: [] });
               }
-            });
+            }));
 
             // 4. People registry
-            onSnapshot(collection(db, "people"), (s) => {
+            newUnsubs.push(onSnapshot(collection(db, "people"), (s) => {
               set({
                 people: s.docs.map(
                   (d) => ({ ...d.data(), id: d.id }) as Person,
                 ),
               });
-            });
+            }));
 
             // 5. Personal Expenses
-            onSnapshot(
+            newUnsubs.push(onSnapshot(
               collection(db, "users", uid, "personal_expenses"),
               (s) => {
                 set({
@@ -306,20 +298,20 @@ export const useStore = create<AppState>()(
                   ),
                 });
               },
-            );
+            ));
 
             // 6. Friend Requests
-            onSnapshot(collection(db, "users", uid, "friend_requests"), (s) => {
+            newUnsubs.push(onSnapshot(collection(db, "users", uid, "friend_requests"), (s) => {
               set({
                 requests: s.docs.map(
                   (d) => ({ ...d.data(), id: d.id }) as FriendRequest,
                 ),
               });
-            });
+            }));
 
-            // 7. Friends list
+            // 7. Friends list (with legacy migration)
             const friendsRef = doc(db, "users", uid, "private", "friends");
-            onSnapshot(friendsRef, (s) => {
+            newUnsubs.push(onSnapshot(friendsRef, async (s) => {
               if (s.exists()) {
                 const friendIds = s.data().ids || [];
                 set((state) => ({
@@ -328,10 +320,37 @@ export const useStore = create<AppState>()(
                     (o) => !o.targetUid || !friendIds.includes(o.targetUid),
                   ),
                 }));
+              } else {
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                  const data = userSnap.data();
+                  const legacyIds = data.friendIds || data.friends || [];
+                  if (Array.isArray(legacyIds) && legacyIds.length > 0) {
+                    await setDoc(friendsRef, { ids: legacyIds }, { merge: true });
+                  }
+                }
               }
-            });
+            }));
 
-            set({ loading: false });
+            // 8. Messages
+            newUnsubs.push(onSnapshot(collection(db, "messages"), (s) => {
+              const all = s.docs.map(d => ({ ...d.data(), id: d.id }) as Message);
+              const grouped: Record<string, Message[]> = {};
+              all.forEach(m => {
+                if (!grouped[m.groupId]) grouped[m.groupId] = [];
+                grouped[m.groupId].push(m);
+              });
+              Object.keys(grouped).forEach(gid => grouped[gid].sort((a, b) => a.createdAt - b.createdAt));
+              set({ messages: grouped });
+            }));
+ 
+            // 9. Migration & Finalize
+            const currentOutgoing = get().outgoing;
+            const cleanedOutgoing = (currentOutgoing || []).map(o => {
+              if (typeof o === 'string') return { username: o, displayName: o, requestId: "legacy", createdAt: Date.now() };
+              return o;
+            }).filter(o => o && o.username);
+            set({ outgoing: cleanedOutgoing, unsubs: newUnsubs });
           } else {
             set({
               profile: null,
@@ -343,7 +362,7 @@ export const useStore = create<AppState>()(
               requests: [],
               friendIds: [],
               people: [],
-              messages: {},
+              unsubs: [],
             });
           }
         });
@@ -415,22 +434,47 @@ export const useStore = create<AppState>()(
 
         if (!senderUid) return;
 
+        // 4. Get reciprocal request if exists (Read before transaction writes)
+        const reciprocalRef = query(
+          collection(db, "users", senderUid, "friend_requests"),
+          where("fromUid", "==", userId),
+        );
+        const reciprocalSnap = await getDocs(reciprocalRef);
+        const reciprocalDocRefs = reciprocalSnap.docs.map((d) => d.ref);
+
         await runTransaction(db, async (transaction) => {
           const receiverFriendsRef = doc(db, "users", userId, "private", "friends");
-          const recSnap = await transaction.get(receiverFriendsRef);
-          const recFriends = recSnap.exists() ? recSnap.data().ids || [] : [];
-          if (!recFriends.includes(senderUid)) {
-            transaction.set(receiverFriendsRef, { ids: [...recFriends, senderUid] }, { merge: true });
-          }
-
           const senderFriendsRef = doc(db, "users", senderUid, "private", "friends");
+
+          // READS FIRST
+          const recSnap = await transaction.get(receiverFriendsRef);
           const senSnap = await transaction.get(senderFriendsRef);
+
+          const recFriends = recSnap.exists() ? recSnap.data().ids || [] : [];
           const senFriends = senSnap.exists() ? senSnap.data().ids || [] : [];
-          if (!senFriends.includes(userId)) {
-            transaction.set(senderFriendsRef, { ids: [...senFriends, userId] }, { merge: true });
+
+          // WRITES SECOND
+          if (!recFriends.includes(senderUid)) {
+            transaction.set(
+              receiverFriendsRef,
+              { ids: [...recFriends, senderUid] },
+              { merge: true },
+            );
           }
 
+          if (!senFriends.includes(userId)) {
+            transaction.set(
+              senderFriendsRef,
+              { ids: [...senFriends, userId] },
+              { merge: true },
+            );
+          }
+
+          // Delete current request
           transaction.delete(doc(db, "users", userId, "friend_requests", id));
+
+          // Delete reciprocal requests
+          reciprocalDocRefs.forEach((ref) => transaction.delete(ref));
         });
       },
       declineRequest: async (id) => {
@@ -456,6 +500,21 @@ export const useStore = create<AppState>()(
             return;
           }
 
+          // 1. Check if already friends
+          if (get().friendIds.includes(targetUid)) {
+            toast.error("You are already friends!");
+            return;
+          }
+ 
+          // 2. Check if there is already an incoming request from this user
+          const incomingReq = get().requests.find(r => r.fromUid === targetUid);
+          if (incomingReq) {
+            // If they already sent us a request, just accept it!
+            await get().acceptRequest(incomingReq.id);
+            toast.success(`You are now friends with ${extra?.displayName || username}!`);
+            return;
+          }
+ 
           const reqRef = collection(db, "users", targetUid, "friend_requests");
           const newDoc = await addDoc(reqRef, {
             fromUsername: profile.username,
@@ -478,6 +537,8 @@ export const useStore = create<AppState>()(
               },
             ],
           }));
+
+          // Removed success toast
         } catch (error) {
           console.error("Send request error", error);
           toast.error("Failed to send request.");
@@ -495,7 +556,9 @@ export const useStore = create<AppState>()(
           const snap = await getDoc(doc(db, "usernames", handle));
           if (snap.exists()) {
             const targetUid = snap.data().uid;
-            await deleteDoc(doc(db, "users", targetUid, "friend_requests", out.requestId));
+            await deleteDoc(
+              doc(db, "users", targetUid, "friend_requests", out.requestId),
+            );
           }
         } catch (e) {
           console.error("Withdrawal error", e);
@@ -513,17 +576,22 @@ export const useStore = create<AppState>()(
           const userFriendsRef = doc(db, "users", userId, "private", "friends");
           const otherFriendsRef = doc(db, "users", id, "private", "friends");
 
+          // READS FIRST
           const userSnap = await transaction.get(userFriendsRef);
+          const otherSnap = await transaction.get(otherFriendsRef);
+
+          // WRITES SECOND
           if (userSnap.exists()) {
             transaction.update(userFriendsRef, {
               ids: (userSnap.data().ids || []).filter((x: string) => x !== id),
             });
           }
 
-          const otherSnap = await transaction.get(otherFriendsRef);
           if (otherSnap.exists()) {
             transaction.update(otherFriendsRef, {
-              ids: (otherSnap.data().ids || []).filter((x: string) => x !== userId),
+              ids: (otherSnap.data().ids || []).filter(
+                (x: string) => x !== userId,
+              ),
             });
           }
         });
@@ -542,6 +610,7 @@ export const useStore = create<AppState>()(
         const userId = auth.currentUser?.uid;
         if (!userId) throw new Error("Not authenticated");
 
+        // Helper for Base64 fallback
         const getBase64 = (f: Blob): Promise<string> => new Promise((res, rej) => {
           const reader = new FileReader();
           reader.readAsDataURL(f);
@@ -551,19 +620,23 @@ export const useStore = create<AppState>()(
 
         try {
           const fileRef = sRef(storage, `avatars/${userId}`);
+ 
           const uploadTask = async () => {
             await uploadBytes(fileRef, file);
             return getDownloadURL(fileRef);
           };
-
+ 
           const timeout = new Promise<string>((_, reject) =>
-            setTimeout(() => reject(new Error("Storage upload timed out.")), 5000)
+            setTimeout(() => reject(new Error("Storage upload timed out. Ensure Firebase Storage is enabled and CORS is configured if on localhost.")), 15000)
           );
-
+ 
           return await Promise.race([uploadTask(), timeout]);
         } catch (err: any) {
-          console.warn("Cloud upload failed. Falling back to Base64.", err);
-          if (file.size > 500 * 1024) throw err;
+          console.warn("Cloud upload failed (possibly CORS or timeout). Falling back to Base64.", err);
+          if (file.size > 500 * 1024) {
+            toast.error("Image too large for fallback. Try a smaller image.");
+            throw err;
+          }
           return await getBase64(file);
         }
       },
@@ -598,7 +671,16 @@ export const useStore = create<AppState>()(
           }),
         );
 
-        return results.filter((r): r is { username: string; displayName: string; avatar: string; uid: string } => r !== null);
+        return results.filter(
+          (
+            r,
+          ): r is {
+            username: string;
+            displayName: string;
+            avatar: string;
+            uid: string;
+          } => r !== null,
+        );
       },
       markRequestsAsSeen: () => {
         set({ lastSeenRequests: Date.now() });
@@ -614,35 +696,53 @@ export const useStore = create<AppState>()(
         }
         await deleteDoc(doc(db, "users", userId));
         await deleteDoc(doc(db, "people", userId));
+        // Note: personal_expenses are in a subcollection, so they need recursive delete if needed,
+        // but for now deleteDoc on top-level is what was there.
         await auth.currentUser?.delete();
         set({ userId: null, profile: null });
       },
       updateGroupMembers: async (groupId, memberIds) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
         await updateDoc(doc(db, "groups", groupId), { memberIds });
       },
       deleteGroup: async (groupId) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
+
         await runTransaction(db, async (transaction) => {
-          const expSnap = await getDocs(query(collection(db, "expenses"), where("groupId", "==", groupId)));
+          // Delete expenses in group
+          const expSnap = await getDocs(
+            query(collection(db, "expenses"), where("groupId", "==", groupId)),
+          );
           expSnap.forEach((d) => transaction.delete(d.ref));
 
-          const setSnap = await getDocs(query(collection(db, "settlements"), where("groupId", "==", groupId)));
+          // Delete settlements in group
+          const setSnap = await getDocs(
+            query(
+              collection(db, "settlements"),
+              where("groupId", "==", groupId),
+            ),
+          );
           setSnap.forEach((d) => transaction.delete(d.ref));
 
+          // Delete group
           transaction.delete(doc(db, "groups", groupId));
         });
       },
       sendMessage: async (groupId, text) => {
         const userId = auth.currentUser?.uid;
         if (!userId) return;
-        await addDoc(collection(db, "groups", groupId, "messages"), {
+        await addDoc(collection(db, "messages"), {
+          groupId,
           senderId: userId,
           text,
           createdAt: Date.now(),
         });
-      },
+      }
     }),
     {
-      name: "smart-split-storage",
+      name: "split-storage",
       partialize: (state) => ({
         outgoing: state.outgoing,
         lastSeenRequests: state.lastSeenRequests,
@@ -655,8 +755,14 @@ export const useStore = create<AppState>()(
 export const personById = (people: Person[], id: string) =>
   people.find((p) => p.id === id);
 
-export function netBalances(group: Group, allExpenses: Expense[], allSettlements: Settlement[]) {
-  const net: Record<string, number> = Object.fromEntries(group.memberIds.map((id) => [id, 0]));
+export function netBalances(
+  group: Group,
+  allExpenses: Expense[],
+  allSettlements: Settlement[],
+) {
+  const net: Record<string, number> = Object.fromEntries(
+    group.memberIds.map((id) => [id, 0]),
+  );
   const groupExpenses = allExpenses.filter((e) => e.groupId === group.id);
   const groupSettlements = allSettlements.filter((s) => s.groupId === group.id);
 
@@ -686,10 +792,15 @@ export function simplifyDebts(net: Record<string, number>) {
   debtors.sort((a, b) => b.v - a.v);
   creditors.sort((a, b) => b.v - a.v);
   const out: { from: string; to: string; amount: number }[] = [];
-  let i = 0, j = 0;
+  let i = 0,
+    j = 0;
   while (i < debtors.length && j < creditors.length) {
     const pay = Math.min(debtors[i].v, creditors[j].v);
-    out.push({ from: debtors[i].id, to: creditors[j].id, amount: Math.round(pay * 100) / 100 });
+    out.push({
+      from: debtors[i].id,
+      to: creditors[j].id,
+      amount: Math.round(pay * 100) / 100,
+    });
     debtors[i].v -= pay;
     creditors[j].v -= pay;
     if (debtors[i].v < 0.01) i++;
@@ -698,19 +809,41 @@ export function simplifyDebts(net: Record<string, number>) {
   return out;
 }
 
-export function computeShares(total: number, participants: string[], mode: SplitMode, values: Record<string, number> = {}): Record<string, number> {
+export function computeShares(
+  total: number,
+  participants: string[],
+  mode: SplitMode,
+  values: Record<string, number> = {},
+): Record<string, number> {
   if (participants.length === 0) return {};
   if (mode === "equal") {
     const share = total / participants.length;
-    return Object.fromEntries(participants.map((p) => [p, Math.round(share * 100) / 100]));
+    return Object.fromEntries(
+      participants.map((p) => [p, Math.round(share * 100) / 100]),
+    );
   }
   if (mode === "percent") {
-    return Object.fromEntries(participants.map((p) => [p, Math.round(((total * (values[p] ?? 0)) / 100) * 100) / 100]));
+    return Object.fromEntries(
+      participants.map((p) => [
+        p,
+        Math.round(((total * (values[p] ?? 0)) / 100) * 100) / 100,
+      ]),
+    );
   }
   if (mode === "shares") {
-    const totalShares = Object.values(values).reduce((a, b) => a + (b || 0), 0) || participants.length;
+    const totalShares =
+      Object.values(values).reduce((a, b) => a + (b || 0), 0) ||
+      participants.length;
     const perShare = total / totalShares;
-    return Object.fromEntries(participants.map((p) => [p, Math.round(perShare * (values[p] ?? 1) * 100) / 100]));
+    return Object.fromEntries(
+      participants.map((p) => [
+        p,
+        Math.round(perShare * (values[p] ?? 1) * 100) / 100,
+      ]),
+    );
   }
-  return Object.fromEntries(participants.map((p) => [p, Math.round((values[p] ?? 0) * 100) / 100]));
+  // unequal / custom
+  return Object.fromEntries(
+    participants.map((p) => [p, Math.round((values[p] ?? 0) * 100) / 100]),
+  );
 }

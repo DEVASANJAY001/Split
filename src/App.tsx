@@ -33,23 +33,37 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="size-12 rounded-full border-4 border-brand border-t-transparent animate-spin" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-6">
+      <div className="relative">
+        <div className="size-20 rounded-full border-4 border-brand/10" />
+        <div className="absolute top-0 left-0 size-20 rounded-full border-4 border-brand border-t-transparent animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-2xl font-black italic text-brand select-none">s</span>
+        </div>
+      </div>
+      <div className="flex flex-col items-center gap-2 animate-pulse">
+        <h2 className="text-xl font-bold tracking-tightest italic">split</h2>
+        <p className="text-xs font-medium text-ink-soft uppercase tracking-widest">Checking your identity...</p>
+      </div>
     </div>
   );
 
   if (!userId) {
-    if (location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/get-started" || location.pathname === "/forgot-password") {
+    if (location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/get-started") {
       return <>{children}</>;
     }
     return <Navigate to="/get-started" replace />;
+  }
+
+  if (userId && !profile && location.pathname !== "/profile-setup") {
+    return <Navigate to="/profile-setup" replace />;
   }
 
   if (profile && !profile.completedSetup && location.pathname !== "/profile-setup") {
     return <Navigate to="/profile-setup" replace />;
   }
 
-  if (profile && profile.completedSetup && (location.pathname === "/profile-setup" || location.pathname === "/get-started" || location.pathname === "/login" || location.pathname === "/signup")) {
+  if (profile && profile.completedSetup && location.pathname === "/profile-setup") {
     return <Navigate to="/" replace />;
   }
 
@@ -103,8 +117,6 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
-        <Sonner />
-        <Toaster />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

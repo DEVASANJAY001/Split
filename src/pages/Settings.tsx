@@ -32,7 +32,7 @@ export default function Settings() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "smartsplit-export.csv";
+    a.download = "Split-export.csv";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -79,7 +79,7 @@ export default function Settings() {
               }
             />
           </SurfaceCard>
-
+ 
           <SurfaceCard padding="md">
             <Row
               icon={Bell}
@@ -88,14 +88,14 @@ export default function Settings() {
               trailing={<Toggle on={notify} onChange={setNotify} />}
             />
           </SurfaceCard>
-
+ 
           <SurfaceCard padding="md">
             <button onClick={exportCSV} className="w-full">
               <Row icon={Download} title="Export data" subtitle="Download as CSV" trailing={<ChevronRight className="size-4 text-ink-soft" />} />
             </button>
           </SurfaceCard>
         </section>
-
+ 
         <section className="space-y-3 pt-2">
           <h3 className="text-xs font-bold text-ink-soft uppercase tracking-widest ml-1">Support</h3>
           <SurfaceCard padding="md">
@@ -109,7 +109,7 @@ export default function Settings() {
             </Link>
           </SurfaceCard>
         </section>
-
+ 
         <section className="space-y-3 pt-2">
           <h3 className="text-xs font-bold text-ink-soft uppercase tracking-widest ml-1">Legal</h3>
           <SurfaceCard padding="md">
@@ -129,26 +129,14 @@ export default function Settings() {
           </SurfaceCard>
         </section>
 
-        <section className="space-y-3 pt-4">
-          <SurfaceCard padding="md">
-            <button
-              onClick={() => {
-                if (confirm("Reset local cache? This will NOT delete your Firebase data.")) {
-                  location.reload();
-                }
-              }}
-              className="w-full"
-            >
-              <Row icon={LogOut} title="Reset app" subtitle="Clear all local data" trailing={<span className="text-destructive font-bold text-[10px] uppercase tracking-wider">Reset</span>} />
-            </button>
-          </SurfaceCard>
-          
-          <div className="text-center py-4">
-            <img src="/davns_logo.png" alt="DAVNS" className="size-8 mx-auto grayscale opacity-20 mb-2" />
-            <p className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Version 2.4.0 (Build 89)</p>
-            <p className="text-[9px] text-ink-soft/60 mt-1">SmartSplit by DAVNS Industries</p>
+        <div className="text-center py-4">
+          <div className="size-8 mx-auto mb-2 flex items-center justify-center">
+            <img src="/src/assets/davnslogo-b.png" alt="DAVNS" className="max-h-full grayscale opacity-20 dark:hidden" />
+            <img src="/src/assets/davnslogo-w.png" alt="DAVNS" className="max-h-full grayscale opacity-20 hidden dark:block" />
           </div>
-        </section>
+          <p className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Version 2.4.0 (Build 89)</p>
+          <p className="text-[9px] text-ink-soft/60 mt-1">Split by DAVNS Industries</p>
+        </div>
       </div>
     </div>
   );

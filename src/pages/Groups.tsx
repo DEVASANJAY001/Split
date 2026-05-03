@@ -37,13 +37,13 @@ export default function Groups() {
     if (profile?.currency && !groupCurrency) {
       setGroupCurrency(profile.currency);
     }
-  }, [profile?.currency, groupCurrency]);
+  }, [profile?.currency]);
 
   useEffect(() => {
     if (userId && showCreate && members.length === 0) {
       setMembers([userId]);
     }
-  }, [userId, showCreate, members.length]);
+  }, [userId, showCreate]);
 
   const friends = useMemo(
     () => friendIds.map((id) => personById(people, id)).filter(Boolean) as ReturnType<typeof personById>[],
@@ -112,7 +112,7 @@ export default function Groups() {
           {summaries.map(({ g, mine, total }) => {
             const list = g.memberIds.map((id) => personById(people, id)!).filter(Boolean);
             const Icon = groupIcons[g.type];
-            const groupCur = g.currency || "USD";
+            const cur = g.currency || "USD";
 
             return (
               <div key={g.id}>
@@ -140,13 +140,13 @@ export default function Groups() {
                         <div className="min-w-0">
                           <p className="font-bold text-lg text-ink truncate">{g.name}</p>
                           <p className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider mt-0.5">
-                            {g.type} · Total {fmt(total, groupCur)}
+                            {g.type} · Total {fmt(total, cur)}
                           </p>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
                         <p className={cn("text-base font-black tabular-nums", mine > 0.01 ? "text-success" : mine < -0.01 ? "text-destructive" : "text-ink-soft")}>
-                          {mine > 0.01 ? "+" : ""}{fmt(mine, groupCur)}
+                          {mine > 0.01 ? "+" : ""}{fmt(mine, cur)}
                         </p>
                         <p className="text-[10px] font-bold uppercase tracking-tight text-ink-soft opacity-60">
                           {mine > 0.01 ? "Receivable" : mine < -0.01 ? "Payable" : "Settled"}
@@ -174,6 +174,7 @@ export default function Groups() {
         <div className="fixed inset-0 z-[70] flex items-end justify-center px-4 sm:px-0">
           <div className="absolute inset-0 bg-ink/60 backdrop-blur-md" onClick={() => setShowCreate(false)} />
           <div className="relative w-full max-w-xl bg-surface rounded-t-[3rem] shadow-float overflow-hidden flex flex-col max-h-[92vh] border-t border-hairline">
+            {/* Header Section */}
             <div className="px-8 pt-8 pb-6 bg-surface border-b border-hairline/30 shrink-0">
               <div className="w-16 h-1.5 bg-hairline/80 rounded-full mx-auto mb-6" />
               <div className="text-center relative">
@@ -187,9 +188,11 @@ export default function Groups() {
                 </button>
               </div>
             </div>
-
+ 
+            {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide">
               <div className="space-y-6">
+                {/* Basic Info Section */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-ink-soft uppercase tracking-widest ml-4">Basic Details</label>
                   <div className="bg-surface-soft rounded-[2.5rem] p-2 space-y-2">
@@ -208,7 +211,8 @@ export default function Groups() {
                     />
                   </div>
                 </div>
-
+ 
+                {/* Category Section */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-ink-soft uppercase tracking-widest ml-4">Category</label>
                   <div className="grid grid-cols-3 gap-2 px-1">
@@ -231,7 +235,8 @@ export default function Groups() {
                     })}
                   </div>
                 </div>
-
+ 
+                {/* Currency Section */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-ink-soft uppercase tracking-widest ml-4">Currency</label>
                   <div className="relative group">
@@ -250,7 +255,8 @@ export default function Groups() {
                     <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 size-5 text-ink-soft pointer-events-none group-focus-within:text-brand transition-colors" />
                   </div>
                 </div>
-
+ 
+                {/* Friends Section */}
                 <div className="space-y-4 pt-2">
                   <div className="flex items-center justify-between ml-4 mr-2">
                     <label className="text-[10px] font-black text-ink-soft uppercase tracking-widest">Add Friends</label>
@@ -265,7 +271,7 @@ export default function Groups() {
                       className="w-full bg-surface-soft rounded-full py-5 pl-14 pr-6 text-sm font-bold outline-none border border-transparent focus:border-brand transition-all shadow-soft"
                     />
                   </div>
-
+ 
                   {friends.length === 0 ? (
                     <div className="p-12 text-center bg-surface-soft/50 rounded-[2.5rem] border-2 border-dashed border-hairline/50 mx-1">
                       <div className="size-16 bg-surface rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-soft">
@@ -310,7 +316,7 @@ export default function Groups() {
                   )}
                 </div>
               </div>
-
+ 
               <button
                 onClick={create}
                 disabled={isCreating}

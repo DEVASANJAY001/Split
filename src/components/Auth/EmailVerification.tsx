@@ -38,7 +38,7 @@ export default function EmailVerification({ email, onVerify, onResend }: EmailVe
         try {
             await onVerify(otp);
         } catch (error: any) {
-            toast.error(error.message || "Invalid verification code");
+            toast.error(error.message || "Invalid OTP");
         } finally {
             setLoading(false);
         }

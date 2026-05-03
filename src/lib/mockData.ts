@@ -14,7 +14,7 @@ export type Person = {
 export const me: Person = {
   id: "u_me",
   name: "You",
-  email: "eli@smartsplit.app",
+  email: "eli@split.app",
   avatar: a1,
   initials: "EM",
 };
