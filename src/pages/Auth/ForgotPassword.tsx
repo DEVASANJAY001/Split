@@ -98,7 +98,7 @@ export default function ForgotPassword() {
             toast.success("Password reset successfully!");
         } catch (error: any) {
             toast.error(error.message);
-            setPasswordError("Your password is wrong or invalid, enter correctly");
+            setPasswordError("Entered email or password is invalid");
             triggerShake('password');
         } finally {
             setLoading(false);

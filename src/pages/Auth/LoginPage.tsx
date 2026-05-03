@@ -47,7 +47,7 @@ export default function LoginPage() {
             console.error("Login error:", error.code, error.message);
             if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
                 toast.error("Password is wrong");
-                setPasswordError("Your password is wrong or invalid, enter correctly");
+                setPasswordError("Entered email or password is invalid");
                 triggerShake('password');
             } else if (error.code === "auth/user-not-found") {
                 toast.error("Email is wrong");
