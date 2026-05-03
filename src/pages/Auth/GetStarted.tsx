@@ -33,7 +33,7 @@ export default function GetStarted() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-ink overflow-x-hidden relative flex flex-col">
+    <div className="h-[100dvh] bg-background text-ink overflow-hidden relative flex flex-col">
       {/* Background Decor */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-brand/10 blur-[100px] rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />

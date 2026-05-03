@@ -71,15 +71,20 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const OnboardingRoute = ({ children }: { children: React.ReactNode }) => {
+  const { userId, loading } = useStore();
   const onboarded = localStorage.getItem("onboarded") === "true";
   const location = useLocation();
 
-  if (!onboarded && location.pathname !== "/get-started") {
-    return <Navigate to="/get-started" replace />;
+  if (loading) return null; // Wait for auth check
+
+  // If already logged in, skip onboarding/login/signup and go to dashboard
+  if (userId && (location.pathname === "/get-started" || location.pathname === "/login" || location.pathname === "/signup")) {
+    return <Navigate to="/" replace />;
   }
 
-  if (onboarded && location.pathname === "/get-started") {
-    return <Navigate to="/login" replace />;
+  // If not onboarded and not on get-started, go to get-started
+  if (!onboarded && location.pathname !== "/get-started" && !userId) {
+    return <Navigate to="/get-started" replace />;
   }
 
   return <>{children}</>;
