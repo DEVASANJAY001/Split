@@ -65,6 +65,10 @@ export default function SignUpPage() {
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         if (emailStatus === "taken") return;
+        if (password.length < 6) {
+            toast.error("Password must be at least 6 characters.");
+            return;
+        }
         setLoading(true);
         try {
             const methods = await fetchSignInMethodsForEmail(auth, email);
@@ -104,7 +108,22 @@ export default function SignUpPage() {
                     throw new Error("OTP has expired. Please resend.");
                 }
                 
-                const { user } = await createUserWithEmailAndPassword(auth, email, password);
+                let user;
+                try {
+                    const authResult = await createUserWithEmailAndPassword(auth, email, password);
+                    user = authResult.user;
+                } catch (authError: any) {
+                    console.error("Auth Creation Error:", authError);
+                    if (authError.code === 'auth/email-already-in-use') {
+                        throw new Error("Email already in use. Please log in.");
+                    } else if (authError.code === 'auth/weak-password') {
+                        throw new Error("Password is too weak. Must be at least 6 characters.");
+                    } else if (authError.code === 'auth/invalid-email') {
+                        throw new Error("Invalid email format.");
+                    } else {
+                        throw new Error(authError.message || "Failed to create account in Firebase.");
+                    }
+                }
                 
                 // Use Firestore for user profile consistency
                 const { setDoc, doc } = await import("firebase/firestore");
