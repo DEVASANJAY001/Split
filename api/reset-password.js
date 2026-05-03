@@ -14,8 +14,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const admin = await import('firebase-admin');
-
+    const adminModule = await import('firebase-admin');
+    const admin = adminModule.default || adminModule;
   try {
     if (!admin.apps.length) {
       if (!process.env.FIREBASE_PRIVATE_KEY) {
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     }
   } catch (initError) {
     console.error("Firebase Admin Init Error:", initError);
-    return res.status(500).json({ error: "Failed to initialize server resources" });
+    return res.status(500).json({ error: `Init Error: ${initError.message}` });
   }
 
   if (req.method === 'OPTIONS') {

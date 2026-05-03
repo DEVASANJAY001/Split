@@ -14,9 +14,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const admin = await import('firebase-admin');
-    const nodemailer = await import('nodemailer');
-
+    const adminModule = await import('firebase-admin');
+    const admin = adminModule.default || adminModule;
+    const nodemailerModule = await import('nodemailer');
+    const nodemailer = nodemailerModule.default || nodemailerModule;
   try {
     if (!admin.apps.length) {
       if (!process.env.FIREBASE_PRIVATE_KEY) {
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
     }
   } catch (initError) {
     console.error("Firebase Admin Init Error:", initError);
-    return res.status(500).json({ error: "Failed to initialize server resources" });
+    return res.status(500).json({ error: `Init Error: ${initError.message}` });
   }
 
   if (req.method === 'OPTIONS') {
@@ -88,18 +89,7 @@ export default async function handler(req, res) {
     }
 
     // 3. Send Email
-    const transporter = nodemailer.default ? nodemailer.default.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    }) : nodemailer.createTransport({
+    const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 587,
       secure: false,
