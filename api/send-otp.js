@@ -54,13 +54,10 @@ module.exports = async (req, res) => {
           const userData = userQuery.docs[0].data();
           finalName = userData.displayName || userData.username || "User";
         } else {
-          // If user doesn't exist, we still send the email to avoid user enumeration, 
-          // but we won't be able to reset the password later. 
-          // Actually, for security, we should probably fail if user doesn't exist in reset flow.
           return res.status(404).json({ error: "No account found with this email." });
         }
       } catch (fsError) {
-        console.error("Firestore lookup failed:", fsError);
+        console.warn("Firestore name lookup failed (possibly gRPC cert issue). Continuing with default name.", fsError.message);
       }
     }
 

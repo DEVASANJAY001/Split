@@ -22,7 +22,9 @@ export default defineConfig(({ mode }) => {
         name: "handle-api-send-otp",
         configureServer(server) {
           // Fix for gRPC cert.pem error on Windows
-          process.env.GRPC_DEFAULT_SSL_ROOTS_CERTS_PATH = ""; 
+          if (process.platform === 'win32' && !process.env.GRPC_DEFAULT_SSL_ROOTS_CERTS_PATH) {
+            process.env.GRPC_DEFAULT_SSL_ROOTS_CERTS_PATH = "ignore"; 
+          }
           
           server.middlewares.use(async (req, res, next) => {
             const { pathname } = parse(req.url || "");
@@ -72,8 +74,13 @@ export default defineConfig(({ mode }) => {
                           const userData = userQuery.docs[0].data();
                           finalName = userData.displayName || userData.username || "User";
                         }
-                      } catch (fsError) {
-                        console.error("Firestore lookup failed:", fsError);
+                      } catch (fsError: any) {
+                        // Silent error for gRPC/Firestore lookup in dev server
+                        if (fsError.message?.includes("cert.pem") || fsError.message?.includes("ENOENT")) {
+                           console.warn("Firestore lookup skipped (gRPC cert issue). Using default name.");
+                        } else {
+                           console.error("Firestore lookup failed:", fsError.message);
+                        }
                       }
                     }
 

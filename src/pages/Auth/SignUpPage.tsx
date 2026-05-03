@@ -75,18 +75,15 @@ export default function SignUpPage() {
             }
 
             const otp = generateOTP();
-            await set(ref(rtdb, `otp_codes/${email.replace(/\./g, "_")}`), {
-                code: otp,
-                expiresAt: Date.now() + 10 * 60 * 1000,
-            });
-
             setStep("otp");
-            toast.success("Verification code sent!");
 
             try {
                 await sendOTPEmail(email, otp, name);
-            } catch (err) {
+                toast.success("Verification code sent!");
+            } catch (err: any) {
                 console.error("Failed to send verification email:", err);
+                toast.error(err.message || "Failed to send verification email");
+                setStep("signup"); // Go back if email failed
             }
         } catch (error: any) {
             toast.error(error.message);
@@ -140,16 +137,12 @@ export default function SignUpPage() {
 
     const handleResendOtp = async () => {
         const otp = generateOTP();
-        await set(ref(rtdb, `otp_codes/${email.replace(/\./g, "_")}`), {
-            code: otp,
-            expiresAt: Date.now() + 10 * 60 * 1000,
-        });
-
         try {
             await sendOTPEmail(email, otp, name);
             toast.success("New code sent!");
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to resend email:", err);
+            toast.error(err.message || "Failed to resend email");
         }
     };
 
