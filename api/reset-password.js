@@ -7,31 +7,52 @@ if (!admin.apps.length) {
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     }),
+    databaseURL: process.env.VITE_FIREBASE_DATABASE_URL,
   });
 }
 
-const auth = admin.auth();
+module.exports = async (req, res) => {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
 
-export default async function handler(req, res) {
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, newPassword } = req.body;
-
-  if (!email || !newPassword) {
-    return res.status(400).json({ error: 'Email and new password are required' });
-  }
-
   try {
-    const user = await auth.getUserByEmail(email);
-    await auth.updateUser(user.uid, {
-      password: newPassword,
-    });
+    const { email, newPassword } = req.body;
 
-    return res.status(200).json({ success: true, message: 'Password updated successfully' });
+    if (!email || !newPassword) {
+      return res.status(400).json({ error: 'Email and new password are required' });
+    }
+
+    // 1. Get user by email to get their UID
+    try {
+      const user = await admin.auth().getUserByEmail(email);
+      
+      // 2. Update the user's password
+      await admin.auth().updateUser(user.uid, { password: newPassword });
+      
+      return res.status(200).json({ success: true });
+    } catch (authError) {
+      if (authError.code === 'auth/user-not-found') {
+        return res.status(404).json({ error: 'No user found with this email address.' });
+      }
+      throw authError;
+    }
   } catch (error) {
-    console.error('Error resetting password:', error);
-    return res.status(500).json({ error: error.message || 'Failed to reset password' });
+    console.error("Reset Password API Error:", error);
+    return res.status(500).json({ error: error.message || "Failed to reset password" });
   }
-}
+};
