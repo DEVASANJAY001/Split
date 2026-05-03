@@ -29,9 +29,13 @@ export default function EmailVerification({ email, onVerify, onResend }: EmailVe
         return () => clearInterval(interval);
     }, [timer]);
 
+    const [shake, setShake] = useState(false);
+
     const handleVerify = async () => {
         if (otp.length !== 6) {
             toast.error("Please enter the 6-digit code");
+            setShake(true);
+            setTimeout(() => setShake(false), 500);
             return;
         }
         setLoading(true);
@@ -39,6 +43,8 @@ export default function EmailVerification({ email, onVerify, onResend }: EmailVe
             await onVerify(otp);
         } catch (error: any) {
             toast.error(error.message || "Invalid OTP");
+            setShake(true);
+            setTimeout(() => setShake(false), 500);
         } finally {
             setLoading(false);
         }
@@ -81,7 +87,7 @@ export default function EmailVerification({ email, onVerify, onResend }: EmailVe
                         value={otp}
                         onChange={setOtp}
                     >
-                        <InputOTPGroup className="gap-2">
+                        <InputOTPGroup className={`gap-2 ${shake ? 'animate-shake' : ''}`}>
                             <InputOTPSlot index={0} className="size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all" />
                             <InputOTPSlot index={1} className="size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all" />
                             <InputOTPSlot index={2} className="size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all" />

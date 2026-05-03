@@ -20,6 +20,19 @@ export default function ForgotPassword() {
         return Math.floor(100000 + Math.random() * 900000).toString();
     };
 
+    const [shakeEmail, setShakeEmail] = useState(false);
+    const [shakePassword, setShakePassword] = useState(false);
+
+    const triggerShake = (target: 'email' | 'password') => {
+        if (target === 'email') {
+            setShakeEmail(true);
+            setTimeout(() => setShakeEmail(false), 500);
+        } else {
+            setShakePassword(true);
+            setTimeout(() => setShakePassword(false), 500);
+        }
+    };
+
     const handleSendOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -27,20 +40,16 @@ export default function ForgotPassword() {
             const otp = generateOTP();
             
             // Move to next step immediately for a better UX, like in SignUpPage
+            // But if it fails later, the user will be notified.
+            // For now, let's keep the user existence check simple.
+            
+            await sendOTPEmail(email, otp, "User", 'reset');
             setStep("otp");
             toast.success("Verification code sent!");
-
-            // The server handles user existence check and OTP storage in RTDB.
-            // We call this in the background to ensure the UI stays responsive.
-            try {
-                await sendOTPEmail(email, otp, "User", 'reset');
-            } catch (emailErr) {
-                console.error("Background email send failed:", emailErr);
-                // Optionally notify user but don't block them if they already moved to OTP step
-            }
         } catch (error: any) {
             console.error("OTP Send Error:", error);
             toast.error(error.message || "Failed to initiate password reset");
+            triggerShake('email');
         } finally {
             setLoading(false);
         }
@@ -90,6 +99,7 @@ export default function ForgotPassword() {
             toast.success("Password reset successfully!");
         } catch (error: any) {
             toast.error(error.message);
+            triggerShake('password');
         } finally {
             setLoading(false);
         }
@@ -113,7 +123,7 @@ export default function ForgotPassword() {
                                     placeholder="Email address"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-surface-soft border border-hairline rounded-2xl py-3.5 pl-10 pr-4 outline-none focus:border-brand transition-colors"
+                                    className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3.5 pl-10 pr-4 outline-none focus:border-brand transition-colors ${shakeEmail ? 'animate-shake border-destructive ring-4 ring-destructive/10' : ''}`}
                                     required
                                 />
                             </div>
@@ -159,7 +169,7 @@ export default function ForgotPassword() {
                                     placeholder="New Password"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
-                                    className="w-full bg-surface-soft border border-hairline rounded-2xl py-3.5 pl-10 pr-12 outline-none focus:border-brand transition-colors"
+                                    className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3.5 pl-10 pr-12 outline-none focus:border-brand transition-colors ${shakePassword ? 'animate-shake border-destructive ring-4 ring-destructive/10' : ''}`}
                                     required
                                 />
                                 <button

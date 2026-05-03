@@ -11,14 +11,27 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const { userId, loading: authLoading } = useStore();
     const navigate = useNavigate();
+    const { userId, loading: authLoading } = useStore();
 
     useEffect(() => {
         if (!authLoading && userId) {
             navigate("/");
         }
     }, [userId, authLoading, navigate]);
+
+    const [shakeEmail, setShakeEmail] = useState(false);
+    const [shakePassword, setShakePassword] = useState(false);
+
+    const triggerShake = (target: 'email' | 'password') => {
+        if (target === 'email') {
+            setShakeEmail(true);
+            setTimeout(() => setShakeEmail(false), 500);
+        } else {
+            setShakePassword(true);
+            setTimeout(() => setShakePassword(false), 500);
+        }
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,8 +43,10 @@ export default function LoginPage() {
             console.error("Login error:", error.code, error.message);
             if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
                 toast.error("Password is wrong");
+                triggerShake('password');
             } else if (error.code === "auth/user-not-found") {
                 toast.error("Email is wrong");
+                triggerShake('email');
             } else if (error.code === "auth/too-many-requests") {
                 toast.error("Too many failed attempts. Please try again later.");
             } else {
@@ -68,7 +83,7 @@ export default function LoginPage() {
                                 placeholder="Email address"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-surface-soft border border-hairline rounded-2xl py-3 pl-10 pr-4 outline-none focus:border-brand transition-colors"
+                                className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3 pl-10 pr-4 outline-none focus:border-brand transition-colors ${shakeEmail ? 'animate-shake border-destructive ring-4 ring-destructive/10' : ''}`}
                                 required
                             />
                         </div>
@@ -81,7 +96,7 @@ export default function LoginPage() {
                                 placeholder="Password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-surface-soft border border-hairline rounded-2xl py-3 pl-10 pr-12 outline-none focus:border-brand transition-colors"
+                                className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3 pl-10 pr-12 outline-none focus:border-brand transition-colors ${shakePassword ? 'animate-shake border-destructive ring-4 ring-destructive/10' : ''}`}
                                 required
                             />
                             <button
