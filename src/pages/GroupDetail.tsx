@@ -7,7 +7,8 @@ import { useStore, netBalances, simplifyDebts, personById, SettleMethod } from "
 import { fmt } from "@/lib/finance";
 import { groupIcons } from "@/lib/icons";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ArrowRight, Plus, Check, X, QrCode, UserPlus, Trash2, UserMinus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Check, X, QrCode, UserPlus, Trash2, UserMinus, MessageSquare } from "lucide-react";
+import { GroupChat } from "@/components/GroupChat";
 import { toast } from "sonner";
 
 const METHODS: SettleMethod[] = ["Cash", "UPI", "Bank Transfer", "Other"];
@@ -23,6 +24,7 @@ export default function GroupDetail() {
   const [method, setMethod] = useState<SettleMethod>("UPI");
   const [showQR, setShowQR] = useState(false);
   const [showAddMembers, setShowAddMembers] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const net = useMemo(() => group ? netBalances(group, expenses, settlements) : {}, [group, expenses, settlements]);
   const plan = useMemo(() => simplifyDebts(net), [net]);
@@ -95,6 +97,14 @@ export default function GroupDetail() {
             aria-label="Delete group"
           >
             <Trash2 className="size-4" strokeWidth={2.25} />
+          </button>
+          <button
+            onClick={() => setShowChat(true)}
+            className="size-10 rounded-full bg-surface border border-hairline flex items-center justify-center relative"
+            aria-label="Group Chat"
+          >
+            <MessageSquare className="size-4" strokeWidth={2.25} />
+            <span className="absolute top-2 right-2 size-2 bg-brand rounded-full border border-surface" />
           </button>
           <button
             onClick={() => setShowQR(true)}
@@ -187,8 +197,9 @@ export default function GroupDetail() {
           ) : (
             <ul className="space-y-3">
               {plan.map((s, i) => {
-                const from = personById(people, s.from)!;
-                const to = personById(people, s.to)!;
+                const from = personById(people, s.from);
+                const to = personById(people, s.to);
+                if (!from || !to) return null;
                 return (
                   <li key={i} className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -222,7 +233,8 @@ export default function GroupDetail() {
           ) : (
             <ul className="space-y-4">
               {groupExpenses.map((e) => {
-                const payer = personById(people, e.paidBy)!;
+                const payer = personById(people, e.paidBy);
+                if (!payer) return null;
                 return (
                   <li key={e.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
@@ -247,8 +259,9 @@ export default function GroupDetail() {
             <h3 className="text-base font-bold text-ink mb-4">Settled payments</h3>
             <ul className="space-y-3">
               {groupSettlements.map((s) => {
-                const from = personById(people, s.from)!;
-                const to = personById(people, s.to)!;
+                const from = personById(people, s.from);
+                const to = personById(people, s.to);
+                if (!from || !to) return null;
                 return (
                   <li key={s.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
@@ -269,7 +282,7 @@ export default function GroupDetail() {
       </div>
 
       {settleIdx !== null && (
-        <div className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center" onClick={() => setSettleIdx(null)}>
+        <div className="fixed inset-0 z-[70] bg-ink/40 flex items-end md:items-center justify-center" onClick={() => setSettleIdx(null)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full md:max-w-md bg-surface rounded-t-3xl md:rounded-3xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold tracking-tightest text-ink">Mark as settled</h2>
@@ -308,7 +321,7 @@ export default function GroupDetail() {
       )}
 
       {showQR && (
-        <div className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center" onClick={() => setShowQR(false)}>
+        <div className="fixed inset-0 z-[70] bg-ink/40 flex items-end md:items-center justify-center" onClick={() => setShowQR(false)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full md:max-w-md bg-surface rounded-t-3xl md:rounded-3xl p-6 space-y-4 text-center">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold tracking-tightest text-ink">Group QR code</h2>
@@ -325,7 +338,7 @@ export default function GroupDetail() {
       )}
 
       {showAddMembers && (
-        <div className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center" onClick={() => setShowAddMembers(false)}>
+        <div className="fixed inset-0 z-[70] bg-ink/40 flex items-end md:items-center justify-center" onClick={() => setShowAddMembers(false)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full md:max-w-md bg-surface rounded-t-3xl md:rounded-3xl p-6 space-y-4 max-h-[80vh] overflow-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold tracking-tightest text-ink">Add members</h2>
@@ -355,6 +368,10 @@ export default function GroupDetail() {
             )}
           </div>
         </div>
+      )}
+
+      {showChat && (
+        <GroupChat groupId={group.id} onClose={() => setShowChat(false)} />
       )}
     </div>
   );

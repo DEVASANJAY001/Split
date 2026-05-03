@@ -2,44 +2,75 @@ import { cn } from "@/lib/utils";
 import { Person } from "@/lib/store";
 
 interface AvatarProps {
-  person: Person;
+  person: {
+    avatar?: string;
+    name?: string;
+    displayName?: string;
+    initials?: string;
+  };
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
   ring?: boolean;
 }
 
 const sizes = {
-  sm: "size-8",
-  md: "size-10",
-  lg: "size-12",
-  xl: "size-14",
+  sm: "size-8 text-[11px]",
+  md: "size-10 text-sm",
+  lg: "size-12 text-base",
+  xl: "size-14 text-lg",
+};
+
+const gradients = [
+  "from-[#FF6B6B] to-[#FFE66D]",
+  "from-[#4ECDC4] to-[#556270]",
+  "from-[#A8E6CF] to-[#DCEDC1]",
+  "from-[#FFD3B6] to-[#FFAAA5]",
+  "from-[#D4FC79] to-[#96E6A1]",
+  "from-[#84FAB0] to-[#8FD3F4]",
+  "from-[#A1C4FD] to-[#C2E9FB]",
+  "from-[#F6D365] to-[#FDA085]",
+  "from-[#667EEA] to-[#764BA2]",
+  "from-[#43E97B] to-[#38F9D7]",
+];
+
+const getGradient = (name: string) => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return gradients[Math.abs(hash) % gradients.length];
 };
 
 export function PersonAvatar({ person, size = "md", className, ring }: AvatarProps) {
-  return person.avatar ? (
-    <img
-      src={person.avatar}
-      alt={person.name}
-      width={56}
-      height={56}
-      loading="lazy"
-      className={cn(
-        "rounded-full object-cover bg-surface-soft",
-        sizes[size],
-        ring && "ring-2 ring-surface",
-        className,
-      )}
-    />
-  ) : (
+  const name = person.displayName || person.name || "User";
+  const initials = person.initials || name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+
+  return (
     <div
       className={cn(
-        "rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center font-bold",
+        "rounded-full flex items-center justify-center font-black overflow-hidden shrink-0 relative bg-gradient-to-br text-white/90 shadow-inner",
+        getGradient(name),
         sizes[size],
         ring && "ring-2 ring-surface",
         className,
       )}
     >
-      {person.name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}
+      <span className="select-none">{initials}</span>
+      {person.avatar && !person.avatar.includes("dicebear.com") && (
+        <img
+          src={person.avatar}
+          alt={name}
+          className="absolute inset-0 size-full object-cover bg-surface-soft transition-opacity duration-300"
+          loading="lazy"
+          onLoad={(e) => {
+            e.currentTarget.style.opacity = '1';
+          }}
+          onError={(e) => {
+            e.currentTarget.style.opacity = '0';
+          }}
+          style={{ opacity: 0 }}
+        />
+      )}
     </div>
   );
 }

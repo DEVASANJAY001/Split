@@ -4,8 +4,9 @@ import { PageHeader } from "@/components/AppLayout";
 import { SurfaceCard } from "@/components/SurfaceCard";
 import { PersonAvatar } from "@/components/Avatar";
 import { useStore, computeShares, SplitMode, Category } from "@/lib/store";
-import { fmt } from "@/lib/finance";
+import { fmt, getCurrencySymbol } from "@/lib/finance";
 import { categoryIcons, groupIcons } from "@/lib/icons";
+import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ALL_CURRENCIES } from "@/lib/currency-data";
@@ -22,10 +23,8 @@ const CATEGORIES: Category[] = ["Food", "Travel", "Rent", "Utilities", "Shopping
 export default function SplitBill() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [groupId, setGroupId] = useState(initialGroupId);
-  const group = groups.find((g) => g.id === groupId);
-  const cur = group?.currency || profile?.currency || "USD";
-
+  const { groups, addExpense, addPersonalExpense, people, userId, appMode, profile, expenses } = useStore();
+  
   const recentGroupId = useMemo(() => {
     if (expenses.length > 0) {
       const sorted = [...expenses].sort((a, b) => b.createdAt - a.createdAt);
@@ -35,7 +34,9 @@ export default function SplitBill() {
     return groups[groups.length - 1]?.id || "";
   }, [expenses, groups]);
 
-  const initialGroupId = params.get("group") || recentGroupId;
+  const [groupId, setGroupId] = useState(params.get("group") || recentGroupId);
+  const group = groups.find((g) => g.id === groupId);
+  const cur = group?.currency || profile?.currency || "USD";
 
   const memberIds = group?.memberIds ?? [];
 
@@ -78,7 +79,7 @@ export default function SplitBill() {
     if (!valid) return toast.error("Please complete the expense");
     if (isPersonal) {
       addPersonalExpense({ description: title.trim(), amount: total, category, date });
-      toast.success("Personal expense added", { description: `${fmt(total, cur)} · ${title}` });
+      toast.success("Expense added!");
       navigate("/");
       return;
     }
@@ -94,7 +95,7 @@ export default function SplitBill() {
       date,
       createdAt: Date.now(),
     });
-    toast.success("Expense added", { description: `${fmt(total, cur)} · ${title}` });
+    toast.success("Expense split!");
     navigate(`/groups/${group.id}`);
   };
 
@@ -103,8 +104,8 @@ export default function SplitBill() {
       <div>
         <PageHeader title="Add expense" subtitle="Split a new bill" showActions={false} showBack />
         <div className="px-5 pt-20 text-center flex flex-col items-center">
-          <div className="size-24 bg-surface-soft rounded-full flex items-center justify-center text-brand mb-6">
-            <span className="text-4xl text-brand/50">✨</span>
+          <div className="size-24 bg-brand/5 rounded-full flex items-center justify-center text-brand mb-6">
+            <Users className="size-10 opacity-40" strokeWidth={1.5} />
           </div>
           <h2 className="text-xl font-bold tracking-tightest text-ink">No groups yet</h2>
           <p className="text-sm text-ink-soft mt-2 mb-8 max-w-xs">You need to create a group before you can split bills with others.</p>
@@ -149,23 +150,31 @@ export default function SplitBill() {
         )}
 
         {/* Title + amount hero */}
-        <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="What is it for?"
-            className="w-full bg-transparent text-base font-medium outline-none placeholder:text-brand-foreground/60"
-          />
-          <div className="mt-4 flex items-baseline gap-1">
-            <span className="text-4xl font-bold tracking-tightest">{ALL_CURRENCIES.find(c => c.code === cur)?.symbol || "$"}</span>
+        <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden group focus-within:ring-2 focus-within:ring-brand ring-offset-2 transition-all">
+          <div className="space-y-1 relative z-10">
+            <label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Description</label>
             <input
-              type="number"
-              inputMode="decimal"
-              value={total || ""}
-              onChange={(e) => setTotal(parseFloat(e.target.value) || 0)}
-              placeholder="0"
-              className="text-5xl font-bold tracking-tightest bg-transparent outline-none w-full tabular-nums placeholder:text-brand-foreground/40"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Add - enter here"
+              className="w-full bg-transparent text-xl font-bold outline-none placeholder:text-brand-foreground/40"
             />
+          </div>
+
+          <div className="mt-6 space-y-1 relative z-10">
+            <label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Amount</label>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold tracking-tightest opacity-90">{getCurrencySymbol(cur)}</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={total || ""}
+                onChange={(e) => setTotal(parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+                className="text-6xl font-black tracking-tightest bg-transparent outline-none w-full tabular-nums placeholder:text-brand-foreground/30 focus:placeholder:opacity-0 transition-all"
+                autoFocus
+              />
+            </div>
           </div>
           <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />
         </SurfaceCard>
@@ -245,7 +254,7 @@ export default function SplitBill() {
                                   className="w-14 bg-transparent text-right text-sm tabular-nums outline-none font-semibold"
                                 />
                                 <span className="text-xs text-ink-soft">
-                                  {splitMode === "percent" ? "%" : splitMode === "shares" ? "x" : (ALL_CURRENCIES.find(c => c.code === cur)?.symbol || "$")}
+                                  {splitMode === "percent" ? "%" : splitMode === "shares" ? "x" : getCurrencySymbol(cur)}
                                 </span>
                               </div>
                             )}

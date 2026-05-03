@@ -13,9 +13,15 @@ import Reports from "./pages/Reports";
 import Friends from "./pages/Friends";
 import ProfilePage from "./pages/Profile";
 import SettingsPage from "./pages/Settings";
+import TermsOfService from "./pages/legal/TermsOfService";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
+import AboutDAVNS from "./pages/legal/AboutDAVNS";
+import SupportTickets from "./pages/support/SupportTickets";
+import HelpCenter from "./pages/support/HelpCenter";
 import NotFound from "./pages/NotFound.tsx";
 import LoginPage from "./pages/Auth/LoginPage";
 import SignUpPage from "./pages/Auth/SignUpPage";
+import ForgotPassword from "./pages/Auth/ForgotPassword";
 import ProfileSetup from "./pages/Auth/ProfileSetup";
 import GetStarted from "./pages/Auth/GetStarted";
 import { useStore } from "./lib/store";
@@ -33,18 +39,33 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   );
 
   if (!userId) {
-    if (location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/get-started") {
+    if (location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/get-started" || location.pathname === "/forgot-password") {
       return <>{children}</>;
     }
     return <Navigate to="/get-started" replace />;
   }
 
-  if (!profile && location.pathname !== "/profile-setup") {
+  if (profile && !profile.completedSetup && location.pathname !== "/profile-setup") {
     return <Navigate to="/profile-setup" replace />;
   }
 
-  if (profile && (location.pathname === "/profile-setup" || location.pathname === "/get-started" || location.pathname === "/login" || location.pathname === "/signup")) {
+  if (profile && profile.completedSetup && (location.pathname === "/profile-setup" || location.pathname === "/get-started" || location.pathname === "/login" || location.pathname === "/signup")) {
     return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const OnboardingRoute = ({ children }: { children: React.ReactNode }) => {
+  const onboarded = localStorage.getItem("onboarded") === "true";
+  const location = useLocation();
+
+  if (!onboarded && location.pathname !== "/get-started") {
+    return <Navigate to="/get-started" replace />;
+  }
+
+  if (onboarded && location.pathname === "/get-started") {
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
@@ -53,29 +74,37 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/get-started" element={<ProtectedRoute><GetStarted /></ProtectedRoute>} />
-          <Route path="/login" element={<ProtectedRoute><LoginPage /></ProtectedRoute>} />
-          <Route path="/signup" element={<ProtectedRoute><SignUpPage /></ProtectedRoute>} />
-          <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
+        <div className="h-full">
+          <Routes>
+            <Route path="/get-started" element={<OnboardingRoute><GetStarted /></OnboardingRoute>} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<OnboardingRoute><SignUpPage /></OnboardingRoute>} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
 
-          <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/split" element={<SplitBill />} />
-            <Route path="/groups" element={<Groups />} />
-            <Route path="/groups/:id" element={<GroupDetail />} />
-            <Route path="/friends" element={<Friends />} />
-            <Route path="/transactions" element={<Transactions />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Route>
+            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+              <Route path="/" element={<OnboardingRoute><Dashboard /></OnboardingRoute>} />
+              <Route path="/split" element={<SplitBill />} />
+              <Route path="/groups" element={<Groups />} />
+              <Route path="/groups/:id" element={<GroupDetail />} />
+              <Route path="/friends" element={<Friends />} />
+              <Route path="/transactions" element={<Transactions />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/legal/terms" element={<TermsOfService />} />
+              <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+              <Route path="/legal/about" element={<AboutDAVNS />} />
+              <Route path="/support/tickets" element={<SupportTickets />} />
+              <Route path="/support/help" element={<HelpCenter />} />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+        <Sonner />
+        <Toaster />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

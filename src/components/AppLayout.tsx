@@ -1,8 +1,9 @@
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Home, Users, BarChart3, Receipt, Plus, UserPlus, User, ArrowLeft } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
+import { PersonAvatar } from "@/components/Avatar";
+import { motion, AnimatePresence } from "framer-motion";
 
 const tabs = [
   { to: "/", label: "Home", icon: Home },
@@ -13,41 +14,29 @@ const tabs = [
 ];
 
 export default function AppLayout() {
-  const location = useLocation();
   const navigate = useNavigate();
   const { requests, lastSeenRequests } = useStore();
   const unreadCount = requests.filter(r => r.createdAt > lastSeenRequests).length;
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="mx-auto max-w-md md:max-w-2xl pb-32">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ 
-              duration: 0.2, 
-              ease: "linear"
-            }}
-          >
-            <Outlet />
-          </motion.div>
-        </AnimatePresence>
+      <main className="mx-auto max-w-md md:max-w-2xl pb-nav-clearance">
+        <div className="w-full">
+          <Outlet />
+        </div>
       </main>
 
       {/* Floating FAB - Adjusted for bottom bar */}
       <button
         onClick={() => navigate("/split")}
         aria-label="Add expense"
-        className="fixed bottom-28 right-6 md:right-[calc(50%-18rem)] z-40 size-14 rounded-full bg-brand text-brand-foreground flex items-center justify-center shadow-brand-lg hover:scale-105 active:scale-95 transition-transform"
+        className="fixed bottom-24 right-6 md:right-[calc(50%-18rem)] z-40 size-14 rounded-2xl bg-brand text-brand-foreground flex items-center justify-center shadow-brand hover:scale-105 active:scale-95 transition-all group"
       >
-        <Plus className="size-6" strokeWidth={2.5} />
+        <Plus className="size-6 transition-transform group-hover:rotate-90" strokeWidth={3} />
       </button>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-xl border-t border-hairline safe-area-pb">
-        <div className="mx-auto max-w-md md:max-w-2xl flex items-center justify-around px-2 py-2">
+      <nav className="fixed bottom-4 left-4 right-4 max-w-md mx-auto z-50 bg-surface/80 backdrop-blur-2xl border border-hairline rounded-[2rem] shadow-float pb-safe overflow-hidden">
+        <div className="flex items-center justify-around h-16 px-2">
           {tabs.map(({ to, label, icon: Icon, hasBadge }) => {
             return (
               <NavLink
@@ -56,27 +45,24 @@ export default function AppLayout() {
                 end={to === "/"}
                 className={({ isActive }) =>
                   cn(
-                    "flex flex-col items-center justify-center gap-1 min-w-[64px] py-1 transition-all relative",
+                    "relative flex flex-col items-center justify-center transition-all flex-1 h-full",
                     isActive ? "text-brand" : "text-ink-soft hover:text-ink",
                   )
                 }
               >
                 {({ isActive }) => (
                   <>
-                    <div className="relative">
-                      <Icon className={cn("size-6 transition-transform", isActive && "scale-110")} strokeWidth={isActive ? 2.25 : 1.75} />
+                    <div className={cn("relative p-1 rounded-xl transition-all", isActive && "bg-brand/10 shadow-glow")}>
+                      <Icon className={cn("size-5 transition-transform", isActive && "scale-110")} strokeWidth={isActive ? 2.5 : 2} />
                       {hasBadge && unreadCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 size-2.5 bg-destructive border-2 border-surface rounded-full" />
+                        <span className="absolute -top-0.5 -right-0.5 size-2.5 bg-destructive border-2 border-surface rounded-full shadow-sm" />
                       )}
                     </div>
-                    <span className={cn("text-[10px] font-bold tracking-tight transition-all", isActive ? "opacity-100" : "opacity-60")}>
+                    <span className={cn("text-[9px] mt-1 font-bold uppercase tracking-wider transition-opacity", isActive ? "opacity-100" : "opacity-40")}>
                       {label}
                     </span>
                     {isActive && (
-                      <motion.div
-                        layoutId="navTab"
-                        className="absolute -top-2 inset-x-2 h-0.5 bg-brand rounded-full"
-                      />
+                      <div className="absolute inset-0 bg-brand/5 -z-10" />
                     )}
                   </>
                 )}
@@ -136,13 +122,9 @@ export function PageHeader({ title, subtitle, showActions = true, showModeSwitch
           <button
             onClick={() => navigate("/profile")}
             aria-label="Profile"
-            className="size-10 rounded-full overflow-hidden border border-hairline bg-surface-soft active:scale-95 transition flex items-center justify-center text-ink-soft"
+            className="active:scale-95 transition"
           >
-            {profile?.avatar ? (
-              <img src={profile.avatar} alt="" className="size-full object-cover" />
-            ) : (
-              <User className="size-5" />
-            )}
+            <PersonAvatar person={profile || { name: "User" }} size="md" />
           </button>
         </div>
       </div>

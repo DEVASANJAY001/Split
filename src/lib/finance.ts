@@ -11,3 +11,15 @@ export const fmt = (n: number, currencyCode = "USD") => {
     return `${currencyCode} ${n.toFixed(2)}`;
   }
 };
+
+export const getCurrencySymbol = (currencyCode = "USD") => {
+  try {
+    const parts = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currencyCode,
+    }).formatToParts(0);
+    return parts.find(p => p.type === "currency")?.value || "$";
+  } catch (e) {
+    return "$";
+  }
+};

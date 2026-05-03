@@ -5,7 +5,7 @@ import { PersonAvatar } from "@/components/Avatar";
 import { QRCode } from "@/components/QRCode";
 import { useStore, personById } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Search, Camera, Check, X, UserPlus, QrCode, Loader2, Users, Send } from "lucide-react";
+import { Send, Camera, Check, X, UserPlus, QrCode, Loader2, Users, Search } from "lucide-react";
 
 type Tab = "friends" | "requests";
 
@@ -194,7 +194,7 @@ export default function Friends() {
         </div>
 
         {activeTab === "friends" ? (
-          <div className="animate-in fade-in slide-in-from-bottom-2">
+          <div>
             {friends.length === 0 ? (
               <SurfaceCard padding="lg" className="text-center py-12">
                 <Users className="size-8 text-ink-soft mx-auto mb-3 opacity-20" strokeWidth={1.5} />
@@ -226,7 +226,7 @@ export default function Friends() {
             )}
           </div>
         ) : (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+          <div className="space-y-6">
             {/* Incoming Requests */}
             <div>
               <h3 className="text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-2 px-1">Incoming Requests</h3>
@@ -337,47 +337,69 @@ export default function Friends() {
         )}
       </div>
 
-      {showQR && (
-        <div className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center p-0 md:p-6" onClick={() => setShowQR(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full md:max-w-md bg-white rounded-t-3xl md:rounded-3xl p-8 space-y-6 text-center shadow-2xl animate-in slide-in-from-bottom">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold tracking-tightest text-ink">My QR code</h2>
-              <button onClick={() => setShowQR(false)} className="size-8 rounded-full bg-surface-soft flex items-center justify-center">
-                <X className="size-4" />
-              </button>
-            </div>
-            <p className="text-sm text-ink-soft">Friends scan this to add you instantly.</p>
-            <div className="flex justify-center py-2">
-              <QRCode value={`smartsplit://user/${userId}`} size={240} label={`@${profile?.username || "you"}`} />
+      <div>
+        {showQR && (
+          <div className="fixed inset-0 z-[70] flex items-end justify-center">
+            <div className="absolute inset-0 bg-ink/60 backdrop-blur-sm" />
+            <div className="relative w-full max-w-xl bg-surface rounded-t-[2.5rem] p-8 pb-12 shadow-float space-y-6 overflow-hidden border-t border-hairline text-center">
+              <div className="w-12 h-1.5 bg-hairline rounded-full mx-auto mb-2 opacity-50" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-black tracking-tightest text-ink">My Code</h2>
+                  <p className="text-xs font-semibold text-ink-soft uppercase tracking-wider mt-1">Scan to connect instantly</p>
+                </div>
+                <button
+                  onClick={() => setShowQR(false)}
+                  className="size-10 rounded-full bg-surface-soft flex items-center justify-center hover:bg-hairline transition-colors"
+                >
+                  <X className="size-5 text-ink" />
+                </button>
+              </div>
+              <div className="flex justify-center py-6 bg-white rounded-3xl shadow-soft border border-hairline">
+                <QRCode value={`smartsplit://user/${userId}`} size={240} label={`@${profile?.username || "you"}`} />
+              </div>
+              <div className="p-4 bg-brand/5 rounded-2xl border border-brand/10">
+                <p className="text-sm font-bold text-brand">Your unique link is ready</p>
+                <p className="text-[11px] text-brand/60 mt-0.5">Show this to friends to skip the search</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {showScanner && (
-        <div className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center p-0 md:p-6" onClick={() => setShowScanner(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full md:max-w-md bg-white rounded-t-3xl md:rounded-3xl p-8 space-y-6 shadow-2xl animate-in slide-in-from-bottom">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold tracking-tightest text-ink">Scan QR code</h2>
-              <button onClick={() => setShowScanner(false)} className="size-8 rounded-full bg-surface-soft flex items-center justify-center">
-                <X className="size-4" />
+      <div>
+        {showScanner && (
+          <div className="fixed inset-0 z-[70] flex items-end justify-center">
+            <div className="absolute inset-0 bg-ink/60 backdrop-blur-sm" />
+            <div className="relative w-full max-w-xl bg-surface rounded-t-[2.5rem] p-8 pb-12 shadow-float space-y-6 overflow-hidden border-t border-hairline">
+              <div className="w-12 h-1.5 bg-hairline rounded-full mx-auto mb-2 opacity-50" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-black tracking-tightest text-ink">Scanner</h2>
+                  <p className="text-xs font-semibold text-ink-soft uppercase tracking-wider mt-1">Find friends via QR</p>
+                </div>
+                <button
+                  onClick={() => setShowScanner(false)}
+                  className="size-10 rounded-full bg-surface-soft flex items-center justify-center hover:bg-hairline transition-colors"
+                >
+                  <X className="size-5 text-ink" />
+                </button>
+              </div>
+              <div className="aspect-square rounded-[2rem] bg-ink/95 relative overflow-hidden flex items-center justify-center shadow-xl border-4 border-surface-soft">
+                <div className="absolute inset-10 border-2 border-brand rounded-3xl opacity-50" />
+                <div className="absolute left-8 right-8 top-1/4 h-1 bg-brand shadow-[0_0_15px_rgba(var(--brand),0.5)] z-10" />
+                <Camera className="size-20 text-white/10" strokeWidth={1} />
+              </div>
+              <button
+                onClick={simulateScan}
+                className="w-full bg-brand text-brand-foreground py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-brand hover:opacity-90 active:scale-[0.98] transition-all"
+              >
+                Scan Now
               </button>
             </div>
-            <div className="aspect-square rounded-3xl bg-ink/95 relative overflow-hidden flex items-center justify-center shadow-xl">
-              <div className="absolute inset-8 border-2 border-brand rounded-2xl" />
-              <div className="absolute left-8 right-8 top-1/2 h-0.5 bg-brand animate-pulse" />
-              <Camera className="size-16 text-brand-foreground/20" strokeWidth={1} />
-            </div>
-            <p className="text-sm text-ink-soft text-center">Align a friend's QR code inside the frame.</p>
-            <button
-              onClick={simulateScan}
-              className="w-full bg-brand text-brand-foreground py-4 rounded-full font-bold text-sm shadow-brand hover:opacity-95 active:scale-[0.98] transition-all"
-            >
-              Simulate scan
-            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

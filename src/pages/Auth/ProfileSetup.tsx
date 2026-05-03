@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "@/lib/store";
-import { motion } from "framer-motion";
 import { User, AtSign, Camera, Check, Loader2, CheckCircle2, AlertCircle, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -25,10 +24,12 @@ export default function ProfileSetup() {
             setUsername(profile.username || "");
             setCurrency(profile.currency || "USD");
             setIsInitialLoad(false);
+        } else if (!profile && isInitialLoad && auth.currentUser) {
+            setDisplayName(auth.currentUser.displayName || "");
+            setIsInitialLoad(false);
         }
     }, [profile, isInitialLoad]);
 
-    // Debounced username check
     useEffect(() => {
         const finalUsername = username.startsWith("@") ? username : `@${username}`;
         if (finalUsername.length < 4 || finalUsername === profile?.username) {
@@ -65,7 +66,9 @@ export default function ProfileSetup() {
                 username: finalUsername,
                 currency,
                 email: auth.currentUser?.email || "",
-                avatar: profile?.avatar || auth.currentUser?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${auth.currentUser?.uid}`,
+                avatar: profile?.avatar || auth.currentUser?.photoURL || "",
+                isVerified: true,
+                completedSetup: true,
             });
             navigate("/");
         } catch (error: any) {
@@ -78,20 +81,51 @@ export default function ProfileSetup() {
     if (loading) return null;
 
     return (
-        <div className="min-h-screen bg-background px-6 pt-12 pb-24">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="max-w-sm mx-auto space-y-8"
-            >
+        <div className="min-h-screen bg-background px-5 pt-12 pb-24">
+            <div className="max-w-sm mx-auto space-y-8">
                 <div className="text-center space-y-2">
                     <h1 className="text-3xl font-bold tracking-tightest text-ink">Complete Profile</h1>
                     <p className="text-ink-soft">Make it yours</p>
                 </div>
 
                 <div className="flex justify-center">
-                    <div className="size-24 rounded-full overflow-hidden border-2 border-brand/20 bg-surface-soft shadow-soft flex items-center justify-center">
-                        <img src={profile?.avatar || auth.currentUser?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${auth.currentUser?.uid}`} alt="" className="size-full object-cover" />
+                    <div className="relative group">
+                        <div className="size-24 rounded-full overflow-hidden border-2 border-brand/20 bg-surface-soft shadow-soft flex items-center justify-center">
+                            <img
+                                src={profile?.avatar || auth.currentUser?.photoURL || ""}
+                                alt=""
+                                className={cn("size-full object-cover", !(profile?.avatar || auth.currentUser?.photoURL) && "hidden")}
+                                key={profile?.avatar || auth.currentUser?.photoURL}
+                            />
+                            {!(profile?.avatar || auth.currentUser?.photoURL) && (
+                                <div className="size-full flex items-center justify-center bg-brand-soft text-brand text-2xl font-bold uppercase transition-all duration-300">
+                                    {(displayName || auth.currentUser?.displayName || "U").split(" ").map(x => x[0]).join("").slice(0, 2)}
+                                </div>
+                            )}
+                        </div>
+                        <label className="absolute inset-0 flex items-center justify-center bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
+                            {saving ? (
+                                <Loader2 className="size-6 text-white animate-spin" />
+                            ) : (
+                                <Camera className="size-6 text-white" />
+                            )}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    try {
+                                        const url = await uploadAvatar(file);
+                                        await updateProfile({ avatar: url });
+                                        toast.success("Photo updated");
+                                    } catch (err: any) {
+                                        toast.error(err.message);
+                                    }
+                                }}
+                            />
+                        </label>
                     </div>
                 </div>
 
@@ -134,10 +168,10 @@ export default function ProfileSetup() {
                                 )}
                                 required
                             />
-                            {usernameStatus === "available" && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-success animate-in zoom-in" />}
-                            {usernameStatus === "taken" && <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-destructive animate-in zoom-in" />}
+                            {usernameStatus === "available" && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-success" />}
+                            {usernameStatus === "taken" && <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-destructive" />}
                         </div>
-                        {usernameStatus === "taken" && <p className="text-[10px] text-destructive font-bold ml-1 animate-in slide-in-from-top-1">Username already taken</p>}
+                        {usernameStatus === "taken" && <p className="text-[10px] text-destructive font-bold ml-1">Username already taken</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -174,7 +208,7 @@ export default function ProfileSetup() {
                         )}
                     </button>
                 </form>
-            </motion.div>
+            </div>
         </div>
     );
 }

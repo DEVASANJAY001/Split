@@ -1,8 +1,8 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { PageHeader } from "@/components/AppLayout";
 import { SurfaceCard } from "@/components/SurfaceCard";
 import { useStore } from "@/lib/store";
-import { ArrowLeft, Bell, Download, Moon, Sun, ShieldCheck, LogOut } from "lucide-react";
+import { ArrowLeft, Bell, Download, Moon, Sun, ShieldCheck, LogOut, FileText, Lock, Info, LifeBuoy, HelpCircle, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -35,82 +35,120 @@ export default function Settings() {
     a.download = "smartsplit-export.csv";
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Exported as CSV");
   };
 
   return (
     <div>
       <PageHeader title="Settings" subtitle="Preferences & App settings" showActions={false} showBack />
 
-      <div className="px-5 space-y-4">
-        <SurfaceCard padding="lg">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base font-bold text-ink">Currency</h3>
-            <span className="text-[10px] uppercase tracking-widest font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full">Global</span>
-          </div>
-          <div className="relative">
-            <select
-              value={profile.currency}
-              onChange={(e) => {
-                updateProfile({ currency: e.target.value });
-                toast.success(`Currency set to ${e.target.value}`);
-              }}
-              className="w-full bg-surface-soft border border-hairline rounded-2xl py-4 px-4 text-sm font-bold text-ink outline-none focus:border-brand appearance-none"
-            >
-              {ALL_CURRENCIES.map(c => (
-                <option key={c.code} value={c.code}>
-                  {c.code} ({c.symbol}) - {c.name}
-                </option>
-              ))}
-            </select>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-ink-soft">
-              <ArrowLeft className="size-4 -rotate-90" />
+      <div className="px-5 space-y-4 pb-12">
+        <section className="space-y-3">
+          <h3 className="text-xs font-bold text-ink-soft uppercase tracking-widest ml-1">General</h3>
+          <SurfaceCard padding="lg">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold text-ink">Currency</h3>
+              <span className="text-[10px] uppercase tracking-widest font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full">Global</span>
             </div>
-          </div>
-        </SurfaceCard>
+            <div className="relative">
+              <select
+                value={profile.currency}
+                onChange={(e) => {
+                  updateProfile({ currency: e.target.value });
+                }}
+                className="w-full bg-surface-soft border border-hairline rounded-2xl py-4 px-4 text-sm font-bold text-ink outline-none focus:border-brand appearance-none"
+              >
+                {ALL_CURRENCIES.map(c => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} ({c.symbol}) - {c.name}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-ink-soft">
+                <ArrowLeft className="size-4 -rotate-90" />
+              </div>
+            </div>
+          </SurfaceCard>
 
-        <SurfaceCard padding="md">
-          <Row
-            icon={dark ? Moon : Sun}
-            title="Appearance"
-            subtitle={dark ? "Dark mode" : "Light mode"}
-            trailing={
-              <Toggle on={dark} onChange={setDark} />
-            }
-          />
-        </SurfaceCard>
-
-        <SurfaceCard padding="md">
-          <Row
-            icon={Bell}
-            title="Notifications"
-            subtitle="Expense, balance & settlement alerts"
-            trailing={<Toggle on={notify} onChange={setNotify} />}
-          />
-        </SurfaceCard>
-
-        <SurfaceCard padding="md">
-          <button onClick={exportCSV} className="w-full text-left">
-            <Row icon={Download} title="Export data" subtitle="Download as CSV" trailing={<span className="text-ink-soft">→</span>} />
-          </button>
-        </SurfaceCard>
-
-        <SurfaceCard padding="md">
-          <Row icon={ShieldCheck} title="Privacy" subtitle="Your data is securely stored in Firebase" trailing={<span className="text-ink-soft">→</span>} />
-        </SurfaceCard>
-
-        <SurfaceCard padding="md">
-          <button
-            onClick={() => {
-              if (confirm("Reset local cache? This will NOT delete your Firebase data.")) {
-                location.reload();
+          <SurfaceCard padding="md">
+            <Row
+              icon={dark ? Moon : Sun}
+              title="Appearance"
+              subtitle={dark ? "Dark mode" : "Light mode"}
+              trailing={
+                <Toggle on={dark} onChange={setDark} />
               }
-            }}
-            className="w-full text-left"
-          >
-            <Row icon={LogOut} title="Reset app" subtitle="Clear all local data" trailing={<span className="text-destructive font-semibold text-xs">Reset</span>} />
-          </button>
-        </SurfaceCard>
+            />
+          </SurfaceCard>
+
+          <SurfaceCard padding="md">
+            <Row
+              icon={Bell}
+              title="Notifications"
+              subtitle="Expense, balance & settlement alerts"
+              trailing={<Toggle on={notify} onChange={setNotify} />}
+            />
+          </SurfaceCard>
+
+          <SurfaceCard padding="md">
+            <button onClick={exportCSV} className="w-full">
+              <Row icon={Download} title="Export data" subtitle="Download as CSV" trailing={<ChevronRight className="size-4 text-ink-soft" />} />
+            </button>
+          </SurfaceCard>
+        </section>
+
+        <section className="space-y-3 pt-2">
+          <h3 className="text-xs font-bold text-ink-soft uppercase tracking-widest ml-1">Support</h3>
+          <SurfaceCard padding="md">
+            <Link to="/support/tickets" className="w-full">
+              <Row icon={LifeBuoy} title="Support Tickets" subtitle="Get help from our team" trailing={<ChevronRight className="size-4 text-ink-soft" />} />
+            </Link>
+          </SurfaceCard>
+          <SurfaceCard padding="md">
+            <Link to="/support/help" className="w-full">
+              <Row icon={HelpCircle} title="Help Center" subtitle="FAQ and tutorials" trailing={<ChevronRight className="size-4 text-ink-soft" />} />
+            </Link>
+          </SurfaceCard>
+        </section>
+
+        <section className="space-y-3 pt-2">
+          <h3 className="text-xs font-bold text-ink-soft uppercase tracking-widest ml-1">Legal</h3>
+          <SurfaceCard padding="md">
+            <Link to="/legal/terms" className="w-full">
+              <Row icon={FileText} title="Terms of Service" subtitle="Rules of the platform" trailing={<ChevronRight className="size-4 text-ink-soft" />} />
+            </Link>
+          </SurfaceCard>
+          <SurfaceCard padding="md">
+            <Link to="/legal/privacy" className="w-full">
+              <Row icon={Lock} title="Privacy Policy" subtitle="How we handle your data" trailing={<ChevronRight className="size-4 text-ink-soft" />} />
+            </Link>
+          </SurfaceCard>
+          <SurfaceCard padding="md">
+            <Link to="/legal/about" className="w-full">
+              <Row icon={Info} title="About DAVNS" subtitle="Corporate & Parent company" trailing={<ChevronRight className="size-4 text-ink-soft" />} />
+            </Link>
+          </SurfaceCard>
+        </section>
+
+        <section className="space-y-3 pt-4">
+          <SurfaceCard padding="md">
+            <button
+              onClick={() => {
+                if (confirm("Reset local cache? This will NOT delete your Firebase data.")) {
+                  location.reload();
+                }
+              }}
+              className="w-full"
+            >
+              <Row icon={LogOut} title="Reset app" subtitle="Clear all local data" trailing={<span className="text-destructive font-bold text-[10px] uppercase tracking-wider">Reset</span>} />
+            </button>
+          </SurfaceCard>
+          
+          <div className="text-center py-4">
+            <img src="/davns_logo.png" alt="DAVNS" className="size-8 mx-auto grayscale opacity-20 mb-2" />
+            <p className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Version 2.4.0 (Build 89)</p>
+            <p className="text-[9px] text-ink-soft/60 mt-1">SmartSplit by DAVNS Industries</p>
+          </div>
+        </section>
       </div>
     </div>
   );

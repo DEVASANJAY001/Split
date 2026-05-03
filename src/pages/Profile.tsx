@@ -28,7 +28,7 @@ export default function Profile() {
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "available" | "taken">("idle");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [draft, setDraft] = useState(profile || { displayName: "", username: "", email: "", avatar: "", currency: "USD" });
 
   useEffect(() => {
@@ -47,13 +47,13 @@ export default function Profile() {
     }
 
     try {
-      setIsUploading(true);
+      setUploading(true);
       await uploadAvatar(file);
       toast.success("Avatar updated");
     } catch (err: any) {
       toast.error("Failed to upload: " + err.message);
     } finally {
-      setIsUploading(false);
+      setUploading(false);
     }
   };
 
@@ -83,6 +83,21 @@ export default function Profile() {
 
   if (!profile) return null;
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const url = await uploadAvatar(file);
+      setDraft({ ...draft, avatar: url });
+    } catch (err: any) {
+      toast.error("Upload failed: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const totalShared = expenses.reduce((a, e) => a + e.amount, 0);
   const totalPersonal = personal.reduce((a, e) => a + e.amount, 0);
 
@@ -92,8 +107,6 @@ export default function Profile() {
     try {
       await updateProfile(draft as any);
       setEditing(false);
-      // Only one toast for a major action
-      toast.success("Profile saved");
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -125,8 +138,8 @@ export default function Profile() {
           <div className="flex items-center gap-4">
             <div className="relative group shrink-0">
               <div className="size-xl rounded-full overflow-hidden ring-2 ring-surface relative shadow-sm">
-                <img key={profile.avatar} src={profile.avatar} alt="" className={cn("size-full object-cover transition-opacity", isUploading && "opacity-40")} />
-                {isUploading && (
+                <img key={profile.avatar} src={profile.avatar} alt="" className={cn("size-full object-cover transition-opacity", uploading && "opacity-40")} />
+                {uploading && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Loader2 className="size-6 text-brand-foreground animate-spin" />
                   </div>
@@ -134,7 +147,7 @@ export default function Profile() {
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
+                disabled={uploading}
                 className="absolute -bottom-1 -right-1 size-8 rounded-full bg-surface shadow-md border border-hairline flex items-center justify-center text-ink hover:text-brand transition-colors active:scale-90"
               >
                 <Camera className="size-4" strokeWidth={2.5} />
@@ -215,11 +228,11 @@ export default function Profile() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[11px] text-ink-soft">Group expenses</p>
-              <p className="text-lg font-bold tabular-nums text-ink">{fmt(totalShared)}</p>
+              <p className="text-lg font-bold tabular-nums text-ink">{fmt(totalShared, profile.currency)}</p>
             </div>
             <div>
               <p className="text-[11px] text-ink-soft">Personal expenses</p>
-              <p className="text-lg font-bold tabular-nums text-ink">{fmt(totalPersonal)}</p>
+              <p className="text-lg font-bold tabular-nums text-ink">{fmt(totalPersonal, profile.currency)}</p>
             </div>
           </div>
         </SurfaceCard>
@@ -244,7 +257,7 @@ export default function Profile() {
       </div>
 
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setConfirmDelete(false)}>
+        <div className="fixed inset-0 z-[70] bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setConfirmDelete(false)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 text-center shadow-2xl animate-in zoom-in-95 duration-200">
             <AlertCircle className="size-12 text-destructive mx-auto mb-3" />
             <h3 className="text-xl font-bold tracking-tightest text-ink">Delete Account?</h3>
@@ -275,7 +288,7 @@ export default function Profile() {
       )}
 
       {showQR && (
-        <div className="fixed inset-0 z-50 bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowQR(false)}>
+        <div className="fixed inset-0 z-[70] bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowQR(false)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 space-y-4 text-center shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold tracking-tightest text-ink">My QR code</h2>
@@ -290,7 +303,6 @@ export default function Profile() {
             <button
               onClick={() => {
                 navigator.clipboard.writeText(`https://${window.location.host}/user/${userId}`);
-                toast.success("Profile link copied!");
               }}
               className="w-full bg-brand/10 text-brand py-3 rounded-xl font-bold hover:bg-brand/20 active:scale-95 transition-all text-sm mt-4"
             >
@@ -301,13 +313,27 @@ export default function Profile() {
       )}
 
       {editing && (
-        <div className="fixed inset-0 z-50 bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setEditing(false)}>
+        <div className="fixed inset-0 z-[70] bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setEditing(false)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold tracking-tightest text-ink">Edit profile</h2>
               <button onClick={() => setEditing(false)} className="size-8 rounded-full bg-surface-soft flex items-center justify-center">
                 <X className="size-4" />
               </button>
+            </div>
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative group">
+                <PersonAvatar person={draft} size="xl" ring />
+                <label className="absolute inset-0 flex items-center justify-center bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
+                  {uploading ? (
+                    <Loader2 className="size-6 text-white animate-spin" />
+                  ) : (
+                    <Camera className="size-6 text-white" />
+                  )}
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+                </label>
+              </div>
+              <p className="text-[10px] text-ink-soft font-bold uppercase tracking-widest">Change Photo</p>
             </div>
             <div className="space-y-4">
               <div>
@@ -376,6 +402,6 @@ export default function Profile() {
       )
       }
 
-    </div >
+    </div>
   );
 }

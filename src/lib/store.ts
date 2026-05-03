@@ -13,7 +13,7 @@ import {
   getDocs,
   query,
   where,
-  collectionGroup,
+  orderBy,
   runTransaction,
 } from "firebase/firestore";
 import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -55,6 +55,7 @@ export type Group = {
   memberIds: string[];
   ownerId: string;
   currency: string;
+  createdAt: number;
 };
 
 export type Expense = {
@@ -90,6 +91,14 @@ export type PersonalExpense = {
   category: Category;
 };
 
+export type Message = {
+  id: string;
+  groupId: string;
+  senderId: string;
+  text: string;
+  createdAt: number;
+};
+
 export type FriendRequest = {
   id: string;
   fromUsername: string; // who sent it
@@ -105,6 +114,8 @@ export type Profile = {
   email: string;
   avatar: string;
   currency: string;
+  isVerified?: boolean;
+  completedSetup?: boolean;
 };
 
 type AppMode = "group" | "personal";
@@ -126,6 +137,7 @@ interface AppState {
     targetUid?: string;
   }[];
   lastSeenRequests: number;
+  messages: Record<string, Message[]>; // groupId -> messages
   mode: AppMode;
   profile: Profile | null;
   userId: string | null;
@@ -158,6 +170,7 @@ interface AppState {
   deleteAccount: () => Promise<void>;
   updateGroupMembers: (groupId: string, memberIds: string[]) => Promise<void>;
   deleteGroup: (groupId: string) => Promise<void>;
+  sendMessage: (groupId: string, text: string) => Promise<void>;
 }
 
 export type SettleMethod = "Cash" | "UPI" | "Bank Transfer" | "Other";
@@ -174,6 +187,7 @@ export const useStore = create<AppState>()(
       requests: [],
       outgoing: [],
       lastSeenRequests: 0,
+      messages: {},
       mode: "group",
       profile: null,
       userId: null,
@@ -213,7 +227,7 @@ export const useStore = create<AppState>()(
               }
             });
 
-            // 2. Groups subscription (where memberIds contains uid)
+            // 2. Groups subscription
             const groupsQuery = query(
               collection(db, "groups"),
               where("memberIds", "array-contains", uid),
@@ -224,15 +238,11 @@ export const useStore = create<AppState>()(
               );
               set({ groups: groupsList });
 
-              // 3. Dependent subscriptions: Expenses & Settlements for these groups
+              // 3. Dependent subscriptions: Expenses, Settlements & Messages
               if (groupsList.length > 0) {
                 const groupIds = groupsList.map((g) => g.id);
 
-                // Firestore limit for 'in' is 30, but we can iterate or just use groupIds if small
-                // For simplicity and since Firestore doesn't have a cross-collection 'in' for listeners easily,
-                // we'll listen to all expenses and filter locally OR use multiple queries.
-                // However, better practice in Firestore is to listen to the collections directly.
-
+                // Expenses
                 const expensesQuery = query(
                   collection(db, "expenses"),
                   where("groupId", "in", groupIds.slice(0, 30)),
@@ -245,6 +255,7 @@ export const useStore = create<AppState>()(
                   });
                 });
 
+                // Settlements
                 const settlementsQuery = query(
                   collection(db, "settlements"),
                   where("groupId", "in", groupIds.slice(0, 30)),
@@ -256,8 +267,23 @@ export const useStore = create<AppState>()(
                     ),
                   });
                 });
+
+                // Messages (Realtime listener for each group)
+                groupsList.forEach(g => {
+                    const messagesQuery = query(
+                        collection(db, "groups", g.id, "messages"),
+                        orderBy("createdAt", "asc")
+                    );
+                    onSnapshot(messagesQuery, (msgSnap) => {
+                        const msgs = msgSnap.docs.map(d => ({ ...d.data(), id: d.id }) as Message);
+                        set(state => ({
+                            messages: { ...state.messages, [g.id]: msgs }
+                        }));
+                    });
+                });
+
               } else {
-                set({ expenses: [], settlements: [] });
+                set({ expenses: [], settlements: [], messages: {} });
               }
             });
 
@@ -270,7 +296,7 @@ export const useStore = create<AppState>()(
               });
             });
 
-            // 5. Personal Expenses (subcollection)
+            // 5. Personal Expenses
             onSnapshot(
               collection(db, "users", uid, "personal_expenses"),
               (s) => {
@@ -317,6 +343,7 @@ export const useStore = create<AppState>()(
               requests: [],
               friendIds: [],
               people: [],
+              messages: {},
             });
           }
         });
@@ -325,6 +352,7 @@ export const useStore = create<AppState>()(
         const docRef = await addDoc(collection(db, "groups"), {
           ...g,
           ownerId: auth.currentUser?.uid,
+          createdAt: Date.now(),
         });
         return docRef.id;
       },
@@ -388,43 +416,20 @@ export const useStore = create<AppState>()(
         if (!senderUid) return;
 
         await runTransaction(db, async (transaction) => {
-          // 1. Add sender to receiver's friends
-          const receiverFriendsRef = doc(
-            db,
-            "users",
-            userId,
-            "private",
-            "friends",
-          );
+          const receiverFriendsRef = doc(db, "users", userId, "private", "friends");
           const recSnap = await transaction.get(receiverFriendsRef);
           const recFriends = recSnap.exists() ? recSnap.data().ids || [] : [];
           if (!recFriends.includes(senderUid)) {
-            transaction.set(
-              receiverFriendsRef,
-              { ids: [...recFriends, senderUid] },
-              { merge: true },
-            );
+            transaction.set(receiverFriendsRef, { ids: [...recFriends, senderUid] }, { merge: true });
           }
 
-          // 2. Add receiver to sender's friends
-          const senderFriendsRef = doc(
-            db,
-            "users",
-            senderUid,
-            "private",
-            "friends",
-          );
+          const senderFriendsRef = doc(db, "users", senderUid, "private", "friends");
           const senSnap = await transaction.get(senderFriendsRef);
           const senFriends = senSnap.exists() ? senSnap.data().ids || [] : [];
           if (!senFriends.includes(userId)) {
-            transaction.set(
-              senderFriendsRef,
-              { ids: [...senFriends, userId] },
-              { merge: true },
-            );
+            transaction.set(senderFriendsRef, { ids: [...senFriends, userId] }, { merge: true });
           }
 
-          // 3. Delete request
           transaction.delete(doc(db, "users", userId, "friend_requests", id));
         });
       },
@@ -473,8 +478,6 @@ export const useStore = create<AppState>()(
               },
             ],
           }));
-
-          toast.success("Friend request sent to " + username);
         } catch (error) {
           console.error("Send request error", error);
           toast.error("Failed to send request.");
@@ -492,9 +495,7 @@ export const useStore = create<AppState>()(
           const snap = await getDoc(doc(db, "usernames", handle));
           if (snap.exists()) {
             const targetUid = snap.data().uid;
-            await deleteDoc(
-              doc(db, "users", targetUid, "friend_requests", out.requestId),
-            );
+            await deleteDoc(doc(db, "users", targetUid, "friend_requests", out.requestId));
           }
         } catch (e) {
           console.error("Withdrawal error", e);
@@ -522,9 +523,7 @@ export const useStore = create<AppState>()(
           const otherSnap = await transaction.get(otherFriendsRef);
           if (otherSnap.exists()) {
             transaction.update(otherFriendsRef, {
-              ids: (otherSnap.data().ids || []).filter(
-                (x: string) => x !== userId,
-              ),
+              ids: (otherSnap.data().ids || []).filter((x: string) => x !== userId),
             });
           }
         });
@@ -542,26 +541,31 @@ export const useStore = create<AppState>()(
       uploadAvatar: async (file) => {
         const userId = auth.currentUser?.uid;
         if (!userId) throw new Error("Not authenticated");
-        const fileRef = sRef(storage, `avatars/${userId}`);
 
-        const uploadTask = async () => {
-          await uploadBytes(fileRef, file);
-          return getDownloadURL(fileRef);
-        };
+        const getBase64 = (f: Blob): Promise<string> => new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(f);
+          reader.onload = () => res(reader.result as string);
+          reader.onerror = error => rej(error);
+        });
 
-        const timeout = new Promise<string>((_, reject) =>
-          setTimeout(
-            () =>
-              reject(
-                new Error(
-                  "Storage upload timed out. Ensure Firebase Storage is enabled and rules allow writes.",
-                ),
-              ),
-            7000,
-          ),
-        );
+        try {
+          const fileRef = sRef(storage, `avatars/${userId}`);
+          const uploadTask = async () => {
+            await uploadBytes(fileRef, file);
+            return getDownloadURL(fileRef);
+          };
 
-        return Promise.race([uploadTask(), timeout]);
+          const timeout = new Promise<string>((_, reject) =>
+            setTimeout(() => reject(new Error("Storage upload timed out.")), 5000)
+          );
+
+          return await Promise.race([uploadTask(), timeout]);
+        } catch (err: any) {
+          console.warn("Cloud upload failed. Falling back to Base64.", err);
+          if (file.size > 500 * 1024) throw err;
+          return await getBase64(file);
+        }
       },
       isUsernameAvailable: async (username) => {
         const handle = username.replace("@", "").toLowerCase();
@@ -594,16 +598,7 @@ export const useStore = create<AppState>()(
           }),
         );
 
-        return results.filter(
-          (
-            r,
-          ): r is {
-            username: string;
-            displayName: string;
-            avatar: string;
-            uid: string;
-          } => r !== null,
-        );
+        return results.filter((r): r is { username: string; displayName: string; avatar: string; uid: string } => r !== null);
       },
       markRequestsAsSeen: () => {
         set({ lastSeenRequests: Date.now() });
@@ -619,38 +614,30 @@ export const useStore = create<AppState>()(
         }
         await deleteDoc(doc(db, "users", userId));
         await deleteDoc(doc(db, "people", userId));
-        // Note: personal_expenses are in a subcollection, so they need recursive delete if needed,
-        // but for now deleteDoc on top-level is what was there.
         await auth.currentUser?.delete();
         set({ userId: null, profile: null });
       },
       updateGroupMembers: async (groupId, memberIds) => {
-        const userId = auth.currentUser?.uid;
-        if (!userId) return;
         await updateDoc(doc(db, "groups", groupId), { memberIds });
       },
       deleteGroup: async (groupId) => {
-        const userId = auth.currentUser?.uid;
-        if (!userId) return;
-
         await runTransaction(db, async (transaction) => {
-          // Delete expenses in group
-          const expSnap = await getDocs(
-            query(collection(db, "expenses"), where("groupId", "==", groupId)),
-          );
+          const expSnap = await getDocs(query(collection(db, "expenses"), where("groupId", "==", groupId)));
           expSnap.forEach((d) => transaction.delete(d.ref));
 
-          // Delete settlements in group
-          const setSnap = await getDocs(
-            query(
-              collection(db, "settlements"),
-              where("groupId", "==", groupId),
-            ),
-          );
+          const setSnap = await getDocs(query(collection(db, "settlements"), where("groupId", "==", groupId)));
           setSnap.forEach((d) => transaction.delete(d.ref));
 
-          // Delete group
           transaction.delete(doc(db, "groups", groupId));
+        });
+      },
+      sendMessage: async (groupId, text) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
+        await addDoc(collection(db, "groups", groupId, "messages"), {
+          senderId: userId,
+          text,
+          createdAt: Date.now(),
         });
       },
     }),
@@ -668,14 +655,8 @@ export const useStore = create<AppState>()(
 export const personById = (people: Person[], id: string) =>
   people.find((p) => p.id === id);
 
-export function netBalances(
-  group: Group,
-  allExpenses: Expense[],
-  allSettlements: Settlement[],
-) {
-  const net: Record<string, number> = Object.fromEntries(
-    group.memberIds.map((id) => [id, 0]),
-  );
+export function netBalances(group: Group, allExpenses: Expense[], allSettlements: Settlement[]) {
+  const net: Record<string, number> = Object.fromEntries(group.memberIds.map((id) => [id, 0]));
   const groupExpenses = allExpenses.filter((e) => e.groupId === group.id);
   const groupSettlements = allSettlements.filter((s) => s.groupId === group.id);
 
@@ -705,15 +686,10 @@ export function simplifyDebts(net: Record<string, number>) {
   debtors.sort((a, b) => b.v - a.v);
   creditors.sort((a, b) => b.v - a.v);
   const out: { from: string; to: string; amount: number }[] = [];
-  let i = 0,
-    j = 0;
+  let i = 0, j = 0;
   while (i < debtors.length && j < creditors.length) {
     const pay = Math.min(debtors[i].v, creditors[j].v);
-    out.push({
-      from: debtors[i].id,
-      to: creditors[j].id,
-      amount: Math.round(pay * 100) / 100,
-    });
+    out.push({ from: debtors[i].id, to: creditors[j].id, amount: Math.round(pay * 100) / 100 });
     debtors[i].v -= pay;
     creditors[j].v -= pay;
     if (debtors[i].v < 0.01) i++;
@@ -722,41 +698,19 @@ export function simplifyDebts(net: Record<string, number>) {
   return out;
 }
 
-export function computeShares(
-  total: number,
-  participants: string[],
-  mode: SplitMode,
-  values: Record<string, number> = {},
-): Record<string, number> {
+export function computeShares(total: number, participants: string[], mode: SplitMode, values: Record<string, number> = {}): Record<string, number> {
   if (participants.length === 0) return {};
   if (mode === "equal") {
     const share = total / participants.length;
-    return Object.fromEntries(
-      participants.map((p) => [p, Math.round(share * 100) / 100]),
-    );
+    return Object.fromEntries(participants.map((p) => [p, Math.round(share * 100) / 100]));
   }
   if (mode === "percent") {
-    return Object.fromEntries(
-      participants.map((p) => [
-        p,
-        Math.round(((total * (values[p] ?? 0)) / 100) * 100) / 100,
-      ]),
-    );
+    return Object.fromEntries(participants.map((p) => [p, Math.round(((total * (values[p] ?? 0)) / 100) * 100) / 100]));
   }
   if (mode === "shares") {
-    const totalShares =
-      Object.values(values).reduce((a, b) => a + (b || 0), 0) ||
-      participants.length;
+    const totalShares = Object.values(values).reduce((a, b) => a + (b || 0), 0) || participants.length;
     const perShare = total / totalShares;
-    return Object.fromEntries(
-      participants.map((p) => [
-        p,
-        Math.round(perShare * (values[p] ?? 1) * 100) / 100,
-      ]),
-    );
+    return Object.fromEntries(participants.map((p) => [p, Math.round(perShare * (values[p] ?? 1) * 100) / 100]));
   }
-  // unequal / custom
-  return Object.fromEntries(
-    participants.map((p) => [p, Math.round((values[p] ?? 0) * 100) / 100]),
-  );
+  return Object.fromEntries(participants.map((p) => [p, Math.round((values[p] ?? 0) * 100) / 100]));
 }

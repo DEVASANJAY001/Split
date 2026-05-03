@@ -3,14 +3,14 @@ import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useStore } from "@/lib/store";
-import { motion } from "framer-motion";
-import { Mail, Lock, LogIn, Chrome } from "lucide-react";
+import { Mail, Lock, LogIn, Chrome, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const { userId, loading: authLoading } = useStore();
     const navigate = useNavigate();
 
@@ -27,7 +27,16 @@ export default function LoginPage() {
             await signInWithEmailAndPassword(auth, email, password);
             navigate("/");
         } catch (error: any) {
-            toast.error(error.message);
+            console.error("Login error:", error.code, error.message);
+            if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+                toast.error("Incorrect password. Please try again.");
+            } else if (error.code === "auth/user-not-found") {
+                toast.error("No account found with this email.");
+            } else if (error.code === "auth/too-many-requests") {
+                toast.error("Too many failed attempts. Please try again later.");
+            } else {
+                toast.error(error.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -44,11 +53,7 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background px-6">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-sm space-y-8"
-            >
+            <div className="w-full max-w-sm space-y-8">
                 <div className="text-center space-y-2">
                     <h1 className="text-4xl font-extrabold tracking-tightest text-ink italic">split</h1>
                     <p className="text-ink-soft">Sign in to your account</p>
@@ -72,13 +77,25 @@ export default function LoginPage() {
                         <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-soft" />
                             <input
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 placeholder="Password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-surface-soft border border-hairline rounded-2xl py-3 pl-10 pr-4 outline-none focus:border-brand transition-colors"
+                                className="w-full bg-surface-soft border border-hairline rounded-2xl py-3 pl-10 pr-12 outline-none focus:border-brand transition-colors"
                                 required
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-soft hover:text-brand transition-colors"
+                            >
+                                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </button>
+                        </div>
+                        <div className="flex justify-end px-1">
+                            <Link to="/forgot-password" size-sm className="text-xs font-medium text-brand hover:underline">
+                                Forgot password?
+                            </Link>
                         </div>
                     </div>
 
@@ -112,7 +129,7 @@ export default function LoginPage() {
                         Sign up
                     </Link>
                 </p>
-            </motion.div>
+            </div>
         </div>
     );
 }

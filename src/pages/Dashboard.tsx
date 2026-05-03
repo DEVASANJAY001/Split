@@ -92,67 +92,84 @@ export default function Dashboard() {
     [personal],
   );
 
+  const sortedGroups = useMemo(() => {
+    return groups.map(g => {
+      const groupExpenses = expenses.filter(e => e.groupId === g.id);
+      const lastExp = groupExpenses.length > 0 ? Math.max(...groupExpenses.map(e => e.createdAt)) : 0;
+      const groupSetts = settlements.filter(s => s.groupId === g.id);
+      const lastSett = groupSetts.length > 0 ? Math.max(...groupSetts.map(s => s.createdAt)) : 0;
+      const lastActivity = Math.max(g.createdAt || 0, lastExp, lastSett);
+      return { ...g, lastActivity };
+    }).sort((a, b) => b.lastActivity - a.lastActivity).slice(0, 4);
+  }, [groups, expenses, settlements]);
+
   if (mode === "personal") {
     return (
       <div>
         <PageHeader title="SmartSplit" subtitle="Personal expenses" showModeSwitch />
         <div className="px-5 space-y-4">
-          <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden">
-            <p className="text-sm font-medium opacity-90 mb-2">Spent this month</p>
-            <p className="text-5xl font-bold tracking-tightest tabular-nums">{fmt(personalStats.month, cur)}</p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="bg-brand-foreground/10 rounded-2xl p-3">
-                <p className="text-[11px] opacity-90">All-time</p>
-                <p className="text-lg font-bold tabular-nums">{fmt(personalStats.total, cur)}</p>
+          <div>
+            <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden">
+              <p className="text-sm font-medium opacity-90 mb-2">Spent this month</p>
+              <p className="text-5xl font-bold tracking-tightest tabular-nums">{fmt(personalStats.month, cur)}</p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="bg-brand-foreground/10 rounded-2xl p-3">
+                  <p className="text-[11px] opacity-90">All-time</p>
+                  <p className="text-lg font-bold tabular-nums">{fmt(personalStats.total, cur)}</p>
+                </div>
+                <div className="bg-brand-foreground/10 rounded-2xl p-3">
+                  <p className="text-[11px] opacity-90">Entries</p>
+                  <p className="text-lg font-bold tabular-nums">{personal.length}</p>
+                </div>
               </div>
-              <div className="bg-brand-foreground/10 rounded-2xl p-3">
-                <p className="text-[11px] opacity-90">Entries</p>
-                <p className="text-lg font-bold tabular-nums">{personal.length}</p>
-              </div>
-            </div>
-            <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />
-          </SurfaceCard>
-
-          <Link to="/split" className="block">
-            <SurfaceCard padding="md" className="hover:shadow-card transition-shadow flex items-center gap-3">
-              <div className="size-10 rounded-full bg-brand text-brand-foreground flex items-center justify-center">
-                <Wallet className="size-5" strokeWidth={2.25} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-ink">Add personal expense</p>
-                <p className="text-[11px] text-ink-soft">Track a private spend</p>
-              </div>
+              <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />
             </SurfaceCard>
-          </Link>
-
-          <div className="flex items-end justify-between pt-2 px-1">
-            <h3 className="text-base font-bold text-ink">Recent personal</h3>
           </div>
-          <SurfaceCard padding="md">
-            {recentPersonal.length === 0 ? (
-              <p className="text-sm text-ink-soft text-center py-4">No personal expenses yet.</p>
-            ) : (
-              <ul className="space-y-4">
-                {recentPersonal.map((e) => {
-                  const Icon = categoryIcons[e.category];
-                  return (
-                    <li key={e.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="size-10 rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center shrink-0">
-                          <Icon className="size-4" strokeWidth={2.25} />
+
+          <div>
+            <Link to="/split" className="block">
+              <SurfaceCard padding="md" className="hover:shadow-card transition-shadow flex items-center gap-3">
+                <div className="size-10 rounded-full bg-brand text-brand-foreground flex items-center justify-center">
+                  <Wallet className="size-5" strokeWidth={2.25} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-ink">Add personal expense</p>
+                  <p className="text-[11px] text-ink-soft">Track a private spend</p>
+                </div>
+              </SurfaceCard>
+            </Link>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-end justify-between pt-2 px-1">
+              <h3 className="text-base font-bold text-ink">Recent personal</h3>
+            </div>
+            <SurfaceCard padding="md">
+              {recentPersonal.length === 0 ? (
+                <p className="text-sm text-ink-soft text-center py-4">No personal expenses yet.</p>
+              ) : (
+                <ul className="space-y-4">
+                  {recentPersonal.map((e) => {
+                    const Icon = categoryIcons[e.category];
+                    return (
+                      <li key={e.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="size-10 rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center shrink-0">
+                            <Icon className="size-4" strokeWidth={2.25} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
+                            <p className="text-[11px] text-ink-soft">{e.category} · {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
-                          <p className="text-[11px] text-ink-soft">{e.category} · {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
-                        </div>
-                      </div>
-                      <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </SurfaceCard>
+                        <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </SurfaceCard>
+          </div>
         </div>
       </div>
     );
@@ -163,23 +180,26 @@ export default function Dashboard() {
       <PageHeader title="SmartSplit" subtitle="Shared expenses, simplified" showModeSwitch />
 
       <div className="px-5 space-y-4">
-        <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden">
-          <p className="text-sm font-medium opacity-90 mb-2">Your overall balance</p>
-          <p className="text-5xl font-bold tracking-tightest tabular-nums">
-            {summary.owed - summary.owe >= 0 ? "+" : ""}{fmt(summary.owed - summary.owe, cur)}
-          </p>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="bg-brand-foreground/10 rounded-2xl p-3">
-              <div className="flex items-center gap-1 opacity-90 text-[11px]"><TrendingUp className="size-3" /> You are owed</div>
-              <p className="text-lg font-bold tabular-nums">{fmt(summary.owed, cur)}</p>
+        <div>
+          <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden shadow-brand bg-gradient-to-br from-brand to-[#4338ca]">
+            <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Net Balance</p>
+            <div className="flex items-baseline gap-1">
+              <p className="text-4xl font-extrabold tracking-tightest tabular-nums">
+                {summary.owed - summary.owe >= 0 ? "+" : ""}{fmt(summary.owed - summary.owe, cur)}
+              </p>
             </div>
-            <div className="bg-brand-foreground/10 rounded-2xl p-3">
-              <div className="flex items-center gap-1 opacity-90 text-[11px]"><TrendingDown className="size-3" /> You owe</div>
-              <p className="text-lg font-bold tabular-nums">{fmt(summary.owe, cur)}</p>
+            <div className="mt-6 grid grid-cols-2 gap-4 relative z-10">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+                <div className="flex items-center gap-1.5 opacity-80 text-[10px] font-bold uppercase tracking-wider mb-1"><TrendingUp className="size-3" /> Owed</div>
+                <p className="text-xl font-bold tabular-nums">{fmt(summary.owed, cur)}</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+                <div className="flex items-center gap-1.5 opacity-80 text-[10px] font-bold uppercase tracking-wider mb-1"><TrendingDown className="size-3" /> Owes</div>
+                <p className="text-xl font-bold tabular-nums">{fmt(summary.owe, cur)}</p>
+              </div>
             </div>
-          </div>
-          <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />
-        </SurfaceCard>
+          </SurfaceCard>
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Link to="/split" className="block">
@@ -202,57 +222,72 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        <div className="flex items-end justify-between pt-2 px-1">
-          <h3 className="text-base font-bold text-ink">Your groups</h3>
-          <Link to="/groups" className="text-xs text-brand font-semibold">See all</Link>
-        </div>
+        <div className="space-y-4">
+          <div className="flex items-end justify-between pt-2 px-1">
+            <h3 className="text-base font-bold text-ink">Your groups</h3>
+            <Link to="/groups" className="text-xs text-brand font-semibold">See all</Link>
+          </div>
 
-        <div className="space-y-3">
-          {groups.map((g) => {
-            const v = summary.perGroup[g.id] ?? 0;
-            const members = g.memberIds.map((id) => personById(people, id)!).filter(Boolean);
-            const Icon = groupIcons[g.type];
-            return (
-              <Link key={g.id} to={`/groups/${g.id}`} className="block">
-                <SurfaceCard padding="md" className="hover:shadow-card transition-shadow">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="size-11 rounded-2xl bg-brand-soft text-brand-soft-foreground flex items-center justify-center shrink-0">
-                        <Icon className="size-5" strokeWidth={2} />
+          <div className="space-y-3">
+            {sortedGroups.map((g) => {
+              const v = summary.perGroup[g.id] ?? 0;
+              const members = g.memberIds.map((id) => personById(people, id)!).filter(Boolean);
+              const Icon = groupIcons[g.type];
+              return (
+                <div key={g.id}>
+                  <Link to={`/groups/${g.id}`} className="block">
+                    <SurfaceCard padding="md" className="hover:shadow-card transition-all border-none bg-surface/50 backdrop-blur-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="size-12 rounded-2xl bg-brand text-white flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
+                            <Icon className="size-6" strokeWidth={2} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-base text-ink truncate">{g.name}</p>
+                            <p className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">{g.type} · {members.length} members</p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className={cn("text-base font-black tabular-nums", v > 0.01 ? "text-success" : v < -0.01 ? "text-destructive" : "text-ink-soft")}>
+                            {v > 0.01 ? "+" : ""}{fmt(v, cur)}
+                          </p>
+                          <p className="text-[10px] font-bold uppercase tracking-tight text-ink-soft opacity-60">{v > 0.01 ? "Receivable" : v < -0.01 ? "Payable" : "Settled"}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm text-ink truncate">{g.name}</p>
-                        <p className="text-[11px] text-ink-soft">{g.type} · {members.length} members</p>
+                      <div className="mt-4 flex items-center justify-between">
+                        <AvatarStack people={members} max={5} size="sm" />
+                        <div className="px-2 py-1 bg-surface-soft rounded-full text-[10px] font-bold text-ink-soft">
+                          View Details
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className={cn("text-sm font-bold tabular-nums", v > 0.01 ? "text-success" : v < -0.01 ? "text-destructive" : "text-ink-soft")}>
-                        {v > 0.01 ? "+" : ""}{fmt(v, g.currency)}
-                      </p>
-                      <p className="text-[10px] text-ink-soft">{v > 0.01 ? "you get back" : v < -0.01 ? "you owe" : "settled"}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <AvatarStack people={members} max={5} size="sm" />
-                  </div>
-                </SurfaceCard>
-              </Link>
-            );
-          })}
+                    </SurfaceCard>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="flex items-end justify-between pt-2 px-1">
-          <h3 className="text-base font-bold text-ink">Recent activity</h3>
-          <Link to="/transactions" className="text-xs text-brand font-semibold">See all</Link>
-        </div>
+        <div className="space-y-4">
+          <div className="flex items-end justify-between pt-2 px-1">
+            <h3 className="text-base font-bold text-ink">Recent activity</h3>
+            <Link to="/transactions" className="text-xs text-brand font-semibold">See all</Link>
+          </div>
 
-        <SurfaceCard padding="md">
-          {recent.length === 0 ? (
-            <p className="text-sm text-ink-soft text-center py-4">No activity yet.</p>
-          ) : (
-            <ul className="space-y-4">{recent.map((r) => r.node)}</ul>
-          )}
-        </SurfaceCard>
+          <SurfaceCard padding="md">
+            {recent.length === 0 ? (
+              <p className="text-sm text-ink-soft text-center py-4">No activity yet.</p>
+            ) : (
+              <ul className="space-y-4">
+                {recent.map((r, i) => (
+                  <div key={r.id} className={cn(i === 0 && "bg-brand/5 -mx-2 px-2 py-1 rounded-xl ring-1 ring-brand/10")}>
+                    {r.node}
+                  </div>
+                ))}
+              </ul>
+            )}
+          </SurfaceCard>
+        </div>
       </div>
     </div>
   );
