@@ -115,12 +115,16 @@ export default function SignUpPage() {
                 } catch (authError: any) {
                     console.error("Auth Creation Error:", authError);
                     if (authError.code === 'auth/email-already-in-use') {
+                        setStep("signup");
                         throw new Error("Email already in use. Please log in.");
                     } else if (authError.code === 'auth/weak-password') {
+                        setStep("signup");
                         throw new Error("Password is too weak. Must be at least 6 characters.");
                     } else if (authError.code === 'auth/invalid-email') {
+                        setStep("signup");
                         throw new Error("Invalid email format.");
                     } else {
+                        setStep("signup");
                         throw new Error(authError.message || "Failed to create account in Firebase.");
                     }
                 }
