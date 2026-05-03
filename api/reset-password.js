@@ -1,9 +1,5 @@
-const admin = require('firebase-admin');
-
-// admin initialization moved inside the handler
-
 module.exports = async (req, res) => {
-  // Set CORS headers
+  // Set CORS headers early
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -11,6 +7,14 @@ module.exports = async (req, res) => {
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  try {
+    const admin = require('firebase-admin');
 
   try {
     if (!admin.apps.length) {
@@ -64,5 +68,10 @@ module.exports = async (req, res) => {
   } catch (error) {
     console.error("Reset Password API Error:", error);
     return res.status(500).json({ error: error.message || "Failed to reset password" });
+  }
+
+  } catch (masterError) {
+    console.error("Master Try-Catch Error:", masterError);
+    return res.status(500).json({ error: masterError.message || "Failed to initialize serverless function" });
   }
 };
