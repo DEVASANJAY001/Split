@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { fmt } from "@/lib/finance";
-import { Settings, QrCode, X, Pencil, Users, Receipt, Camera, Loader2, CheckCircle2, AlertCircle, Edit2 } from "lucide-react";
+import { Settings, QrCode, X, Pencil, Users, Receipt, Camera, Loader2, CheckCircle2, AlertCircle, Edit2, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ImageCropper from "@/components/ImageCropper";
@@ -29,6 +29,7 @@ export default function Profile() {
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "available" | "taken">("idle");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [draft, setDraft] = useState(profile || { displayName: "", username: "", email: "", avatar: "", currency: "USD" });
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -301,7 +302,7 @@ export default function Profile() {
         </SurfaceCard>
 
         <button
-          onClick={handleLogout}
+          onClick={() => setConfirmLogout(true)}
           className="w-full bg-surface-soft text-ink py-4 rounded-2xl font-bold hover:bg-surface-soft active:scale-95 transition-all mt-4"
         >
           Sign Out
@@ -433,6 +434,34 @@ export default function Profile() {
           setImageToCrop(null);
         }}
       />
+
+      {confirmLogout && (
+        <div className="fixed inset-0 z-[80] bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setConfirmLogout(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 space-y-6 text-center shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="mx-auto size-16 bg-destructive/10 rounded-2xl flex items-center justify-center text-destructive">
+               <LogOut className="size-8" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold tracking-tightest text-ink">Sign Out?</h2>
+              <p className="text-sm text-ink-soft">Are you sure you want to sign out of your account?</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => setConfirmLogout(false)}
+                className="w-full bg-surface-soft text-ink py-3.5 rounded-xl font-bold hover:bg-ink/5 transition-all text-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="w-full bg-destructive text-white py-3.5 rounded-xl font-bold shadow-lg shadow-destructive/20 hover:opacity-90 transition-all text-sm"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
