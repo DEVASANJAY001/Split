@@ -20,6 +20,7 @@ import SupportTickets from "./pages/support/SupportTickets";
 import HelpCenter from "./pages/support/HelpCenter";
 import NotFound from "./pages/NotFound.tsx";
 import LoginPage from "./pages/Auth/LoginPage";
+import UserDetail from "./pages/UserDetail";
 import SignUpPage from "./pages/Auth/SignUpPage";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 import ProfileSetup from "./pages/Auth/ProfileSetup";
@@ -101,6 +102,7 @@ const App = () => (
             <Route path="/signup" element={<OnboardingRoute><SignUpPage /></OnboardingRoute>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
+            <Route path="/user/:id" element={<ProtectedRoute><UserDetail /></ProtectedRoute>} />
 
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<OnboardingRoute><Dashboard /></OnboardingRoute>} />
