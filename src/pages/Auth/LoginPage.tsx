@@ -22,6 +22,8 @@ export default function LoginPage() {
 
     const [shakeEmail, setShakeEmail] = useState(false);
     const [shakePassword, setShakePassword] = useState(false);
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
 
     const triggerShake = (target: 'email' | 'password') => {
         if (target === 'email') {
@@ -36,6 +38,8 @@ export default function LoginPage() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setEmailError("");
+        setPasswordError("");
         try {
             await signInWithEmailAndPassword(auth, email, password);
             navigate("/");
@@ -43,9 +47,11 @@ export default function LoginPage() {
             console.error("Login error:", error.code, error.message);
             if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
                 toast.error("Password is wrong");
+                setPasswordError("Your password is wrong or invalid, enter correctly");
                 triggerShake('password');
             } else if (error.code === "auth/user-not-found") {
                 toast.error("Email is wrong");
+                setEmailError("Entered email id is invalid");
                 triggerShake('email');
             } else if (error.code === "auth/too-many-requests") {
                 toast.error("Too many failed attempts. Please try again later.");
@@ -75,28 +81,39 @@ export default function LoginPage() {
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                         <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-soft" />
                             <input
                                 type="email"
                                 placeholder="Email address"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3 pl-10 pr-4 outline-none focus:border-brand transition-colors ${shakeEmail ? 'animate-shake border-destructive ring-4 ring-destructive/10' : ''}`}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    if (emailError) setEmailError("");
+                                }}
+                                className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3 pl-10 pr-4 outline-none focus:border-brand transition-colors ${shakeEmail ? 'animate-shake border-destructive ring-4 ring-destructive/10' : emailError ? 'border-destructive' : ''}`}
                                 required
                             />
                         </div>
+                        {emailError && (
+                            <p className="text-[10px] font-bold text-destructive px-3 animate-fade-in flex items-center gap-1">
+                                <AlertCircle className="size-3" /> {emailError}
+                            </p>
+                        )}
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                         <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-soft" />
                             <input
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3 pl-10 pr-12 outline-none focus:border-brand transition-colors ${shakePassword ? 'animate-shake border-destructive ring-4 ring-destructive/10' : ''}`}
+                                onChange={(e) => {
+                                    setPassword(e.target.value);
+                                    if (passwordError) setPasswordError("");
+                                }}
+                                className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3 pl-10 pr-12 outline-none focus:border-brand transition-colors ${shakePassword ? 'animate-shake border-destructive ring-4 ring-destructive/10' : passwordError ? 'border-destructive' : ''}`}
                                 required
                             />
                             <button
@@ -107,6 +124,11 @@ export default function LoginPage() {
                                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                             </button>
                         </div>
+                        {passwordError && (
+                            <p className="text-[10px] font-bold text-destructive px-3 animate-fade-in flex items-center gap-1">
+                                <AlertCircle className="size-3" /> {passwordError}
+                            </p>
+                        )}
                         <div className="flex justify-end px-1">
                             <Link to="/forgot-password" className="text-xs font-medium text-brand hover:underline">
                                 Forgot password?

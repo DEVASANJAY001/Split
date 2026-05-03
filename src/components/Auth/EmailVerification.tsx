@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mail, ArrowRight, RefreshCw } from "lucide-react";
+import { Mail, ArrowRight, RefreshCw, AlertCircle } from "lucide-react";
 import {
     InputOTP,
     InputOTPGroup,
@@ -30,8 +30,10 @@ export default function EmailVerification({ email, onVerify, onResend }: EmailVe
     }, [timer]);
 
     const [shake, setShake] = useState(false);
+    const [error, setError] = useState("");
 
     const handleVerify = async () => {
+        setError("");
         if (otp.length !== 6) {
             toast.error("Please enter the 6-digit code");
             setShake(true);
@@ -41,8 +43,9 @@ export default function EmailVerification({ email, onVerify, onResend }: EmailVe
         setLoading(true);
         try {
             await onVerify(otp);
-        } catch (error: any) {
-            toast.error(error.message || "Invalid OTP");
+        } catch (err: any) {
+            toast.error(err.message || "Invalid OTP");
+            setError("Entered OTP is invalid");
             setShake(true);
             setTimeout(() => setShake(false), 500);
         } finally {
@@ -81,21 +84,29 @@ export default function EmailVerification({ email, onVerify, onResend }: EmailVe
             </div>
 
             <div className="space-y-6">
-                <div className="flex justify-center">
+                <div className="flex flex-col items-center gap-4">
                     <InputOTP
                         maxLength={6}
                         value={otp}
-                        onChange={setOtp}
+                        onChange={(val) => {
+                            setOtp(val);
+                            if (error) setError("");
+                        }}
                     >
                         <InputOTPGroup className={`gap-2 ${shake ? 'animate-shake' : ''}`}>
-                            <InputOTPSlot index={0} className="size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all" />
-                            <InputOTPSlot index={1} className="size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all" />
-                            <InputOTPSlot index={2} className="size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all" />
-                            <InputOTPSlot index={3} className="size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all" />
-                            <InputOTPSlot index={4} className="size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all" />
-                            <InputOTPSlot index={5} className="size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all" />
+                            <InputOTPSlot index={0} className={`size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all ${error ? 'border-destructive' : ''}`} />
+                            <InputOTPSlot index={1} className={`size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all ${error ? 'border-destructive' : ''}`} />
+                            <InputOTPSlot index={2} className={`size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all ${error ? 'border-destructive' : ''}`} />
+                            <InputOTPSlot index={3} className={`size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all ${error ? 'border-destructive' : ''}`} />
+                            <InputOTPSlot index={4} className={`size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all ${error ? 'border-destructive' : ''}`} />
+                            <InputOTPSlot index={5} className={`size-12 rounded-xl border-hairline bg-surface-soft text-lg font-bold focus:border-brand focus:ring-brand/20 transition-all ${error ? 'border-destructive' : ''}`} />
                         </InputOTPGroup>
                     </InputOTP>
+                    {error && (
+                        <p className="text-[10px] font-bold text-destructive animate-fade-in flex items-center gap-1">
+                            <AlertCircle className="size-3" /> {error}
+                        </p>
+                    )}
                 </div>
 
                 <button

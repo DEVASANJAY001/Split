@@ -5,7 +5,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { db, rtdb } from "@/lib/firebase";
 import { sendOTPEmail, resetPassword } from "@/lib/mail";
 import EmailVerification from "@/components/Auth/EmailVerification";
-import { Mail, Lock, ArrowLeft, RefreshCw, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowLeft, RefreshCw, CheckCircle2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ForgotPassword() {
@@ -22,6 +22,8 @@ export default function ForgotPassword() {
 
     const [shakeEmail, setShakeEmail] = useState(false);
     const [shakePassword, setShakePassword] = useState(false);
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
 
     const triggerShake = (target: 'email' | 'password') => {
         if (target === 'email') {
@@ -36,19 +38,16 @@ export default function ForgotPassword() {
     const handleSendOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setEmailError("");
         try {
             const otp = generateOTP();
-            
-            // Move to next step immediately for a better UX, like in SignUpPage
-            // But if it fails later, the user will be notified.
-            // For now, let's keep the user existence check simple.
-            
             await sendOTPEmail(email, otp, "User", 'reset');
             setStep("otp");
             toast.success("Verification code sent!");
         } catch (error: any) {
             console.error("OTP Send Error:", error);
             toast.error(error.message || "Failed to initiate password reset");
+            setEmailError("Entered email id is invalid");
             triggerShake('email');
         } finally {
             setLoading(false);
@@ -87,18 +86,19 @@ export default function ForgotPassword() {
         e.preventDefault();
         if (newPassword.length < 6) {
             toast.error("Password must be at least 6 characters.");
+            setPasswordError("Password must be at least 6 characters");
             return;
         }
         setLoading(true);
+        setPasswordError("");
         try {
             await resetPassword(email, newPassword);
-            
             await set(ref(rtdb, `otp_codes/${email.replace(/\./g, "_")}`), null);
-            
             setStep("success");
             toast.success("Password reset successfully!");
         } catch (error: any) {
             toast.error(error.message);
+            setPasswordError("Your password is wrong or invalid, enter correctly");
             triggerShake('password');
         } finally {
             setLoading(false);
@@ -115,18 +115,26 @@ export default function ForgotPassword() {
                     </div>
 
                     <form onSubmit={handleSendOtp} className="space-y-4">
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                             <div className="relative">
                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-soft" />
                                 <input
                                     type="email"
                                     placeholder="Email address"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3.5 pl-10 pr-4 outline-none focus:border-brand transition-colors ${shakeEmail ? 'animate-shake border-destructive ring-4 ring-destructive/10' : ''}`}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        if (emailError) setEmailError("");
+                                    }}
+                                    className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3.5 pl-10 pr-4 outline-none focus:border-brand transition-colors ${shakeEmail ? 'animate-shake border-destructive ring-4 ring-destructive/10' : emailError ? 'border-destructive' : ''}`}
                                     required
                                 />
                             </div>
+                            {emailError && (
+                                <p className="text-[10px] font-bold text-destructive px-3 animate-fade-in flex items-center gap-1">
+                                    <AlertCircle className="size-3" /> {emailError}
+                                </p>
+                            )}
                         </div>
 
                         <button
@@ -161,15 +169,18 @@ export default function ForgotPassword() {
                     </div>
 
                     <form onSubmit={handleResetPassword} className="space-y-4">
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                             <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-ink-soft" />
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     placeholder="New Password"
                                     value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3.5 pl-10 pr-12 outline-none focus:border-brand transition-colors ${shakePassword ? 'animate-shake border-destructive ring-4 ring-destructive/10' : ''}`}
+                                    onChange={(e) => {
+                                        setNewPassword(e.target.value);
+                                        if (passwordError) setPasswordError("");
+                                    }}
+                                    className={`w-full bg-surface-soft border border-hairline rounded-2xl py-3.5 pl-10 pr-12 outline-none focus:border-brand transition-colors ${shakePassword ? 'animate-shake border-destructive ring-4 ring-destructive/10' : passwordError ? 'border-destructive' : ''}`}
                                     required
                                 />
                                 <button
@@ -180,6 +191,11 @@ export default function ForgotPassword() {
                                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                                 </button>
                             </div>
+                            {passwordError && (
+                                <p className="text-[10px] font-bold text-destructive px-3 animate-fade-in flex items-center gap-1">
+                                    <AlertCircle className="size-3" /> {passwordError}
+                                </p>
+                            )}
                         </div>
 
                         <button
