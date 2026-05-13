@@ -27,17 +27,9 @@ export type GroupType =
   | "Friends"
   | "Office"
   | "Other";
-export type Category =
-  | "Food"
-  | "Travel"
-  | "Rent"
-  | "Utilities"
-  | "Shopping"
-  | "Entertainment"
-  | "Fuel"
-  | "Bills"
-  | "Other";
+export type Category = string;
 export type SplitMode = "equal" | "unequal" | "percent" | "shares";
+export type RecurringInterval = "Daily" | "Weekly" | "Monthly" | "Yearly";
 
 export type Person = {
   id: string;
@@ -45,6 +37,29 @@ export type Person = {
   email: string;
   avatar?: string;
   initials: string;
+  upiId?: string;
+};
+
+export type SavingsGoal = {
+  id: string;
+  userId: string;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  deadline?: string;
+  category: Category;
+  createdAt: number;
+  streak: number;
+  lastContributionDate?: string;
+};
+
+export type ShoppingListItem = {
+  id: string;
+  groupId: string;
+  text: string;
+  isCompleted: boolean;
+  addedBy: string;
+  createdAt: number;
 };
 
 export type Group = {
@@ -89,6 +104,10 @@ export type PersonalExpense = {
   amount: number;
   date: string;
   category: Category;
+  notes?: string;
+  attachmentUrl?: string;
+  originalAmount?: number;
+  originalCurrency?: string;
 };
 
 export type Message = {
@@ -97,6 +116,17 @@ export type Message = {
   senderId: string;
   text: string;
   createdAt: number;
+};
+
+export type RecurringTemplate = {
+  id: string;
+  userId: string;
+  isPersonal: boolean;
+  interval: RecurringInterval;
+  nextDate: string; // ISO date string
+  lastGenerated?: string;
+  data: any; // Copy of Expense or PersonalExpense (sans ID)
+  isActive: boolean;
 };
 
 export type FriendRequest = {
@@ -114,6 +144,8 @@ export type Profile = {
   email: string;
   avatar: string;
   currency: string;
+  budget?: number;
+  upiId?: string;
   isVerified?: boolean;
   completedSetup?: boolean;
 };
@@ -138,6 +170,9 @@ interface AppState {
   }[];
   lastSeenRequests: number;
   messages: Record<string, Message[]>; // groupId -> messages
+  recurringTemplates: RecurringTemplate[];
+  savingsGoals: SavingsGoal[];
+  shoppingLists: Record<string, ShoppingListItem[]>; // groupId -> items
   mode: AppMode;
   profile: Profile | null;
   userId: string | null;
@@ -148,6 +183,8 @@ interface AppState {
   addExpense: (e: Omit<Expense, "id">) => Promise<string>;
   addSettlement: (s: Omit<Settlement, "id">) => Promise<string>;
   addPersonalExpense: (e: Omit<PersonalExpense, "id">) => Promise<string>;
+  updatePersonalExpense: (id: string, e: Partial<PersonalExpense>) => Promise<void>;
+  updateExpense: (id: string, e: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string, isPersonal?: boolean) => Promise<void>;
   addFriend: (id: string) => Promise<string>;
   acceptRequest: (id: string) => Promise<void>;
@@ -171,6 +208,19 @@ interface AppState {
   updateGroupMembers: (groupId: string, memberIds: string[]) => Promise<void>;
   deleteGroup: (groupId: string) => Promise<void>;
   sendMessage: (groupId: string, text: string) => Promise<void>;
+  addRecurringTemplate: (t: Omit<RecurringTemplate, "id" | "userId">) => Promise<string>;
+  deleteRecurringTemplate: (id: string) => Promise<void>;
+  // Savings Goals
+  addSavingsGoal: (g: Omit<SavingsGoal, "id" | "userId" | "createdAt">) => Promise<void>;
+  updateSavingsGoal: (id: string, data: Partial<SavingsGoal>) => Promise<void>;
+  deleteSavingsGoal: (id: string) => Promise<void>;
+  // Shopping Lists
+  addShoppingItem: (groupId: string, text: string) => Promise<void>;
+  toggleShoppingItem: (id: string, completed: boolean) => Promise<void>;
+  deleteShoppingItem: (id: string) => Promise<void>;
+  isModalOpen: boolean;
+  openModal: () => void;
+  closeModal: () => void;
 }
 
 export type SettleMethod = "Cash" | "UPI" | "Bank Transfer" | "Other";
@@ -188,10 +238,26 @@ export const useStore = create<AppState>()(
       outgoing: [],
       lastSeenRequests: 0,
       messages: {},
+      recurringTemplates: [],
+      savingsGoals: [],
+      shoppingLists: {},
       mode: "group",
       profile: null,
       userId: null,
       loading: true,
+      isModalOpen: false,
+      modalCount: 0,
+      openModal: () => set((state: any) => ({ 
+        modalCount: state.modalCount + 1,
+        isModalOpen: true 
+      })),
+      closeModal: () => set((state: any) => {
+        const newCount = Math.max(0, state.modalCount - 1);
+        return { 
+          modalCount: newCount,
+          isModalOpen: newCount > 0 
+        };
+      }),
       unsubs: [] as (() => void)[],
       setMode: (m) => set({ mode: m }),
       initialize: () => {
@@ -343,6 +409,53 @@ export const useStore = create<AppState>()(
               Object.keys(grouped).forEach(gid => grouped[gid].sort((a, b) => a.createdAt - b.createdAt));
               set({ messages: grouped });
             }));
+
+            // 8.5 Recurring Templates
+            newUnsubs.push(onSnapshot(collection(db, "users", uid, "recurring_templates"), (s) => {
+              const templates = s.docs.map(d => ({ ...d.data(), id: d.id }) as RecurringTemplate);
+              set({ recurringTemplates: templates });
+              
+              // 8.6 Check and Generate Due Expenses
+              const now = new Date().toISOString().slice(0, 10);
+              templates.forEach(async (t) => {
+                if (t.isActive && t.nextDate <= now) {
+                  const data = { ...t.data, date: t.nextDate, createdAt: Date.now() };
+                  if (t.isPersonal) {
+                    await get().addPersonalExpense(data);
+                  } else {
+                    await get().addExpense(data);
+                  }
+
+                  // Update next date
+                  const next = new Date(t.nextDate);
+                  if (t.interval === "Daily") next.setDate(next.getDate() + 1);
+                  else if (t.interval === "Weekly") next.setDate(next.getDate() + 7);
+                  else if (t.interval === "Monthly") next.setMonth(next.getMonth() + 1);
+                  else if (t.interval === "Yearly") next.setFullYear(next.getFullYear() + 1);
+
+                  await updateDoc(doc(db, "users", uid, "recurring_templates", t.id), {
+                    nextDate: next.toISOString().slice(0, 10),
+                    lastGenerated: t.nextDate
+                  });
+                }
+              });
+            }));
+
+            // 8.7 Savings Goals
+            newUnsubs.push(onSnapshot(collection(db, "users", uid, "savings_goals"), (s) => {
+              set({ savingsGoals: s.docs.map(d => ({ ...d.data(), id: d.id }) as SavingsGoal) });
+            }));
+
+            // 8.8 Shopping Lists
+            newUnsubs.push(onSnapshot(collection(db, "shopping_items"), (s) => {
+              const items = s.docs.map(d => ({ ...d.data(), id: d.id }) as ShoppingListItem);
+              const grouped: Record<string, ShoppingListItem[]> = {};
+              items.forEach(i => {
+                if (!grouped[i.groupId]) grouped[i.groupId] = [];
+                grouped[i.groupId].push(i);
+              });
+              set({ shoppingLists: grouped });
+            }));
  
             // 9. Migration & Finalize
             const currentOutgoing = get().outgoing;
@@ -397,6 +510,14 @@ export const useStore = create<AppState>()(
           { ...e },
         );
         return docRef.id;
+      },
+      updatePersonalExpense: async (id, e) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) throw new Error("Not authenticated");
+        await updateDoc(doc(db, "users", userId, "personal_expenses", id), e);
+      },
+      updateExpense: async (id, e) => {
+        await updateDoc(doc(db, "expenses", id), e);
       },
       deleteExpense: async (id, isPersonal) => {
         const userId = auth.currentUser?.uid;
@@ -739,6 +860,79 @@ export const useStore = create<AppState>()(
           text,
           createdAt: Date.now(),
         });
+      },
+      addRecurringTemplate: async (t) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) throw new Error("Not authenticated");
+        const docRef = await addDoc(collection(db, "users", userId, "recurring_templates"), {
+          ...t,
+          userId,
+        });
+        return docRef.id;
+      },
+      deleteRecurringTemplate: async (id) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
+        await deleteDoc(doc(db, "users", userId, "recurring_templates", id));
+      },
+      addSavingsGoal: async (g) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
+        await addDoc(collection(db, "users", userId, "savings_goals"), { 
+          ...g, 
+          userId, 
+          createdAt: Date.now(),
+          streak: 0,
+          lastContributionDate: null
+        });
+      },
+      updateSavingsGoal: async (id, data) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
+        
+        const goals = get().savingsGoals;
+        const goal = goals.find(g => g.id === id);
+        
+        if (goal && data.currentAmount && data.currentAmount > goal.currentAmount) {
+          const today = new Date().toISOString().slice(0, 10);
+          const lastDate = goal.lastContributionDate;
+          let newStreak = goal.streak;
+          
+          if (!lastDate) {
+            newStreak = 1;
+          } else {
+            const last = new Date(lastDate);
+            const now = new Date(today);
+            const diff = (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24);
+            
+            if (diff === 1) newStreak += 1;
+            else if (diff > 1) newStreak = 1;
+          }
+          
+          await updateDoc(doc(db, "users", userId, "savings_goals", id), {
+            ...data,
+            streak: newStreak,
+            lastContributionDate: today
+          });
+        } else {
+          await updateDoc(doc(db, "users", userId, "savings_goals", id), data);
+        }
+      },
+      deleteSavingsGoal: async (id) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
+        await deleteDoc(doc(db, "users", userId, "savings_goals", id));
+      },
+      addShoppingItem: async (groupId, text) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
+        await addDoc(collection(db, "shopping_items"), { groupId, text, isCompleted: false, addedBy: userId, createdAt: Date.now() });
+      },
+      toggleShoppingItem: async (id, completed) => {
+        await updateDoc(doc(db, "shopping_items", id), { isCompleted: completed });
+      },
+      deleteShoppingItem: async (id) => {
+        await deleteDoc(doc(db, "shopping_items", id));
       }
     }),
     {
@@ -752,8 +946,10 @@ export const useStore = create<AppState>()(
   ),
 );
 
-export const personById = (people: Person[], id: string) =>
-  people.find((p) => p.id === id);
+export const personById = (people: any[], id: string, profile?: any) => {
+  if (id === profile?.id || id === auth.currentUser?.uid) return profile || { id, name: "You", initials: "Y" };
+  return people?.find((p: any) => p.id === id) || { id, name: "Unknown", initials: "?" };
+};
 
 export function netBalances(
   group: Group,

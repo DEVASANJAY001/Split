@@ -2,7 +2,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { PageHeader } from "@/components/AppLayout";
 import { SurfaceCard } from "@/components/SurfaceCard";
 import { useStore } from "@/lib/store";
-import { ArrowLeft, Bell, Download, Moon, Sun, ShieldCheck, LogOut, FileText, Lock, Info, LifeBuoy, HelpCircle, ChevronRight } from "lucide-react";
+import { ArrowLeft, Bell, Download, Moon, Sun, ShieldCheck, LogOut, FileText, Lock, Info, LifeBuoy, HelpCircle, ChevronRight, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -67,6 +67,50 @@ export default function Settings() {
                 <ArrowLeft className="size-4 -rotate-90" />
               </div>
             </div>
+          </SurfaceCard>
+
+          <SurfaceCard padding="lg">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Wallet className="size-4 text-brand" />
+                <h3 className="text-base font-bold text-ink">Monthly Budget</h3>
+              </div>
+              <span className="text-[10px] uppercase tracking-widest font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full">Personal</span>
+            </div>
+            <div className="relative">
+              <input
+                type="number"
+                placeholder="Set your monthly budget"
+                value={profile.budget || ""}
+                onChange={(e) => {
+                  updateProfile({ budget: parseFloat(e.target.value) || 0 });
+                }}
+                className="w-full bg-surface-soft border border-hairline rounded-2xl py-4 px-4 text-sm font-bold text-ink outline-none focus:border-brand"
+              />
+            </div>
+            <p className="text-[10px] text-ink-soft mt-2 px-1">Track your personal spending against this limit on your dashboard.</p>
+          </SurfaceCard>
+
+          <SurfaceCard padding="lg">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-brand font-bold">UPI</span>
+                <h3 className="text-base font-bold text-ink">UPI ID (VPA)</h3>
+              </div>
+              <span className="text-[10px] uppercase tracking-widest font-bold text-success bg-success/10 px-2 py-0.5 rounded-full">Payments</span>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="yourname@upi"
+                value={profile.upiId || ""}
+                onChange={(e) => {
+                  updateProfile({ upiId: e.target.value });
+                }}
+                className="w-full bg-surface-soft border border-hairline rounded-2xl py-4 px-4 text-sm font-bold text-ink outline-none focus:border-brand"
+              />
+            </div>
+            <p className="text-[10px] text-ink-soft mt-2 px-1">Used to generate payment links for your friends to settle up.</p>
           </SurfaceCard>
 
           <SurfaceCard padding="md">

@@ -15,62 +15,80 @@ const tabs = [
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { requests, lastSeenRequests } = useStore();
+  const { requests, lastSeenRequests, isModalOpen } = useStore();
   const unreadCount = requests.filter(r => r.createdAt > lastSeenRequests).length;
 
+  const showNav = ["/", "/groups", "/friends", "/transactions", "/reports"].includes(location.pathname) && !isModalOpen;
+
   return (
-    <div className="min-h-screen bg-background">
-      <main className="mx-auto max-w-md md:max-w-2xl pb-nav-clearance">
+    <div className="min-h-screen bg-background relative overflow-x-hidden">
+      {/* Premium Background Elements */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] size-[50%] bg-brand/5 blur-[120px] rounded-full animate-float" />
+        <div className="absolute bottom-[10%] left-[-10%] size-[40%] bg-success/5 blur-[100px] rounded-full" />
+        <div className="absolute inset-0 bg-grid-white bg-[size:40px_40px] opacity-20" />
+      </div>
+
+      <main className={cn("mx-auto max-w-md md:max-w-2xl relative z-10", showNav ? "pb-nav-clearance" : "pb-10")}>
         <div className="w-full">
           <Outlet />
         </div>
       </main>
 
-      {/* Floating FAB - Adjusted for bottom bar */}
-      <button
-        onClick={() => navigate("/split")}
-        aria-label="Add expense"
-        className="fixed bottom-24 right-6 md:right-[calc(50%-18rem)] z-40 size-14 rounded-2xl bg-brand text-brand-foreground flex items-center justify-center shadow-brand hover:scale-105 active:scale-95 transition-all group"
-      >
-        <Plus className="size-6 transition-transform group-hover:rotate-90" strokeWidth={3} />
-      </button>
+      {/* Floating FAB - Only on main tabs */}
+      {showNav && (
+        <button
+          onClick={() => navigate("/split")}
+          aria-label="Add expense"
+          className="fixed bottom-28 right-6 md:right-[calc(50%-18rem)] z-40 size-14 rounded-2xl bg-brand text-brand-foreground flex items-center justify-center shadow-brand hover:scale-105 active:scale-95 transition-all group"
+        >
+          <Plus className="size-6 transition-transform group-hover:rotate-90" strokeWidth={3} />
+        </button>
+      )}
 
-      <nav className="fixed bottom-4 left-4 right-4 max-w-md mx-auto z-50 bg-surface/80 backdrop-blur-2xl border border-hairline rounded-[2rem] shadow-float pb-safe overflow-hidden">
-        <div className="flex items-center justify-around h-16 px-2">
-          {tabs.map(({ to, label, icon: Icon, hasBadge }) => {
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === "/"}
-                className={({ isActive }) =>
-                  cn(
-                    "relative flex flex-col items-center justify-center transition-all flex-1 h-full",
-                    isActive ? "text-brand" : "text-ink-soft hover:text-ink",
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <div className={cn("relative p-1 rounded-xl transition-all", isActive && "bg-brand/10 shadow-glow")}>
-                      <Icon className={cn("size-5 transition-transform", isActive && "scale-110")} strokeWidth={isActive ? 2.5 : 2} />
-                      {hasBadge && unreadCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 size-2.5 bg-destructive border-2 border-surface rounded-full shadow-sm" />
-                      )}
-                    </div>
-                    <span className={cn("text-[9px] mt-1 font-bold uppercase tracking-wider transition-opacity", isActive ? "opacity-100" : "opacity-40")}>
-                      {label}
-                    </span>
-                    {isActive && (
-                      <div className="absolute inset-0 bg-brand/5 -z-10" />
+      {showNav && (
+        <>
+          {/* Glass Finish Blur Ending */}
+          <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none z-40" />
+          
+          <nav className="fixed bottom-6 left-4 right-4 max-w-md mx-auto z-50 glass rounded-[2.5rem] shadow-2xl pb-safe overflow-hidden animate-in slide-in-from-bottom-10 duration-500">
+            <div className="flex items-center justify-around h-16 px-4">
+              {tabs.map(({ to, label, icon: Icon, hasBadge }) => {
+                return (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={to === "/"}
+                    className={({ isActive }) =>
+                      cn(
+                        "relative flex flex-col items-center justify-center transition-all flex-1 h-full py-1",
+                        isActive ? "text-brand" : "text-ink-soft hover:text-ink",
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <div className={cn("relative p-2 rounded-2xl transition-all", isActive && "bg-brand/10")}>
+                          <Icon className={cn("size-5 transition-all", isActive ? "scale-110" : "scale-100")} strokeWidth={isActive ? 2.5 : 2} />
+                          {hasBadge && unreadCount > 0 && (
+                            <span className="absolute top-1.5 right-1.5 size-2.5 bg-destructive border-2 border-white dark:border-black rounded-full shadow-sm" />
+                          )}
+                        </div>
+                        <span className={cn("text-[8px] mt-0.5 font-black uppercase tracking-widest transition-opacity", isActive ? "opacity-100" : "opacity-40")}>
+                          {label}
+                        </span>
+                        {isActive && (
+                          <div className="absolute inset-x-4 bottom-0 h-1 bg-brand rounded-t-full shadow-[0_-4px_10px_rgba(var(--brand),0.5)]" />
+                        )}
+                      </>
                     )}
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
-        </div>
-      </nav>
+                  </NavLink>
+                );
+              })}
+            </div>
+          </nav>
+        </>
+      )}
     </div>
   );
 }
@@ -102,9 +120,17 @@ export function PageHeader({ title, subtitle, showActions = true, showModeSwitch
             </button>
           )}
           <div className="min-w-0">
-            <h1 className="text-3xl font-bold tracking-tightest text-ink truncate">{title}</h1>
+            <div className="flex items-center gap-2">
+              <div className="relative size-6 shrink-0">
+                <div className="absolute inset-0 bg-brand rounded-[6px] rotate-45" />
+                <div className="absolute inset-0 bg-white dark:bg-ink rounded-[6px] rotate-45 scale-75 flex items-center justify-center">
+                  <div className="w-0.5 h-3 bg-brand -rotate-45 rounded-full" />
+                </div>
+              </div>
+              <h1 className="text-3xl font-black tracking-tightest text-ink truncate">{title}</h1>
+            </div>
             {subtitle && (
-              <p className="text-base text-ink-soft mt-0.5 tracking-tight truncate">{subtitle}</p>
+              <p className="text-base text-ink-soft mt-0.5 tracking-tight truncate pl-8">{subtitle}</p>
             )}
           </div>
         </div>
@@ -130,12 +156,12 @@ export function PageHeader({ title, subtitle, showActions = true, showModeSwitch
       </div>
 
       {showModeSwitch && (
-        <div className="flex items-center bg-surface-soft rounded-full p-1 shadow-soft">
+        <div className="flex items-center bg-surface-soft/50 backdrop-blur-md rounded-[1.5rem] p-1 shadow-inner border border-white/10">
           <button
             onClick={() => setMode("group")}
             className={cn(
-              "flex-1 py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5",
-              mode === "group" ? "bg-brand text-brand-foreground shadow-brand" : "text-ink-soft",
+              "flex-1 py-2 rounded-[1.25rem] text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5",
+              mode === "group" ? "bg-white dark:bg-brand text-brand shadow-xl dark:text-white" : "text-ink-soft",
             )}
           >
             <Users className="size-3.5" strokeWidth={2.5} /> Group
@@ -143,8 +169,8 @@ export function PageHeader({ title, subtitle, showActions = true, showModeSwitch
           <button
             onClick={() => setMode("personal")}
             className={cn(
-              "flex-1 py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5",
-              mode === "personal" ? "bg-brand text-brand-foreground shadow-brand" : "text-ink-soft",
+              "flex-1 py-2 rounded-[1.25rem] text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5",
+              mode === "personal" ? "bg-white dark:bg-brand text-brand shadow-xl dark:text-white" : "text-ink-soft",
             )}
           >
             <User className="size-3.5" strokeWidth={2.5} /> Personal

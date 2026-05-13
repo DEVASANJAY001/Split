@@ -7,16 +7,17 @@ import { useStore, netBalances, simplifyDebts, personById, SettleMethod } from "
 import { fmt } from "@/lib/finance";
 import { groupIcons } from "@/lib/icons";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ArrowRight, Plus, Check, X, QrCode, UserPlus, Trash2, UserMinus, MessageSquare } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Check, X, QrCode, UserPlus, Trash2, UserMinus, MessageSquare, ExternalLink, Download } from "lucide-react";
 import { GroupChat } from "@/components/GroupChat";
 import { toast } from "sonner";
+import { ConfirmModal } from "@/components/Modal";
 
 const METHODS: SettleMethod[] = ["Cash", "UPI", "Bank Transfer", "Other"];
 
 export default function GroupDetail() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { groups, expenses, settlements, people, friendIds, addSettlement, updateGroupMembers, userId, profile, deleteGroup } = useStore();
+  const { groups, expenses, settlements, people, friendIds, addSettlement, updateGroupMembers, userId, profile, deleteGroup, shoppingLists, addShoppingItem, toggleShoppingItem, deleteShoppingItem } = useStore();
   const group = groups.find((g) => g.id === id);
   const cur = group?.currency || profile?.currency || "USD";
 
@@ -25,6 +26,9 @@ export default function GroupDetail() {
   const [showQR, setShowQR] = useState(false);
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [activeTab, setActiveTab] = useState<"balances" | "list">("balances");
+  const [newItemText, setNewItemText] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; personId: string; name: string }>({ open: false, personId: "", name: "" });
 
   const net = useMemo(() => group ? netBalances(group, expenses, settlements) : {}, [group, expenses, settlements]);
   const plan = useMemo(() => simplifyDebts(net), [net]);
@@ -69,7 +73,12 @@ export default function GroupDetail() {
 
   const addMember = (pid: string) => {
     updateGroupMembers(group.id, [...group.memberIds, pid]);
-    // Removed success toast
+  };
+
+  const getUPIUri = (toId: string, amount: number) => {
+    const to = personById(people, toId);
+    if (!to?.upiId) return null;
+    return `upi://pay?pa=${to.upiId}&pn=${encodeURIComponent(to.name)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Split: ${group.name}`)}`;
   };
 
   return (
@@ -85,7 +94,7 @@ export default function GroupDetail() {
             <h1 className="text-lg font-bold tracking-tightest text-ink truncate">{group.name}</h1>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 no-print">
           <button
             onClick={() => setShowChat(true)}
             className="size-10 rounded-full bg-surface border border-hairline flex items-center justify-center relative"
@@ -102,8 +111,15 @@ export default function GroupDetail() {
             <QrCode className="size-4" strokeWidth={2.25} />
           </button>
           <button
+            onClick={() => window.print()}
+            className="size-10 rounded-full bg-surface border border-hairline flex items-center justify-center"
+            aria-label="Export Statement"
+          >
+            <Download className="size-4" strokeWidth={2.25} />
+          </button>
+          <button
             onClick={() => navigate(`/split?group=${group.id}`)}
-            className="size-10 rounded-full bg-ink text-background flex items-center justify-center"
+            className="size-10 rounded-full bg-ink text-background flex items-center justify-center shadow-lg"
             aria-label="Add expense"
           >
             <Plus className="size-4" strokeWidth={2.5} />
@@ -131,139 +147,240 @@ export default function GroupDetail() {
           <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />
         </SurfaceCard>
 
-        <SurfaceCard padding="lg">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base font-bold text-ink">Members · {members.length}</h3>
-            <button
-              onClick={() => setShowAddMembers(true)}
-              className="text-xs font-semibold text-brand flex items-center gap-1"
-            >
-              <UserPlus className="size-3.5" strokeWidth={2.5} /> Add
-            </button>
+        {/* Tab Switcher */}
+        <div className="flex bg-surface-soft/50 p-1 rounded-2xl border border-hairline no-print">
+          <button 
+            onClick={() => setActiveTab("balances")}
+            className={cn(
+              "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+              activeTab === "balances" ? "bg-white dark:bg-brand text-brand dark:text-white shadow-sm" : "text-ink-soft"
+            )}
+          >
+            Balances
+          </button>
+          <button 
+            onClick={() => setActiveTab("list")}
+            className={cn(
+              "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2",
+              activeTab === "list" ? "bg-white dark:bg-brand text-brand dark:text-white shadow-sm" : "text-ink-soft"
+            )}
+          >
+            Shopping List
+            {(shoppingLists[id]?.length ?? 0) > 0 && (
+              <span className="size-4 rounded-full bg-brand/10 text-brand text-[8px] flex items-center justify-center">
+                {shoppingLists[id].length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {activeTab === "balances" ? (
+          <div className="space-y-4">
+            <SurfaceCard padding="lg">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-bold text-ink">Members · {members.length}</h3>
+                <button
+                  onClick={() => setShowAddMembers(true)}
+                  className="text-xs font-semibold text-brand flex items-center gap-1 no-print"
+                >
+                  <UserPlus className="size-3.5" strokeWidth={2.5} /> Add
+                </button>
+              </div>
+              <ul className="space-y-3">
+                {members.map((p) => {
+                  const v = net[p.id] ?? 0;
+                  return (
+                    <li key={p.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <PersonAvatar person={p} size="md" />
+                        <p className="text-sm font-semibold text-ink">{p.id === userId ? "You" : p.name}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className={cn("text-sm font-bold tabular-nums", v > 0.01 ? "text-success" : v < -0.01 ? "text-destructive" : "text-ink-soft")}>
+                          {v > 0.01 ? "+" : ""}{fmt(v, cur)}
+                        </p>
+                        {p.id !== userId && (
+                          <button
+                            onClick={() => {
+                              setConfirmDelete({ open: true, personId: p.id, name: p.name });
+                            }}
+                            className="size-8 rounded-full flex items-center justify-center text-ink-soft hover:text-destructive hover:bg-destructive/10 transition-colors no-print"
+                            aria-label="Remove member"
+                          >
+                            <UserMinus className="size-3.5" strokeWidth={2.5} />
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </SurfaceCard>
+
+            <SurfaceCard padding="lg" className="no-print">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-base font-bold text-ink">Settle up</h3>
+                <span className="text-[11px] text-ink-soft">{plan.length} payment{plan.length === 1 ? "" : "s"}</span>
+              </div>
+              <p className="text-xs text-ink-soft mb-4">Minimum payments to settle everyone.</p>
+              {plan.length === 0 ? (
+                <p className="text-sm text-success py-4 text-center font-medium">All settled up</p>
+              ) : (
+                <ul className="space-y-3">
+                  {plan.map((s, i) => {
+                    const from = personById(people, s.from);
+                    const to = personById(people, s.to);
+                    if (!from || !to) return null;
+                    return (
+                      <li key={i} className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <PersonAvatar person={from} size="sm" />
+                          <ArrowRight className="size-3 text-ink-soft shrink-0" />
+                          <PersonAvatar person={to} size="sm" />
+                          <div className="min-w-0 ml-1">
+                            <p className="text-xs font-semibold text-ink truncate">
+                              {from.id === userId ? "You" : from.name.split(" ")[0]} → {to.id === userId ? "you" : to.name.split(" ")[0]}
+                            </p>
+                            <p className="text-[11px] text-ink-soft tabular-nums">{fmt(s.amount, group.currency)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {from.id === userId && getUPIUri(to.id, s.amount) && (
+                            <a 
+                              href={getUPIUri(to.id, s.amount)!} 
+                              className="size-8 rounded-full bg-success/10 text-success flex items-center justify-center hover:bg-success hover:text-white transition-colors"
+                              title="Pay via UPI"
+                            >
+                              <ExternalLink className="size-3.5" />
+                            </a>
+                          )}
+                          <button
+                            onClick={() => setSettleIdx(i)}
+                            className="size-8 rounded-full bg-brand-soft text-brand-soft-foreground hover:bg-brand hover:text-brand-foreground transition-colors flex items-center justify-center"
+                          >
+                            <Check className="size-3.5" strokeWidth={2.5} />
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </SurfaceCard>
+
+            <SurfaceCard padding="lg">
+              <h3 className="text-base font-bold text-ink mb-4">Expenses</h3>
+              {groupExpenses.length === 0 ? (
+                <p className="text-sm text-ink-soft text-center py-4">No expenses yet.</p>
+              ) : (
+                <ul className="space-y-4">
+                  {groupExpenses.map((e) => {
+                    const payer = personById(people, e.paidBy)!;
+                    return (
+                      <li key={e.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <PersonAvatar person={payer} size="md" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
+                            <p className="text-[11px] text-ink-soft">
+                              {payer.id === userId ? "You" : payer.name.split(" ")[0]} paid · {e.category} · {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </SurfaceCard>
+
+            {groupSettlements.length > 0 && (
+              <SurfaceCard padding="lg">
+                <h3 className="text-base font-bold text-ink mb-4">Settled payments</h3>
+                <ul className="space-y-3">
+                  {groupSettlements.map((s) => {
+                    const from = personById(people, s.from)!;
+                    const to = personById(people, s.to)!;
+                    return (
+                      <li key={s.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <PersonAvatar person={from} size="sm" />
+                          <ArrowRight className="size-3 text-ink-soft shrink-0" />
+                          <PersonAvatar person={to} size="sm" />
+                          <p className="text-xs font-semibold text-ink ml-1">
+                            {from.id === userId ? "You" : from.name.split(" ")[0]} paid {to.id === userId ? "you" : to.name.split(" ")[0]}{s.method ? ` · ${s.method}` : ""}
+                          </p>
+                        </div>
+                        <p className="text-sm font-bold tabular-nums text-success">{fmt(s.amount, group.currency)}</p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </SurfaceCard>
+            )}
           </div>
-          <ul className="space-y-3">
-            {members.map((p) => {
-              const v = net[p.id] ?? 0;
-              return (
-                <li key={p.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <PersonAvatar person={p} size="md" />
-                    <p className="text-sm font-semibold text-ink">{p.id === userId ? "You" : p.name}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <p className={cn("text-sm font-bold tabular-nums", v > 0.01 ? "text-success" : v < -0.01 ? "text-destructive" : "text-ink-soft")}>
-                      {v > 0.01 ? "+" : ""}{fmt(v, cur)}
-                    </p>
-                    {p.id !== userId && (
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Remove ${p.name} from group?`)) {
-                            updateGroupMembers(group.id, group.memberIds.filter(id => id !== p.id));
-                          }
-                        }}
-                        className="size-8 rounded-full flex items-center justify-center text-ink-soft hover:text-destructive hover:bg-destructive/10 transition-colors"
-                        aria-label="Remove member"
-                      >
-                        <UserMinus className="size-3.5" strokeWidth={2.5} />
-                      </button>
+        ) : (
+          <div className="space-y-4 no-print">
+            <SurfaceCard padding="md">
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (newItemText.trim()) {
+                    addShoppingItem(id, newItemText.trim());
+                    setNewItemText("");
+                  }
+                }}
+                className="flex gap-2"
+              >
+                <input 
+                  value={newItemText}
+                  onChange={(e) => setNewItemText(e.target.value)}
+                  placeholder="Add item (e.g. Milk)"
+                  className="flex-1 bg-surface-soft rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-brand"
+                />
+                <button 
+                  type="submit"
+                  className="size-10 rounded-xl bg-brand text-white flex items-center justify-center"
+                >
+                  <Plus className="size-5" />
+                </button>
+              </form>
+            </SurfaceCard>
+
+            <div className="space-y-2">
+              {(shoppingLists[id] || []).sort((a,b) => b.createdAt - a.createdAt).map((item) => (
+                <SurfaceCard key={item.id} padding="sm" className="flex items-center gap-3">
+                  <button 
+                    onClick={() => toggleShoppingItem(item.id, !item.isCompleted)}
+                    className={cn(
+                      "size-6 rounded-lg border-2 flex items-center justify-center transition-all",
+                      item.isCompleted ? "bg-success border-success text-white" : "border-hairline text-transparent"
                     )}
+                  >
+                    <Check className="size-4" />
+                  </button>
+                  <span className={cn("text-sm font-medium flex-1", item.isCompleted && "line-through text-ink-soft")}>
+                    {item.text}
+                  </span>
+                  <button 
+                    onClick={() => deleteShoppingItem(item.id)}
+                    className="size-8 rounded-full text-ink-soft hover:text-destructive transition-colors flex items-center justify-center"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </SurfaceCard>
+              ))}
+              {(shoppingLists[id]?.length ?? 0) === 0 && (
+                <div className="text-center py-20 flex flex-col items-center gap-4">
+                  <div className="size-16 rounded-3xl bg-surface flex items-center justify-center text-ink-soft shadow-soft">
+                    <Check className="size-8 opacity-20" />
                   </div>
-                </li>
-              );
-            })}
-          </ul>
-        </SurfaceCard>
-
-        <SurfaceCard padding="lg">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-base font-bold text-ink">Settle up</h3>
-            <span className="text-[11px] text-ink-soft">{plan.length} payment{plan.length === 1 ? "" : "s"}</span>
+                  <p className="text-xs font-bold text-ink-soft uppercase tracking-widest">Nothing to buy yet</p>
+                </div>
+              )}
+            </div>
           </div>
-          <p className="text-xs text-ink-soft mb-4">Minimum payments to settle everyone.</p>
-          {plan.length === 0 ? (
-            <p className="text-sm text-success py-4 text-center font-medium">All settled up</p>
-          ) : (
-            <ul className="space-y-3">
-              {plan.map((s, i) => {
-                const from = personById(people, s.from);
-                const to = personById(people, s.to);
-                if (!from || !to) return null;
-                return (
-                  <li key={i} className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <PersonAvatar person={from} size="sm" />
-                      <ArrowRight className="size-3 text-ink-soft shrink-0" />
-                      <PersonAvatar person={to} size="sm" />
-                      <div className="min-w-0 ml-1">
-                        <p className="text-xs font-semibold text-ink truncate">
-                          {from.id === userId ? "You" : from.name.split(" ")[0]} → {to.id === userId ? "you" : to.name.split(" ")[0]}
-                        </p>
-                        <p className="text-[11px] text-ink-soft tabular-nums">{fmt(s.amount, group.currency)}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setSettleIdx(i)}
-                      className="size-8 rounded-full bg-brand-soft text-brand-soft-foreground hover:bg-brand hover:text-brand-foreground transition-colors flex items-center justify-center"
-                    >
-                      <Check className="size-3.5" strokeWidth={2.5} />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </SurfaceCard>
-
-        <SurfaceCard padding="lg">
-          <h3 className="text-base font-bold text-ink mb-4">Expenses</h3>
-          {groupExpenses.length === 0 ? (
-            <p className="text-sm text-ink-soft text-center py-4">No expenses yet.</p>
-          ) : (
-            <ul className="space-y-4">
-              {groupExpenses.map((e) => {
-                const payer = personById(people, e.paidBy)!;
-                return (
-                  <li key={e.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <PersonAvatar person={payer} size="md" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
-                        <p className="text-[11px] text-ink-soft">
-                          {payer.id === userId ? "You" : payer.name.split(" ")[0]} paid · {e.category} · {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </SurfaceCard>
-
-        {groupSettlements.length > 0 && (
-          <SurfaceCard padding="lg">
-            <h3 className="text-base font-bold text-ink mb-4">Settled payments</h3>
-            <ul className="space-y-3">
-              {groupSettlements.map((s) => {
-                const from = personById(people, s.from)!;
-                const to = personById(people, s.to)!;
-                return (
-                  <li key={s.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <PersonAvatar person={from} size="sm" />
-                      <ArrowRight className="size-3 text-ink-soft shrink-0" />
-                      <PersonAvatar person={to} size="sm" />
-                      <p className="text-xs font-semibold text-ink ml-1">
-                        {from.id === userId ? "You" : from.name.split(" ")[0]} paid {to.id === userId ? "you" : to.name.split(" ")[0]}{s.method ? ` · ${s.method}` : ""}
-                      </p>
-                    </div>
-                    <p className="text-sm font-bold tabular-nums text-success">{fmt(s.amount, group.currency)}</p>
-                  </li>
-                );
-              })}
-            </ul>
-          </SurfaceCard>
         )}
       </div>
 
@@ -296,12 +413,25 @@ export default function GroupDetail() {
                 ))}
               </div>
             </div>
-            <button
-              onClick={confirmSettle}
-              className="w-full bg-brand text-brand-foreground py-4 rounded-full font-semibold text-sm shadow-brand hover:opacity-90 active:scale-[0.98] transition"
-            >
-              Confirm payment
-            </button>
+            <div className="flex gap-3">
+              {plan[settleIdx].from === userId && getUPIUri(plan[settleIdx].to, plan[settleIdx].amount) && (
+                <a
+                  href={getUPIUri(plan[settleIdx].to, plan[settleIdx].amount)!}
+                  className="flex-1 bg-success text-white py-4 rounded-full font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-success/20"
+                >
+                  Pay via UPI <ExternalLink className="size-4" />
+                </a>
+              )}
+              <button
+                onClick={confirmSettle}
+                className={cn(
+                  "py-4 rounded-full font-semibold text-sm shadow-brand hover:opacity-90 active:scale-[0.98] transition",
+                  plan[settleIdx].from === userId && getUPIUri(plan[settleIdx].to, plan[settleIdx].amount) ? "flex-[0.6] bg-surface-soft text-ink" : "w-full bg-brand text-brand-foreground"
+                )}
+              >
+                Confirm settlement
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -359,6 +489,19 @@ export default function GroupDetail() {
       {showChat && (
         <GroupChat groupId={group.id} onClose={() => setShowChat(false)} />
       )}
+
+      <ConfirmModal 
+        isOpen={confirmDelete.open} 
+        onClose={() => setConfirmDelete({ ...confirmDelete, open: false })} 
+        title="Remove Member"
+        onConfirm={() => {
+          updateGroupMembers(group.id, group.memberIds.filter(id => id !== confirmDelete.personId));
+        }}
+        confirmText="Remove"
+        confirmVariant="destructive"
+      >
+        Are you sure you want to remove <span className="font-bold text-ink">{confirmDelete.name}</span> from this group? This action cannot be undone.
+      </ConfirmModal>
     </div>
   );
 }

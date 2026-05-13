@@ -1,198 +1,93 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Split Finance — Cobalt Light design system.
-   Inspired by clean fintech UIs: white cards, soft grey bg, bold cobalt accent. */
-
 @layer base {
   :root {
-    --background: 220 16% 96%;
-    --foreground: 222 25% 12%;
+    --background: 230 40% 98%;
+    --foreground: 230 40% 10%;
 
     --surface: 0 0% 100%;
-    --surface-soft: 220 18% 94%;
-    --ink: 222 25% 12%;
-    --ink-soft: 220 10% 45%;
-    --hairline: 220 14% 90%;
+    --surface-soft: 230 30% 95%;
+    --ink: 230 40% 10%;
+    --ink-soft: 230 15% 45%;
+    --hairline: 230 20% 92%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 25% 12%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 25% 12%;
-
-    /* Bold cobalt blue */
-    --brand: 232 90% 52%;
+    --brand: 230 90% 55%; /* Rich Royal Blue */
     --brand-foreground: 0 0% 100%;
-    --brand-soft: 226 100% 94%;
-    --brand-soft-foreground: 232 90% 30%;
+    --brand-soft: 230 100% 97%;
+    --brand-soft-foreground: 230 90% 40%;
 
-    --primary: 222 25% 12%;
-    --primary-foreground: 0 0% 100%;
+    --success: 160 84% 39%;
+    --warning: 38 92% 50%;
+    --destructive: 0 84% 60%;
 
-    --secondary: 220 18% 94%;
-    --secondary-foreground: 222 25% 12%;
+    --radius: 2rem;
 
-    --muted: 220 18% 94%;
-    --muted-foreground: 220 10% 45%;
-
-    --accent: 226 100% 94%;
-    --accent-foreground: 232 90% 30%;
-
-    --success: 152 55% 42%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 55%;
-    --warning-foreground: 0 0% 100%;
-
-    --destructive: 0 75% 56%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 220 14% 90%;
-    --input: 220 14% 90%;
-    --ring: 232 90% 52%;
-
-    --radius: 1.5rem;
-
-    --shadow-soft: 0 1px 2px hsl(222 25% 12% / 0.02), 0 4px 12px hsl(222 25% 12% / 0.03);
-    --shadow-card: 0 10px 25px -5px hsl(222 25% 12% / 0.05), 0 8px 10px -6px hsl(222 25% 12% / 0.05);
-    --shadow-float: 0 20px 40px -12px hsl(222 25% 12% / 0.15);
-    --shadow-brand: 0 12px 24px -6px hsl(232 90% 52% / 0.3);
-    --shadow-glow: 0 0 20px hsl(232 90% 52% / 0.15);
-
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 25% 12%;
-    --sidebar-primary: 232 90% 52%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 18% 94%;
-    --sidebar-accent-foreground: 222 25% 12%;
-    --sidebar-border: 220 14% 90%;
-    --sidebar-ring: 232 90% 52%;
+    --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    --shadow-soft: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-card: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+    --shadow-brand: 0 20px 40px -10px hsla(230, 90%, 55%, 0.3);
   }
 
   .dark {
-    --background: 222 25% 8%;
-    --foreground: 220 16% 96%;
+    --background: 230 30% 6%;
+    --foreground: 230 20% 98%;
 
-    --surface: 222 22% 12%;
-    --surface-soft: 222 18% 16%;
-    --ink: 220 16% 96%;
-    --ink-soft: 220 10% 65%;
-    --hairline: 222 18% 20%;
+    --surface: 230 25% 12%;
+    --surface-soft: 230 20% 18%;
+    --ink: 230 20% 98%;
+    --ink-soft: 230 15% 65%;
+    --hairline: 230 20% 20%;
 
-    --card: 222 22% 12%;
-    --card-foreground: 220 16% 96%;
+    --brand: 230 90% 65%;
+    --brand-foreground: 230 40% 10%;
+    --brand-soft: 230 40% 16%;
+    --brand-soft-foreground: 230 90% 85%;
 
-    --popover: 222 22% 12%;
-    --popover-foreground: 220 16% 96%;
-
-    --brand: 232 90% 60%;
-    --brand-foreground: 0 0% 100%;
-    --brand-soft: 232 60% 22%;
-    --brand-soft-foreground: 226 100% 88%;
-
-    --primary: 220 16% 96%;
-    --primary-foreground: 222 25% 8%;
-
-    --secondary: 222 18% 16%;
-    --secondary-foreground: 220 16% 96%;
-
-    --muted: 222 18% 16%;
-    --muted-foreground: 220 10% 65%;
-
-    --accent: 232 60% 22%;
-    --accent-foreground: 226 100% 88%;
-
-    --success: 152 55% 50%;
-    --warning: 38 92% 60%;
-    --destructive: 0 75% 60%;
-
-    --border: 222 18% 20%;
-    --input: 222 18% 20%;
-    --ring: 232 90% 60%;
-
-    --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.3), 0 4px 16px hsl(0 0% 0% / 0.2);
-    --shadow-card: 0 10px 25px -5px hsl(0 0% 0% / 0.4), 0 8px 10px -6px hsl(0 0% 0% / 0.4);
-    --shadow-float: 0 20px 40px -12px hsl(0 0% 0% / 0.5);
-    --shadow-brand: 0 12px 24px -6px hsl(232 90% 52% / 0.4);
-    --shadow-glow: 0 0 20px hsl(232 90% 52% / 0.25);
+    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
-  html,
-  body,
-  #root {
-    @apply h-full;
-  }
-
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
+    font-family: 'Outfit', sans-serif;
   }
 
   .tracking-tightest {
-    letter-spacing: -0.04em;
+    letter-spacing: -0.05em;
+  }
+  
+  h1, h2, h3, h4, .font-heading {
+    font-family: 'Outfit', sans-serif;
+  }
+  
+  p, span, button, input {
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
 }
 
 @layer utilities {
-  .bg-surface {
-    background-color: hsl(var(--surface));
+  .glass {
+    @apply bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-glass;
+  }
+  
+  .glass-brand {
+    @apply bg-brand/10 backdrop-blur-md border border-white/10 shadow-glass;
   }
 
-  .bg-surface-soft {
-    background-color: hsl(var(--surface-soft));
+  .bg-grid-white {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgb(255 255 255 / 0.04)'%3E%3Cpath d='M0 .5H31.5V32'/%3E%3C/svg%3E");
   }
 
-  .bg-brand {
-    background-color: hsl(var(--brand));
+  .shadow-glass {
+    box-shadow: var(--shadow-glass);
   }
-
-  .bg-brand-soft {
-    background-color: hsl(var(--brand-soft));
-  }
-
-  .text-brand {
-    color: hsl(var(--brand));
-  }
-
-  .text-brand-soft-foreground {
-    color: hsl(var(--brand-soft-foreground));
-  }
-
-  .text-ink {
-    color: hsl(var(--ink));
-  }
-
-  .text-ink-soft {
-    color: hsl(var(--ink-soft));
-  }
-
-  .border-hairline {
-    border-color: hsl(var(--hairline));
-  }
-
-  .shadow-soft {
-    box-shadow: var(--shadow-soft);
-  }
-
-  .shadow-card {
-    box-shadow: var(--shadow-card);
-  }
-
-  .shadow-float {
-    box-shadow: var(--shadow-float);
-  }
-
+  
   .shadow-brand {
     box-shadow: var(--shadow-brand);
   }
@@ -206,19 +101,51 @@
     scrollbar-width: none;
   }
 
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  .px-safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
   .pb-nav-clearance {
-    padding-bottom: calc(4rem + env(safe-area-inset-bottom) + 2rem);
+    padding-bottom: 12rem;
+  }
+}
+
+/* Custom animations */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Print styles for Statements */
+@media print {
+  nav, .bottom-nav-fab, .fixed, button, .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .glass, .SurfaceCard {
+    box-shadow: none !important;
+    border: 1px solid #eee !important;
+    background: white !important;
+    backdrop-filter: none !important;
   }
 
-  .bottom-nav-fab {
-    bottom: calc(4rem + env(safe-area-inset-bottom) + 5rem);
+  header {
+    padding-top: 0 !important;
+  }
+
+  h1 {
+    font-size: 24pt !important;
   }
 }

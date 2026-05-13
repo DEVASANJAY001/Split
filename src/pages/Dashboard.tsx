@@ -6,12 +6,24 @@ import { AvatarStack, PersonAvatar } from "@/components/Avatar";
 import { useStore, netBalances, personById } from "@/lib/store";
 import { fmt } from "@/lib/finance";
 import { groupIcons, categoryIcons } from "@/lib/icons";
-import { ArrowDownLeft, ArrowUpRight, Receipt, Wallet, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Receipt, Wallet, TrendingDown, TrendingUp, Sparkles, Target, Trophy, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { PromptModal, ConfirmModal } from "@/components/Modal";
+import { Trash2, MoreVertical, Edit3 } from "lucide-react";
+import { getBrandIcon } from "@/lib/brand-icons";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function Dashboard() {
-  const { groups, expenses, settlements, people, mode, personal, userId, profile } = useStore();
+  const { groups, expenses, settlements, people, mode, personal, userId, profile, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal, savingsGoals, deleteExpense } = useStore();
   const cur = profile?.currency || "USD";
+
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<{ id: string; isPersonal: boolean } | null>(null);
+  const [selectedGoal, setSelectedGoal] = useState<{ id: string; title: string } | null>(null);
+  const [promptConfig, setPromptConfig] = useState<{ title: string; onSubmit: (val: string) => void; type?: string }>({ title: "", onSubmit: () => {} });
+  const [promptValue, setPromptValue] = useState("");
 
   const summary = useMemo(() => {
     let owe = 0, owed = 0;
@@ -31,17 +43,48 @@ export default function Dashboard() {
     for (const e of expenses) {
       const g = groups.find((x) => x.id === e.groupId);
       const payer = personById(people, e.paidBy);
+      const Icon = categoryIcons[e.category] || categoryIcons["Other"];
       if (!g || !payer) continue;
       items.push({
         id: e.id, ts: e.createdAt,
         node: (
           <li key={e.id} className="flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              <PersonAvatar person={payer} size="md" />
+              <div className="flex items-center gap-3 min-w-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="size-10 rounded-full bg-surface-soft text-ink-soft flex items-center justify-center shrink-0 hover:bg-surface hover:text-ink transition-all">
+                      <MoreVertical className="size-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                    <DropdownMenuItem 
+                      onClick={() => navigate(`/split?edit=${e.id}`)}
+                      className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
+                    >
+                      <Edit3 className="size-3.5" />
+                      <span className="text-xs font-bold">Edit</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setDeleteId({ id: e.id, isPersonal: false })}
+                      className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50"
+                    >
+                      <Trash2 className="size-3.5" />
+                      <span className="text-xs font-bold">Delete</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {getBrandIcon(e.description) ? (
+                  <div className="size-10 rounded-full bg-surface shadow-soft flex items-center justify-center p-2.5 shrink-0 border border-hairline/50">
+                    <img src={getBrandIcon(e.description)!} alt="" className="size-full object-contain" />
+                  </div>
+              ) : (
+                <PersonAvatar person={payer} size="md" />
+              )}
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
                 <p className="text-[11px] text-ink-soft truncate">
-                  {payer.id === userId ? "You" : payer.name.split(" ")[0]} paid · {g.name}
+                  {payer.id === userId ? "You" : payer?.name?.split(" ")[0] || "User"} paid · {g.name}
                 </p>
               </div>
             </div>
@@ -65,7 +108,7 @@ export default function Dashboard() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-ink truncate">
-                  {from.id === userId ? "You" : from.name.split(" ")[0]} → {to.id === userId ? "you" : to.name.split(" ")[0]}
+                  {from.id === userId ? "You" : from?.name?.split(" ")[0] || "User"} → {to.id === userId ? "you" : to?.name?.split(" ")[0] || "User"}
                 </p>
                 <p className="text-[11px] text-ink-soft truncate">Settled · {g.name}</p>
               </div>
@@ -78,14 +121,22 @@ export default function Dashboard() {
     return items.sort((a, b) => b.ts - a.ts).slice(0, 6);
   }, [expenses, settlements, groups, people, userId, cur]);
 
-  // Personal mode aggregations
   const personalStats = useMemo(() => {
     const total = personal.reduce((a, e) => a + e.amount, 0);
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const month = personal.filter((e) => e.date.startsWith(monthKey)).reduce((a, e) => a + e.amount, 0);
-    return { total, month };
-  }, [personal]);
+    const budget = profile?.budget || 0;
+    const progress = budget > 0 ? Math.min((month / budget) * 100, 100) : 0;
+    
+    const catMap: Record<string, number> = {};
+    personal.filter(e => e.date.startsWith(monthKey)).forEach(e => {
+      catMap[e.category] = (catMap[e.category] || 0) + e.amount;
+    });
+    const topCat = Object.entries(catMap).sort((a, b) => b[1] - a[1])[0]?.[0] || "None";
+
+    return { total, month, budget, progress, topCat };
+  }, [personal, profile]);
 
   const recentPersonal = useMemo(
     () => [...personal].sort((a, b) => b.date < a.date ? -1 : 1).slice(0, 8),
@@ -112,18 +163,203 @@ export default function Dashboard() {
             <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden">
               <p className="text-sm font-medium opacity-90 mb-2">Spent this month</p>
               <p className="text-5xl font-bold tracking-tightest tabular-nums">{fmt(personalStats.month, cur)}</p>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="bg-brand-foreground/10 rounded-2xl p-3">
-                  <p className="text-[11px] opacity-90">All-time</p>
-                  <p className="text-lg font-bold tabular-nums">{fmt(personalStats.total, cur)}</p>
+              
+              {personalStats.budget > 0 && (
+                <div className="mt-6 space-y-2 relative z-10">
+                  <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest opacity-90">
+                    <span>Monthly Budget</span>
+                    <span>{Math.round(personalStats.progress)}%</span>
+                  </div>
+                  <div className="h-3 bg-brand-foreground/20 rounded-full overflow-hidden p-0.5">
+                    <div 
+                      className={cn(
+                        "h-full transition-all duration-1000 rounded-full shadow-lg",
+                        personalStats.progress > 90 ? "bg-warning" : "bg-white"
+                      )} 
+                      style={{ width: `${personalStats.progress}%` }} 
+                    />
+                  </div>
+                  <div className="flex justify-between items-center opacity-80">
+                    <p className="text-[10px] font-bold tracking-tight">
+                      {fmt(personalStats.month, cur)} / {fmt(personalStats.budget, cur)}
+                    </p>
+                    <p className="text-[10px] font-bold tracking-tight">
+                      {fmt(personalStats.budget - personalStats.month, cur)} left
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-brand-foreground/10 rounded-2xl p-3">
-                  <p className="text-[11px] opacity-90">Entries</p>
-                  <p className="text-lg font-bold tabular-nums">{personal.length}</p>
+              )}
+
+              <div className="mt-6 grid grid-cols-2 gap-3 relative z-10">
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/5">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">All-time</p>
+                  <p className="text-xl font-black tabular-nums">{fmt(personalStats.total, cur)}</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/5">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Top Category</p>
+                  <p className="text-xl font-black truncate">{personalStats.topCat}</p>
                 </div>
               </div>
               <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />
             </SurfaceCard>
+
+            <SurfaceCard variant="glass" className="border-warning/30">
+              <div className="flex items-center gap-4">
+                <div className="size-12 rounded-2xl bg-warning/20 text-warning flex items-center justify-center shrink-0 shadow-lg shadow-warning/10">
+                  <Sparkles className="size-6" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-ink uppercase tracking-wider">Smart Insight</p>
+                  <p className="text-xs text-ink-soft leading-relaxed font-medium mt-0.5">
+                    {personalStats.progress > 80 
+                      ? "Critical: You've used over 80% of your budget. Slow down on non-essentials."
+                      : personalStats.topCat !== "None"
+                      ? `Your biggest expense is ${personalStats.topCat}. Could you save 10% there next month?`
+                      : "Add more expenses to unlock AI-powered spending insights."}
+                  </p>
+                </div>
+              </div>
+            </SurfaceCard>
+
+            {/* Savings Goals Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-black uppercase tracking-widest text-ink/70">Savings Goals</h3>
+                <button 
+                  onClick={() => {
+                    setPromptConfig({
+                      title: "New Goal Title",
+                      onSubmit: (title) => {
+                        setPromptConfig({
+                          title: "Target Amount",
+                          type: "number",
+                          onSubmit: (target) => {
+                            addSavingsGoal({
+                              title,
+                              targetAmount: Number(target),
+                              currentAmount: 0,
+                              category: "Shopping"
+                            });
+                            setPromptOpen(false);
+                          }
+                        });
+                        setPromptValue("");
+                        setPromptOpen(true);
+                      }
+                    });
+                    setPromptValue("");
+                    setPromptOpen(true);
+                  }}
+                  className="size-8 rounded-xl bg-surface border border-hairline flex items-center justify-center text-brand hover:scale-105 active:scale-95 transition-all shadow-soft"
+                >
+                  <Plus className="size-4" strokeWidth={3} />
+                </button>
+              </div>
+
+              {savingsGoals.length === 0 ? (
+                <SurfaceCard variant="outline" className="border-dashed border-2 py-8 text-center flex flex-col items-center gap-2">
+                  <div className="size-10 rounded-2xl bg-brand-soft flex items-center justify-center text-brand">
+                    <Target className="size-5" />
+                  </div>
+                  <p className="text-xs font-bold text-ink-soft">No active goals. Start saving for something special!</p>
+                </SurfaceCard>
+              ) : (
+                <div className="space-y-3">
+                  {savingsGoals.map((goal) => {
+                    const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+                    return (
+                      <SurfaceCard key={goal.id} variant="glass" padding="md" className="group">
+                        <div className="flex items-center gap-4">
+                          <div className={cn(
+                            "size-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg transition-transform group-hover:scale-110",
+                            progress === 100 ? "bg-success/20 text-success" : "bg-brand/10 text-brand"
+                          )}>
+                            {progress === 100 ? <Trophy className="size-6" /> : <Target className="size-6" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-sm font-black text-ink uppercase tracking-tight">{goal.title}</p>
+                              <p className="text-xs font-black tabular-nums text-brand">{fmt(goal.currentAmount, cur)}</p>
+                            </div>
+                            <div className="h-2 bg-brand/5 rounded-full overflow-hidden">
+                              <div 
+                                className={cn("h-full transition-all duration-1000", progress === 100 ? "bg-success" : "bg-brand")} 
+                                style={{ width: `${progress}%` }} 
+                              />
+                            </div>
+                            <div className="flex justify-between mt-1.5 opacity-60">
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-[9px] font-bold uppercase tracking-widest">Progress {Math.round(progress)}%</p>
+                                {goal.streak > 0 && (
+                                  <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-warning/20 text-warning text-[8px] font-black">
+                                    🔥 {goal.streak}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[9px] font-bold uppercase tracking-widest">Target {fmt(goal.targetAmount, cur)}</p>
+                            </div>
+                            {progress < 100 && goal.currentAmount > 0 && (
+                              <p className="text-[8px] font-bold text-brand mt-1 opacity-80 italic">
+                                💡 Est. {Math.ceil((goal.targetAmount - goal.currentAmount) / (goal.currentAmount / Math.max(1, (Date.now() - goal.createdAt) / (1000 * 60 * 60 * 24))))} days to target
+                              </p>
+                            )}
+                          </div>
+                          <button 
+                            onClick={() => {
+                              setSelectedGoal({ id: goal.id, title: goal.title });
+                              setConfirmOpen(true);
+                            }}
+                            className="size-8 rounded-xl bg-surface-soft text-ink-soft hover:text-destructive flex items-center justify-center transition-colors"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setPromptConfig({
+                                title: `Add to ${goal.title}`,
+                                type: "number",
+                                onSubmit: (amt) => {
+                                  updateSavingsGoal(goal.id, { currentAmount: goal.currentAmount + Number(amt) });
+                                  setPromptOpen(false);
+                                }
+                              });
+                              setPromptValue("");
+                              setPromptOpen(true);
+                            }}
+                            className="size-8 rounded-xl bg-ink text-background flex items-center justify-center shadow-lg"
+                          >
+                            <Plus className="size-4" />
+                          </button>
+                        </div>
+                      </SurfaceCard>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            <PromptModal 
+              isOpen={promptOpen} 
+              onClose={() => setPromptOpen(false)} 
+              title={promptConfig.title}
+              value={promptValue}
+              onChange={setPromptValue}
+              onSubmit={() => promptConfig.onSubmit(promptValue)}
+              type={promptConfig.type}
+            />
+
+            <ConfirmModal
+              isOpen={confirmOpen}
+              onClose={() => setConfirmOpen(false)}
+              title="Delete Goal"
+              onConfirm={() => {
+                if (selectedGoal) deleteSavingsGoal(selectedGoal.id);
+              }}
+              confirmText="Delete"
+              confirmVariant="destructive"
+            >
+              Are you sure you want to delete the goal <span className="font-bold text-ink">"{selectedGoal?.title}"</span>? This will permanently remove your progress.
+            </ConfirmModal>
           </div>
 
           <div>
@@ -143,6 +379,7 @@ export default function Dashboard() {
           <div className="space-y-4">
             <div className="flex items-end justify-between pt-2 px-1">
               <h3 className="text-base font-bold text-ink">Recent personal</h3>
+              <Link to="/transactions?mode=personal" className="text-xs text-brand font-semibold">See all</Link>
             </div>
             <SurfaceCard padding="md">
               {recentPersonal.length === 0 ? (
@@ -150,19 +387,53 @@ export default function Dashboard() {
               ) : (
                 <ul className="space-y-4">
                   {recentPersonal.map((e) => {
-                    const Icon = categoryIcons[e.category];
+                    const Icon = categoryIcons[e.category] || categoryIcons["Other"];
                     return (
-                      <li key={e.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="size-10 rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center shrink-0">
-                            <Icon className="size-4" strokeWidth={2.25} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
-                            <p className="text-[11px] text-ink-soft">{e.category} · {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
-                          </div>
+                      <li key={e.id}>
+                        <div className="flex items-center justify-between group/item">
+                          <Link key={e.id} to={`/split?edit=${e.id}`} className="flex items-center justify-between flex-1 min-w-0">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {getBrandIcon(e.description) ? (
+                                <div className="size-10 rounded-full bg-surface shadow-soft flex items-center justify-center p-2.5 shrink-0 border border-hairline/50">
+                                  <img src={getBrandIcon(e.description)!} alt="" className="size-full object-contain" />
+                                </div>
+                              ) : (
+                                <div className={cn("size-10 rounded-full flex items-center justify-center shrink-0", "bg-brand/10 text-brand")}>
+                                  <Icon className="size-4" strokeWidth={2} />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
+                                <p className="text-[11px] text-ink-soft">{e.category} · {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                              </div>
+                            </div>
+                            <p className="text-sm font-bold tabular-nums text-ink shrink-0 mr-2">{fmt(e.amount, cur)}</p>
+                          </Link>
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="size-8 rounded-full bg-surface-soft text-ink-soft flex items-center justify-center shrink-0 hover:bg-surface hover:text-ink transition-all">
+                                <MoreVertical className="size-3.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                              <DropdownMenuItem 
+                                onClick={() => navigate(`/split?edit=${e.id}`)}
+                                className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
+                              >
+                                <Edit3 className="size-3.5" />
+                                <span className="text-xs font-bold">Edit</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => setDeleteId({ id: e.id, isPersonal: true })}
+                                className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50"
+                              >
+                                <Trash2 className="size-3.5" />
+                                <span className="text-xs font-bold">Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
                       </li>
                     );
                   })}
@@ -171,6 +442,21 @@ export default function Dashboard() {
             </SurfaceCard>
           </div>
         </div>
+        <ConfirmModal
+          isOpen={!!deleteId}
+          onClose={() => setDeleteId(null)}
+          onConfirm={async () => {
+            if (deleteId) {
+              await deleteExpense(deleteId.id, deleteId.isPersonal);
+              setDeleteId(null);
+              toast.success("Expense deleted");
+            }
+          }}
+          title="Delete Expense"
+          description="Are you sure you want to delete this expense? This action cannot be undone."
+          confirmText="Delete"
+          variant="danger"
+        />
       </div>
     );
   }

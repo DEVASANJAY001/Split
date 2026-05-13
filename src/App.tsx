@@ -39,12 +39,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         <div className="size-20 rounded-full border-4 border-brand/10" />
         <div className="absolute top-0 left-0 size-20 rounded-full border-4 border-brand border-t-transparent animate-spin" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-2xl font-black italic text-brand select-none">s</span>
+          <div className="relative size-10">
+            <div className="absolute inset-0 bg-brand rounded-lg rotate-45 animate-pulse" />
+            <div className="absolute inset-0 bg-background rounded-lg rotate-45 scale-75 flex items-center justify-center">
+              <div className="w-1 h-6 bg-brand -rotate-45 rounded-full" />
+            </div>
+          </div>
         </div>
       </div>
       <div className="flex flex-col items-center gap-2 animate-pulse">
         <h2 className="text-xl font-bold tracking-tightest italic">split</h2>
-        <p className="text-xs font-medium text-ink-soft uppercase tracking-widest">Checking your identity...</p>
+        <p className="text-xs font-black text-ink-soft uppercase tracking-widest">Loading...</p>
       </div>
     </div>
   );

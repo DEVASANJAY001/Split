@@ -31,7 +31,7 @@ export default function Profile() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [draft, setDraft] = useState(profile || { displayName: "", username: "", email: "", avatar: "", currency: "USD" });
+  const [draft, setDraft] = useState(profile || { displayName: "", username: "", email: "", avatar: "", currency: "USD", upiId: "" });
   const [cropperOpen, setCropperOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
@@ -162,10 +162,10 @@ export default function Profile() {
       />
 
       <div className="px-5 space-y-4">
-        <div className="bg-brand rounded-[32px] p-8 relative overflow-hidden shadow-brand shadow-lg">
-          <div className="flex flex-col items-center text-center gap-4 relative z-10">
-            <div className="relative group">
-              <div className="size-24 rounded-full border-4 border-white/20 shadow-xl overflow-hidden relative bg-white/10 backdrop-blur-md">
+        <SurfaceCard variant="glass" padding="lg" className="overflow-hidden border-brand/10 shadow-xl shadow-brand/5">
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="relative shrink-0">
+              <div className="size-24 rounded-[2rem] border-2 border-brand/20 shadow-lg overflow-hidden relative bg-surface-soft">
                 <img 
                   key={profile.avatar} 
                   src={profile.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.displayName || "User"}`} 
@@ -181,36 +181,43 @@ export default function Profile() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="absolute -bottom-1 -right-1 size-9 rounded-full bg-white shadow-xl flex items-center justify-center text-brand hover:scale-110 transition-all active:scale-90 border-2 border-brand"
+                className="absolute -bottom-2 -right-2 size-9 rounded-2xl bg-brand text-white shadow-brand flex items-center justify-center hover:scale-110 transition-all active:scale-90 border-2 border-white dark:border-black"
               >
-                <Camera className="size-4" strokeWidth={3} />
+                <Camera className="size-4" strokeWidth={2.5} />
               </button>
             </div>
             
-            <div className="space-y-1">
-              <h2 className="text-2xl font-black text-white tracking-tightest leading-none">{profile.displayName}</h2>
-              <div className="flex items-center justify-center gap-2">
-                <span className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold text-white uppercase tracking-wider backdrop-blur-md border border-white/10">
-                  {profile.username}
-                </span>
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="space-y-0.5">
+                <h2 className="text-2xl font-black text-ink tracking-tightest leading-tight truncate">{profile.displayName}</h2>
+                <p className="text-xs font-black text-brand uppercase tracking-widest">{profile.username}</p>
+              </div>
+
+              {profile.upiId && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-soft border border-hairline/50">
+                  <span className="text-[9px] font-black text-ink-soft uppercase tracking-widest">UPI</span>
+                  <span className="text-[11px] font-bold text-ink tabular-nums">{profile.upiId}</span>
+                </div>
+              )}
+
+              <div className="pt-1">
+                <button
+                  onClick={() => {
+                    setDraft(profile);
+                    setEditing(true);
+                  }}
+                  className="bg-brand text-brand-foreground px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-brand hover:opacity-90 transition-all active:scale-95"
+                >
+                  Edit Profile
+                </button>
               </div>
             </div>
-
-            <button
-              onClick={() => {
-                setDraft(profile);
-                setEditing(true);
-              }}
-              className="mt-2 bg-white/10 hover:bg-white/20 text-white/90 px-6 py-2 rounded-full text-xs font-bold border border-white/10 backdrop-blur-md transition-all active:scale-95"
-            >
-              Edit Profile
-            </button>
           </div>
 
-          {/* Decorative background elements */}
-          <div className="absolute -right-10 -top-10 size-40 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute -left-10 -bottom-10 size-40 rounded-full bg-white/5 blur-2xl" />
-        </div>
+          {/* Decorative accents */}
+          <div className="absolute -right-12 -top-12 size-32 rounded-full bg-brand/5 blur-3xl" />
+          <div className="absolute -left-12 -bottom-12 size-32 rounded-full bg-brand/5 blur-3xl" />
+        </SurfaceCard>
 
         <div className="grid grid-cols-2 gap-3">
           <SurfaceCard padding="md" className="flex items-center gap-3">
@@ -390,6 +397,17 @@ export default function Profile() {
                 </div>
                 {usernameStatus === "taken" && <p className="text-[10px] text-destructive font-semibold mt-1 ml-1 leading-none animate-in fade-in slide-in-from-top-1">Username already taken</p>}
                 {usernameStatus === "available" && <p className="text-[10px] text-success font-semibold mt-1 ml-1 leading-none animate-in fade-in slide-in-from-top-1">Username available</p>}
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-ink-soft ml-1">UPI ID (VPA)</label>
+                <input
+                  value={draft.upiId || ""}
+                  placeholder="yourname@upi"
+                  onChange={(e) => setDraft({ ...draft, upiId: e.target.value })}
+                  className="mt-1 w-full bg-surface-soft rounded-2xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-brand"
+                />
+                <p className="text-[10px] text-ink-soft mt-1.5 ml-1">Optional. Used for generating payment links.</p>
               </div>
 
               <div>
