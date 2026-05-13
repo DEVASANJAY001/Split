@@ -10,7 +10,7 @@ import { Users, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ALL_CURRENCIES } from "@/lib/currency-data";
-import { CustomSelect } from "@/components/ui/Select";
+import { CustomSelect } from "@/components/ui/select";
 import { CATEGORY_LIBRARY, ALL_ICONS, suggestCategory } from "@/lib/categories";
 import { Modal } from "@/components/Modal";
 import { Search, ChevronRight, Grid, LayoutGrid, Sparkles, Image as ImageIcon } from "lucide-react";
