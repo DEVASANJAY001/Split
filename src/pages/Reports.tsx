@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/AppLayout";
 import { SurfaceCard } from "@/components/SurfaceCard";
 import { useStore, Category, netBalances, personById } from "@/lib/store";
+import { CustomSelect } from "@/components/ui/select";
 import { fmt } from "@/lib/finance";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, Radar, ComposedChart, Line } from "recharts";
 import { categoryIcons, groupIcons } from "@/lib/icons";
@@ -25,14 +26,21 @@ type ReportFilter = "all" | "personal" | "group";
 export default function Reports() {
   const { expenses, personal, groups, people, userId, profile, settlements, savingsGoals } = useStore();
   const [filter, setFilter] = useState<ReportFilter>("all");
+  const [groupFilter, setGroupFilter] = useState("all");
   const cur = profile?.currency || "INR";
 
   // Filtered Data
   const activeExpenses = useMemo(() => {
-    if (filter === "personal") return personal;
-    if (filter === "group") return expenses;
-    return [...expenses, ...personal];
-  }, [filter, expenses, personal]);
+    let base = [];
+    if (filter === "personal") base = personal;
+    else if (filter === "group") base = expenses;
+    else base = [...expenses, ...personal];
+
+    if (filter === "group" && groupFilter !== "all") {
+      return base.filter(e => e.groupId === groupFilter);
+    }
+    return base;
+  }, [filter, groupFilter, expenses, personal]);
 
   // Data Analysis
   const analysis = useMemo(() => {
@@ -119,6 +127,22 @@ export default function Reports() {
             </button>
           ))}
         </div>
+
+        {/* Group Selector (only when group filter active) */}
+        {filter === "group" && (
+          <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-500">
+            <CustomSelect
+              value={groupFilter}
+              onChange={setGroupFilter}
+              options={[
+                { value: "all", label: "All Groups Combined" },
+                ...groups.map(g => ({ value: g.id, label: g.name }))
+              ]}
+              variant="surface"
+              className="w-full"
+            />
+          </div>
+        )}
       </div>
 
       <div className="px-5 mt-10 space-y-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000">

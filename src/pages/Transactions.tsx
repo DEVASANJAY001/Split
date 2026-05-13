@@ -5,6 +5,7 @@ import { PersonAvatar } from "@/components/Avatar";
 import { useStore, personById, Category } from "@/lib/store";
 import { fmt } from "@/lib/finance";
 import { cn } from "@/lib/utils";
+import { CustomSelect } from "@/components/ui/select";
 import { ArrowDownLeft, ArrowUpRight, Search, SlidersHorizontal, Trash2, ArrowRight, MoreVertical, Edit3, History as HistoryIcon } from "lucide-react";
 import { categoryIcons, groupIcons } from "@/lib/icons";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
@@ -222,14 +223,16 @@ export default function Transactions() {
           </div>
 
           {mode === "group" && (
-            <select
+            <CustomSelect
               value={groupFilter}
-              onChange={(e) => setGroupFilter(e.target.value)}
-              className="w-full bg-white border border-hairline rounded-xl px-4 py-2.5 text-xs font-bold text-ink outline-none"
-            >
-              <option value="all">All Groups</option>
-              {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-            </select>
+              onChange={setGroupFilter}
+              options={[
+                { value: "all", label: "All Groups" },
+                ...groups.map(g => ({ value: g.id, label: g.name }))
+              ]}
+              variant="surface"
+              className="w-full"
+            />
           )}
         </div>
 

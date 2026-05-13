@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Search, X, Check, ChevronDown, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { ALL_CURRENCIES } from "@/lib/currency-data";
+import { CustomSelect } from "@/components/ui/select";
 
 const TYPES: GroupType[] = ["Trip", "Roommates", "Couple", "Friends", "Office", "Other"];
 
@@ -239,21 +240,16 @@ export default function Groups() {
                 {/* Currency Section */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-ink-soft uppercase tracking-widest ml-4">Currency</label>
-                  <div className="relative group">
-                    <div className="absolute left-5 top-1/2 -translate-y-1/2 size-10 rounded-full bg-brand/10 flex items-center justify-center text-brand">
-                      <Globe className="size-5" />
-                    </div>
-                    <select
-                      value={groupCurrency}
-                      onChange={(e) => setGroupCurrency(e.target.value)}
-                      className="w-full bg-surface-soft rounded-[2rem] pl-16 pr-12 py-5 text-base font-bold outline-none border-2 border-transparent focus:border-brand transition-all appearance-none"
-                    >
-                      {ALL_CURRENCIES.map(c => (
-                        <option key={c.code} value={c.code}>{c.code} ({c.symbol}) - {c.name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 size-5 text-ink-soft pointer-events-none group-focus-within:text-brand transition-colors" />
-                  </div>
+                  <CustomSelect
+                    value={groupCurrency}
+                    onChange={setGroupCurrency}
+                    options={ALL_CURRENCIES.map(c => ({
+                      value: c.code,
+                      label: `${c.code} (${c.symbol}) - ${c.name}`
+                    }))}
+                    variant="surface"
+                    className="w-full"
+                  />
                 </div>
  
                 {/* Friends Section */}
