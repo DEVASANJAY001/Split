@@ -97,43 +97,58 @@ const OnboardingRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <ScrollToTop />
-        <div className="h-full">
-          <Routes>
-            <Route path="/get-started" element={<OnboardingRoute><GetStarted /></OnboardingRoute>} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<OnboardingRoute><SignUpPage /></OnboardingRoute>} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
-            <Route path="/user/:id" element={<ProtectedRoute><UserDetail /></ProtectedRoute>} />
+import { useEffect } from "react";
+import { getRedirectResult } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
-            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="/" element={<OnboardingRoute><Dashboard /></OnboardingRoute>} />
-              <Route path="/split" element={<SplitBill />} />
-              <Route path="/groups" element={<Groups />} />
-              <Route path="/groups/:id" element={<GroupDetail />} />
-              <Route path="/friends" element={<Friends />} />
-              <Route path="/transactions" element={<Transactions />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/legal/terms" element={<TermsOfService />} />
-              <Route path="/legal/privacy" element={<PrivacyPolicy />} />
-              <Route path="/legal/about" element={<AboutDAVNS />} />
-              <Route path="/support/tickets" element={<SupportTickets />} />
-              <Route path="/support/help" element={<HelpCenter />} />
-            </Route>
+const App = () => {
+  useEffect(() => {
+    // Crucial for APK/WebView redirect handling
+    getRedirectResult(auth).catch((error: any) => {
+      if (error.code !== "auth/redirect-cancelled-by-user") {
+        console.error("Auth redirect error:", error);
+      }
+    });
+  }, []);
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <ScrollToTop />
+          <div className="h-full">
+            <Routes>
+              <Route path="/get-started" element={<OnboardingRoute><GetStarted /></OnboardingRoute>} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<OnboardingRoute><SignUpPage /></OnboardingRoute>} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
+              <Route path="/user/:id" element={<ProtectedRoute><UserDetail /></ProtectedRoute>} />
+
+              <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                <Route path="/" element={<OnboardingRoute><Dashboard /></OnboardingRoute>} />
+                <Route path="/split" element={<SplitBill />} />
+                <Route path="/groups" element={<Groups />} />
+                <Route path="/groups/:id" element={<GroupDetail />} />
+                <Route path="/friends" element={<Friends />} />
+                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/legal/terms" element={<TermsOfService />} />
+                <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+                <Route path="/legal/about" element={<AboutDAVNS />} />
+                <Route path="/support/tickets" element={<SupportTickets />} />
+                <Route path="/support/help" element={<HelpCenter />} />
+              </Route>
+
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

@@ -43,15 +43,16 @@ export default function Reports() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const data = useMemo(() => {
     if (!userId) return null;
     return getFilteredData(
       personal, expenses, userId, range, context, 
       savingsGoals, recurringTemplates, 
-      customStart, customEnd
+      customStart, customEnd, selectedDate
     );
-  }, [personal, expenses, userId, range, context, savingsGoals, recurringTemplates, customStart, customEnd]);
+  }, [personal, expenses, userId, range, context, savingsGoals, recurringTemplates, customStart, customEnd, selectedDate]);
 
   const budget = profile?.budget || 0;
   const budgetProgress = budget > 0 ? Math.min((data?.totalSpend || 0) / budget * 100, 100) : 0;
@@ -60,20 +61,25 @@ export default function Reports() {
   const projectedSpend = (data?.dailyAverage || 0) * daysInMonth;
   const isProjectedOver = budget > 0 && projectedSpend > budget;
 
-  // Heatmap Data (last 14 days)
+  // Heatmap Data (last 14 days) - Always calculated from full store data for consistency
   const heatmapData = useMemo(() => {
     const dates = [];
+    const allBaseExpenses = [
+      ...personal.map(e => ({ ...e, isGroup: false })),
+      ...expenses.map(e => ({ ...e, amount: e.shares[userId] || 0, isGroup: true }))
+    ];
+
     for (let i = 13; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
-      const dayTotal = data?.allExpenses
+      const dayTotal = allBaseExpenses
         .filter(e => e.date === dateStr)
         .reduce((sum, e) => sum + e.amount, 0) || 0;
       dates.push({ date: dateStr, amount: dayTotal, day: d.getDate() });
     }
     return dates;
-  }, [data]);
+  }, [personal, expenses, userId]);
 
   const filteredMerchants = useMemo(() => {
     if (!data) return [];
@@ -232,24 +238,50 @@ export default function Reports() {
 
         {/* Activity Heatmap */}
         <motion.div variants={itemVariants} className="space-y-3">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft px-1">Daily Activity Pulse</h3>
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft">
+              Daily Activity Pulse 
+              <span className="ml-2 text-brand/60">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+            </h3>
+            {selectedDate && (
+              <button 
+                onClick={() => setSelectedDate(null)}
+                className="text-[9px] font-black uppercase text-brand hover:underline"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+          
           <div className="flex justify-between gap-1">
             {heatmapData.map((d, i) => {
               const opacity = d.amount === 0 ? 0.05 : Math.min(d.amount / (data.totalSpend / 10 + 1), 1);
+              const isSelected = selectedDate === d.date;
               return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                <button 
+                  key={i} 
+                  onClick={() => setSelectedDate(isSelected ? null : d.date)}
+                  className="flex-1 flex flex-col items-center gap-1.5 group outline-none"
+                >
                   <div 
-                    className="w-full aspect-square rounded-md transition-all duration-500"
+                    className={cn(
+                      "w-full aspect-square rounded-md transition-all duration-300",
+                      isSelected ? "ring-2 ring-brand ring-offset-2 scale-110" : "group-hover:scale-105"
+                    )}
                     style={{ 
                       backgroundColor: d.amount > 0 ? '#6366f1' : 'currentColor',
-                      opacity: opacity
+                      opacity: isSelected ? 1 : opacity
                     }}
                   />
-                  <span className="text-[8px] font-bold text-ink-soft/40">{d.day}</span>
-                </div>
+                  <span className={cn(
+                    "text-[8px] font-bold transition-colors",
+                    isSelected ? "text-brand" : "text-ink-soft/40"
+                  )}>{d.day}</span>
+                </button>
               );
             })}
           </div>
+
         </motion.div>
 
         {/* Forecast & Savings Row */}
@@ -297,19 +329,19 @@ export default function Reports() {
         </motion.div>
 
         {/* Main Intelligence Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-4">
           {/* Spending Trends - Area Chart */}
           <motion.div variants={itemVariants}>
-            <SurfaceCard padding="lg" className="h-full">
-              <div className="flex items-center justify-between mb-8">
+            <SurfaceCard padding="md" className="h-full rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Spending Velocity</h3>
-                  <p className="text-[10px] text-ink-soft uppercase tracking-widest font-bold mt-0.5">Daily Trends</p>
+                  <h3 className="text-[11px] font-black uppercase tracking-tight text-ink">Velocity</h3>
+                  <p className="text-[8px] text-ink-soft uppercase tracking-widest font-bold">Trends</p>
                 </div>
-                <TrendingUp className="size-5 text-brand" />
+                <TrendingUp className="size-4 text-brand" />
               </div>
 
-              <div className="h-[220px] w-full -ml-4">
+              <div className="h-[180px] w-full pr-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data.dailyTrends}>
                     <defs>
@@ -322,11 +354,11 @@ export default function Reports() {
                     <XAxis dataKey="date" hide />
                     <YAxis hide />
                     <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 'bold' }}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontSize: '10px', fontWeight: 'bold' }}
                       labelFormatter={(label) => new Date(label).toLocaleDateString()}
                       formatter={(value: number) => [fmt(value, profile?.currency || "USD"), "Spent"]}
                     />
-                    <Area type="monotone" dataKey="amount" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorAmount)" />
+                    <Area type="monotone" dataKey="amount" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#colorAmount)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -335,31 +367,31 @@ export default function Reports() {
 
           {/* Categories Chart */}
           <motion.div variants={itemVariants}>
-            <SurfaceCard padding="lg" className="h-full">
-              <div className="flex items-center justify-between mb-8">
+            <SurfaceCard padding="md" className="h-full rounded-2xl">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Spending Mix</h3>
-                  <p className="text-[10px] text-ink-soft uppercase tracking-widest font-bold mt-0.5">
-                    {selectedCategory ? `Filtered: ${selectedCategory}` : "Tap slices to filter"}
+                  <h3 className="text-[11px] font-black uppercase tracking-tight text-ink">Mix</h3>
+                  <p className="text-[8px] text-ink-soft uppercase tracking-widest font-bold truncate max-w-[60px]">
+                    {selectedCategory || "Categories"}
                   </p>
                 </div>
                 {selectedCategory ? (
-                  <button onClick={() => setSelectedCategory(null)} className="text-[9px] font-black uppercase text-brand">Clear</button>
+                  <button onClick={() => setSelectedCategory(null)} className="text-[8px] font-black uppercase text-brand">Clear</button>
                 ) : (
-                  <PieIcon className="size-5 text-ink-soft/40" />
+                  <PieIcon className="size-4 text-ink-soft/40" />
                 )}
               </div>
 
-              <div className="h-[220px] w-full">
+              <div className="h-[180px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={data.categoryData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={50}
-                      outerRadius={75}
-                      paddingAngle={5}
+                      innerRadius={40}
+                      outerRadius={60}
+                      paddingAngle={4}
                       dataKey="value"
                       onClick={(entry) => setSelectedCategory(entry.name === selectedCategory ? null : entry.name)}
                       className="cursor-pointer"
@@ -369,12 +401,12 @@ export default function Reports() {
                           key={`cell-${index}`} 
                           fill={COLORS[index % COLORS.length]} 
                           stroke={selectedCategory === entry.name ? "#fff" : "transparent"}
-                          strokeWidth={3}
+                          strokeWidth={2}
                           opacity={selectedCategory && selectedCategory !== entry.name ? 0.3 : 1}
                         />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }} formatter={(value: number) => fmt(value, profile?.currency || "USD")} />
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 'bold' }} formatter={(value: number) => fmt(value, profile?.currency || "USD")} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

@@ -12,40 +12,53 @@ export function getFilteredData(
   savingsGoals: SavingsGoal[] = [],
   recurringTemplates: RecurringTemplate[] = [],
   customStart?: string,
-  customEnd?: string
+  customEnd?: string,
+  selectedDate?: string
 ) {
   const now = new Date();
   let interval: { start: Date; end: Date };
 
-  switch (range) {
-    case "this-month":
-      interval = { start: startOfMonth(now), end: endOfMonth(now) };
-      break;
-    case "last-month":
-      const lastMonth = subMonths(now, 1);
-      interval = { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
-      break;
-    case "this-quarter":
-      interval = { start: startOfQuarter(now), end: now };
-      break;
-    case "custom":
-      interval = { 
-        start: customStart ? parseISO(customStart) : startOfMonth(now), 
-        end: customEnd ? parseISO(customEnd) : now 
-      };
-      break;
-    default:
-      interval = { start: new Date(0), end: now };
+  if (selectedDate) {
+    // If a specific date is selected via heatmap, we focus exclusively on it
+    const targetDate = parseISO(selectedDate);
+    interval = { start: targetDate, end: targetDate };
+  } else {
+    switch (range) {
+      case "this-month":
+        interval = { start: startOfMonth(now), end: endOfMonth(now) };
+        break;
+      case "last-month":
+        const lastMonth = subMonths(now, 1);
+        interval = { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
+        break;
+      case "this-quarter":
+        interval = { start: startOfQuarter(now), end: now };
+        break;
+      case "custom":
+        interval = { 
+          start: customStart ? parseISO(customStart) : startOfMonth(now), 
+          end: customEnd ? parseISO(customEnd) : now 
+        };
+        break;
+      default:
+        interval = { start: new Date(0), end: now };
+    }
   }
 
-  const isAllTime = range === "all-time";
+  const isAllTime = range === "all-time" && !selectedDate;
 
   const filteredPersonal = (context === "all" || context === "personal") 
-    ? personal.filter(e => isAllTime || isWithinInterval(parseISO(e.date), interval))
+    ? personal.filter(e => {
+        if (selectedDate) return e.date === selectedDate;
+        return isAllTime || isWithinInterval(parseISO(e.date), interval);
+      })
     : [];
 
   const filteredGroups = (context === "all" || context === "group")
-    ? expenses.filter(e => isAllTime || isWithinInterval(parseISO(e.date), interval))
+    ? expenses.filter(e => {
+        if (selectedDate) return e.date === selectedDate;
+        return isAllTime || isWithinInterval(parseISO(e.date), interval);
+      })
     : [];
 
   // Transform group expenses to user's share
