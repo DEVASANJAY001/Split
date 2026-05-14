@@ -351,7 +351,7 @@ export default function Reports() {
           <div className="relative">
             <div 
               ref={pulseScrollRef}
-              className="flex gap-3 overflow-x-auto scrollbar-hide -mx-5 px-8 pb-4 snap-x"
+              className="flex gap-3 overflow-x-auto scrollbar-hide -mx-5 px-8 py-4 snap-x"
               style={{ 
                 maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
                 WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)'
