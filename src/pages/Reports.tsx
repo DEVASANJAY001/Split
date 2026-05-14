@@ -205,7 +205,7 @@ export default function Reports() {
             <div className="relative z-10 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft">Monthly Liquidity</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft">Monthly Salary</h3>
                   <div className="flex items-center gap-2">
                     {isEditingSalary ? (
                       <div className="flex items-center gap-1 mt-1">
@@ -244,7 +244,7 @@ export default function Reports() {
 
               <div className="space-y-2">
                 <div className="flex justify-between text-[9px] font-black uppercase text-ink-soft px-1">
-                  <span>Spending Velocity</span>
+                  <span>Budget Used</span>
                   <span>{profile?.salary ? Math.round(Math.min((data.totalSpend / profile.salary) * 100, 100)) : 0}%</span>
                 </div>
                 <div className="h-2.5 bg-surface-soft rounded-full overflow-hidden border border-hairline/30 shadow-inner">
