@@ -12,13 +12,23 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
-    const { userId, loading: authLoading } = useStore();
+    const { userId, profile, loading: authLoading } = useStore();
 
     useEffect(() => {
         if (!authLoading && userId) {
-            navigate("/");
+            if (profile) {
+                if (profile.isVerified) {
+                    navigate("/");
+                } else {
+                    // This case is unlikely for login but safe to handle
+                    navigate("/signup"); 
+                }
+            } else {
+                // No profile found - likely a new Google user or first-time login without setup
+                navigate("/profile-setup");
+            }
         }
-    }, [userId, authLoading, navigate]);
+    }, [userId, authLoading, navigate, profile]);
 
     // Handle Redirect Result for APK/WebView environments
     useEffect(() => {

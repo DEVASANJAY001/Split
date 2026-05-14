@@ -27,14 +27,18 @@ export default function SignUpPage() {
     const [emailStatus, setEmailStatus] = useState<"idle" | "available" | "taken">("idle");
 
     useEffect(() => {
-        if (!authLoading && userId && profile?.isVerified && step === "signup") {
-            navigate("/");
-            return;
-        }
-
-        if (!authLoading && userId && profile && profile.isVerified === false && step === "signup") {
-            setStep("otp");
-            setUserIdState(userId);
+        if (!authLoading && userId) {
+            if (profile) {
+                if (profile.isVerified) {
+                    navigate("/");
+                } else if (step === "signup") {
+                    setStep("otp");
+                    setUserIdState(userId);
+                }
+            } else {
+                // No profile found - likely a new Google user
+                navigate("/profile-setup");
+            }
         }
     }, [userId, authLoading, navigate, step, profile]);
 
