@@ -22,6 +22,9 @@ import {
 } from "lucide-react";
 
 export const CATEGORY_LIBRARY = [
+  // Others (Moved to 1st)
+  { id: "Other", name: "Other", icon: HelpCircle, color: "gray" },
+
   // Core / Common
   { id: "Food", name: "Food & Dining", icon: Utensils, color: "orange" },
   { id: "Shopping", name: "Shopping", icon: ShoppingBag, color: "pink" },
@@ -69,9 +72,6 @@ export const CATEGORY_LIBRARY = [
   { id: "Bank", name: "Banking & Transfer", icon: Landmark, color: "slate" },
   { id: "Tax", name: "Taxes", icon: PieChart, color: "red" },
   { id: "Streaming", name: "Subscriptions", icon: Repeat, color: "indigo" },
-  
-  // Others
-  { id: "Other", name: "Other", icon: HelpCircle, color: "gray" },
 ];
 
 export const ALL_ICONS = [
@@ -132,9 +132,9 @@ export const ALL_ICONS = [
   { name: "Zap", icon: Zap },
 ];
 
-export function suggestCategory(description: string): string | null {
+export function suggestCategory(description: string): string {
   const d = description.toLowerCase().trim();
-  if (!d) return null;
+  if (!d) return "Other";
 
   const mapping: Record<string, string[]> = {
     Food: ["food", "rest", "pizza", "burger", "eat", "lunch", "dinner", "meal", "breakfast", "swiggy", "zomato", "mcdonald", "kfc", "subway", "restaurant", "dining", "barbeque", "buffet", "starbuck", "ccd", "chai", "theobroma", "waffle", "momo", "haldiram", "saravana", "bikanervala", "behrouz", "faasos", "freshmenu", "eatsure", "eatfit", "box8", "truffles", "bakery", "cake"],
@@ -167,5 +167,5 @@ export function suggestCategory(description: string): string | null {
     }
   }
 
-  return null;
+  return "Other";
 }

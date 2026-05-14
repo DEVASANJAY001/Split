@@ -78,12 +78,12 @@ export function Modal({ isOpen, onClose, title, children, footer, className }: M
           </button>
         </div>
         
-        <div className="p-7 pt-2">
+        <div className="p-7 pt-2 pb-10 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {children}
         </div>
 
         {footer && (
-          <div className="p-7 pt-0 flex gap-3">
+          <div className="p-7 pt-0 pb-8 flex gap-3">
             {footer}
           </div>
         )}

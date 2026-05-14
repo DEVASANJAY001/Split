@@ -82,9 +82,13 @@ export default function Reports() {
       ...expenses.map(e => ({ ...e, amount: e.shares[userId] || 0, isGroup: true }))
     ];
 
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    const daysToToday = today.getDate();
+
+    for (let i = 1; i <= daysToToday; i++) {
+      const d = new Date(currentYear, currentMonth, i);
       const dateStr = d.toISOString().split('T')[0];
       const dayTotal = allBaseExpenses
         .filter(e => e.date === dateStr)
@@ -333,7 +337,7 @@ export default function Reports() {
             )}
           </div>
           
-          <div className="flex justify-between gap-1">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-5 px-5 pb-4 snap-x">
             {heatmapData.map((d, i) => {
               const opacity = d.amount === 0 ? 0.05 : Math.min(d.amount / (data.totalSpend / 10 + 1), 1);
               const isSelected = selectedDate === d.date;
@@ -341,12 +345,12 @@ export default function Reports() {
                 <button 
                   key={i} 
                   onClick={() => setSelectedDate(isSelected ? null : d.date)}
-                  className="flex-1 flex flex-col items-center gap-1.5 group outline-none"
+                  className="flex flex-col items-center gap-1.5 group outline-none shrink-0 snap-center"
                 >
                   <div 
                     className={cn(
-                      "w-full aspect-square rounded-md transition-all duration-300",
-                      isSelected ? "ring-2 ring-brand ring-offset-2 scale-110" : "group-hover:scale-105"
+                      "size-10 rounded-xl transition-all duration-300",
+                      isSelected ? "ring-2 ring-brand ring-offset-2 scale-110" : "group-hover:scale-105 shadow-soft"
                     )}
                     style={{ 
                       backgroundColor: d.amount > 0 ? '#6366f1' : 'currentColor',
@@ -361,7 +365,6 @@ export default function Reports() {
               );
             })}
           </div>
-
         </motion.div>
 
         {/* Forecast & Savings Row */}

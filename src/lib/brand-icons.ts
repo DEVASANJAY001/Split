@@ -211,18 +211,25 @@ export const BRAND_DOMAINS: Record<string, string> = {
   blablacar: "blablacar.in",
   "namma metro": "bmrc.co.in",
   "delhi metro": "delhimetrorail.com",
+  // Airlines (Added variations)
   indigo: "goindigo.in",
+  "air india": "airindia.com",
   airindia: "airindia.com",
   spicejet: "spicejet.com",
   vistara: "airvistara.com",
   akasa: "akasaair.com",
+  airasia: "airasia.com",
+  "air asia": "airasia.com",
   emirates: "emirates.com",
+  "qatar airways": "qatarairways.com",
   qatar: "qatarairways.com",
+  "singapore airlines": "singaporeair.com",
   singapore: "singaporeair.com",
   lufthansa: "lufthansa.com",
   "british airways": "britishairways.com",
-  airasia: "airasia.com",
+  british: "britishairways.com",
   "thai airways": "thaiairways.com",
+  thai: "thaiairways.com",
   etihad: "etihad.com",
   qantas: "qantas.com",
   turkish: "turkishairlines.com",
@@ -249,7 +256,9 @@ export const BRAND_DOMAINS: Record<string, string> = {
   drivezy: "drivezy.com",
   "quick ride": "quickride.in",
   "indian oil": "iocl.com",
+  iocl: "iocl.com",
   bpcl: "bharatpetroleum.in",
+  hpcl: "hpcl.co.in",
   "hp petrol": "hpcl.co.in",
   petrol: "shell.com",
   shell: "shell.com",
@@ -466,8 +475,13 @@ export function getBrandIconData(description: string): { domain: string, url: st
   if (!description) return null;
   const desc = description.toLowerCase().trim();
   
-  for (const [key, domain] of Object.entries(BRAND_DOMAINS)) {
+  // Try to find the best match by checking if the description contains the brand key
+  // We sort by length descending to match more specific brands first (e.g. "air india" before "air")
+  const sortedKeys = Object.keys(BRAND_DOMAINS).sort((a, b) => b.length - a.length);
+
+  for (const key of sortedKeys) {
     if (desc.includes(key)) {
+      const domain = BRAND_DOMAINS[key];
       return {
         domain,
         url: `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${domain}&size=128`

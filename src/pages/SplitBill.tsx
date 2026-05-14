@@ -113,13 +113,13 @@ export default function SplitBill() {
   const diff = total - sum;
 
 
-  const valid = isPersonal
+  const valid = (isPersonal
     ? title.trim().length > 0 && total > 0
     : title.trim().length > 0 &&
     total > 0 &&
     selected.length > 0 &&
     group !== undefined &&
-    (splitMode === "equal" || splitMode === "shares" ? true : Math.abs(diff) < 0.01);
+    (splitMode === "equal" || splitMode === "shares" ? true : Math.abs(diff) < 0.01)) && category !== "";
 
   const onTitleChange = (val: string) => {
     setTitle(val);
@@ -591,7 +591,7 @@ export default function SplitBill() {
           {/* Main Grid: Horizontal Style */}
           <div className="space-y-3">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft/60 px-1">Library Categories</h3>
-            <div className="grid grid-cols-2 gap-2 max-h-[35vh] overflow-y-auto pr-1 custom-scrollbar">
+            <div className="grid grid-cols-2 gap-2 max-h-[30vh] overflow-y-auto pr-1 custom-scrollbar pb-2">
               {CATEGORY_LIBRARY.filter(c => c.name.toLowerCase().includes(catSearch.toLowerCase())).map((c) => {
                 const Icon = c.icon;
                 const isSelected = category === c.id;
@@ -625,7 +625,7 @@ export default function SplitBill() {
           {/* Usage Library: Compact Icons */}
           <div className="space-y-3">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft/60 px-1">Visual Glyphs</h3>
-            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
+            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 max-h-[20vh] overflow-y-auto pr-1 custom-scrollbar">
               {ALL_ICONS.slice(0, 32).map((item) => {
                 const Icon = item.icon;
                 const isSelected = category === item.name;
