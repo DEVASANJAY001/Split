@@ -445,7 +445,7 @@ export default function SplitBill() {
               <LayoutGrid className="size-3" /> All Categories
             </button>
           </div>
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-5 px-5">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-5 px-5 py-3">
             {COMMON_CATEGORIES.map((c) => {
               const Icon = c.icon;
               const isActive = category === c.id;
@@ -591,7 +591,7 @@ export default function SplitBill() {
           {/* Main Grid: Horizontal Style */}
           <div className="space-y-3">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft/60 px-1">Library Categories</h3>
-            <div className="grid grid-cols-2 gap-2 max-h-[30vh] overflow-y-auto pr-1 custom-scrollbar pb-2">
+            <div className="grid grid-cols-2 gap-2 max-h-[30vh] overflow-y-auto p-2 pr-1 custom-scrollbar pb-2">
               {CATEGORY_LIBRARY.filter(c => c.name.toLowerCase().includes(catSearch.toLowerCase())).map((c) => {
                 const Icon = c.icon;
                 const isSelected = category === c.id;
@@ -625,7 +625,7 @@ export default function SplitBill() {
           {/* Usage Library: Compact Icons */}
           <div className="space-y-3">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft/60 px-1">Visual Glyphs</h3>
-            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 max-h-[20vh] overflow-y-auto pr-1 custom-scrollbar">
+            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 max-h-[20vh] overflow-y-auto p-2 pr-1 custom-scrollbar">
               {ALL_ICONS.slice(0, 32).map((item) => {
                 const Icon = item.icon;
                 const isSelected = category === item.name;
