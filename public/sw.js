@@ -8,6 +8,12 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass through all requests
+  // Skip cross-origin auth requests to avoid interference with Firebase Auth iframes/redirects
+  if (event.request.url.includes('apis.google.com') || 
+      event.request.url.includes('identitytoolkit.googleapis.com') ||
+      event.request.url.includes('google.com/js/api.js')) {
+    return;
+  }
+  // Pass through all other requests
   event.respondWith(fetch(event.request));
 });
