@@ -161,7 +161,7 @@ export default function Reports() {
       <div className="px-5 space-y-6">
         {/* Filters Header */}
         <div className="space-y-4">
-          <motion.div variants={itemVariants} className="flex gap-2 overflow-x-auto scrollbar-hide -mx-5 px-5 pb-2">
+          <motion.div variants={itemVariants} className="flex gap-2 overflow-x-auto scrollbar-hide -mx-5 px-5 py-3">
             {[
               { id: "this-month", label: "This Month" },
               { id: "last-month", label: "Last Month" },
