@@ -19,7 +19,7 @@ export default function AppLayout() {
   const { requests, lastSeenRequests, isModalOpen } = useStore();
   const unreadCount = requests.filter(r => r.createdAt > lastSeenRequests).length;
 
-  const showNav = ["/", "/groups", "/friends", "/transactions", "/reports"].includes(location.pathname) && !isModalOpen;
+  const showNav = ["/", "/groups", "/friends", "/transactions", "/reports"].includes(location.pathname);
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
@@ -52,7 +52,7 @@ export default function AppLayout() {
           {/* Glass Finish Blur Ending */}
           <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none z-40" />
           
-          <nav className="fixed bottom-6 left-4 right-4 max-w-md mx-auto z-50 glass rounded-[2.5rem] shadow-2xl pb-safe overflow-hidden animate-in slide-in-from-bottom-10 duration-500">
+          <nav className="fixed bottom-6 left-4 right-4 max-w-md mx-auto z-50 glass rounded-[2.5rem] shadow-2xl pb-safe overflow-hidden">
             <div className="flex items-center justify-around h-16 px-4">
               {tabs.map(({ to, label, icon: Icon, hasBadge }) => {
                 return (
