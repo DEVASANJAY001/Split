@@ -8,6 +8,8 @@ import { ArrowLeft, PlusCircle, Calendar, Receipt, ChevronRight } from "lucide-r
 import { motion } from "framer-motion";
 import { categoryIcons } from "@/lib/icons";
 
+import { BrandIcon } from "@/components/BrandIcon";
+
 export default function PersonalExpenseDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -36,13 +38,21 @@ export default function PersonalExpenseDetails() {
         title={expense.description} 
         subtitle={`${expense.category} · ${new Date(expense.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
         showBack={true}
+        showActions={false}
       />
 
       <div className="px-5 space-y-6">
         <div className="flex items-center gap-4">
-          <div className="size-14 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/10 shrink-0">
-            <Icon className="size-6" />
-          </div>
+          <BrandIcon 
+            description={expense.description} 
+            size="lg" 
+            className="size-14 rounded-2xl shadow-lg shadow-brand/10 shrink-0"
+            fallback={
+              <div className="size-14 rounded-2xl bg-brand text-white flex items-center justify-center shrink-0">
+                <Icon className="size-6" />
+              </div>
+            }
+          />
           <div className="h-px flex-1 bg-hairline/50" />
         </div>
 

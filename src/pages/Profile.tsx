@@ -151,7 +151,21 @@ export default function Profile() {
 
   return (
     <div>
-      <PageHeader title="Profile" subtitle="Your account" showActions={false} showBack />
+      <PageHeader 
+        title="Profile" 
+        subtitle="Your account" 
+        showActions={false} 
+        showBack 
+        rightAction={
+          <button
+            onClick={() => navigate("/settings")}
+            aria-label="Settings"
+            className="size-10 rounded-full bg-surface border border-hairline flex items-center justify-center shrink-0 hover:bg-surface-soft active:scale-95 transition-all outline-none"
+          >
+            <Settings className="size-5 text-ink-soft" strokeWidth={2} />
+          </button>
+        }
+      />
 
       <input
         type="file"
@@ -318,23 +332,26 @@ export default function Profile() {
 
       {showQR && (
         <div className="fixed inset-0 z-[70] bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowQR(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-3xl p-6 space-y-4 text-center shadow-2xl animate-in zoom-in-95 duration-200">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-surface/95 backdrop-blur-xl rounded-3xl p-6 space-y-4 text-center shadow-2xl animate-in zoom-in-95 duration-200 border border-hairline/50">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold tracking-tightest text-ink">My QR code</h2>
-              <button onClick={() => setShowQR(false)} className="size-8 rounded-full bg-surface-soft flex items-center justify-center">
-                <X className="size-4" />
+              <div className="space-y-1 text-left">
+                <h2 className="text-xl font-black tracking-tightest text-ink">My QR code</h2>
+                <p className="text-xs font-bold text-brand uppercase tracking-widest">{profile.username}</p>
+              </div>
+              <button onClick={() => setShowQR(false)} className="size-10 rounded-full bg-surface-soft flex items-center justify-center shrink-0">
+                <X className="size-5" />
               </button>
             </div>
-            <p className="text-sm text-ink-soft">Friends scan this to add you instantly.</p>
+            <p className="text-sm text-ink-soft text-left">Scan this QR to add <span className="font-bold text-ink">{profile.username}</span> instantly on Split.</p>
             <div className="flex justify-center">
               <QRCode value={`split://user/${userId}`} size={220} label={`${profile.username}`} />
             </div>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(`https://${window.location.host}/user/${userId}`);
-                // Removed success toast
+                toast.success("Link copied!");
               }}
-              className="w-full bg-brand/10 text-brand py-3 rounded-xl font-bold hover:bg-brand/20 active:scale-95 transition-all text-sm mt-4"
+              className="w-full bg-brand text-white dark:bg-brand dark:text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand/20 hover:opacity-90 active:scale-95 transition-all text-sm mt-4"
             >
               Copy profile link
             </button>

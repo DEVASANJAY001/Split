@@ -197,7 +197,7 @@ export default function Reports() {
                       type="date" 
                       value={customStart}
                       onChange={(e) => setCustomStart(e.target.value)}
-                      className="w-full bg-white dark:bg-ink rounded-xl px-3 py-2 text-xs border border-hairline outline-none focus:border-brand transition-all"
+                      className="w-full bg-white dark:bg-surface rounded-xl px-3 py-2 text-xs border border-hairline outline-none focus:border-brand transition-all"
                     />
                   </div>
                   <div className="flex-1 space-y-1">
@@ -206,7 +206,7 @@ export default function Reports() {
                       type="date" 
                       value={customEnd}
                       onChange={(e) => setCustomEnd(e.target.value)}
-                      className="w-full bg-white dark:bg-ink rounded-xl px-3 py-2 text-xs border border-hairline outline-none focus:border-brand transition-all"
+                      className="w-full bg-white dark:bg-surface rounded-xl px-3 py-2 text-xs border border-hairline outline-none focus:border-brand transition-all"
                     />
                   </div>
                 </div>
@@ -228,7 +228,7 @@ export default function Reports() {
                           type="number"
                           value={tempSalary}
                           onChange={(e) => setTempSalary(e.target.value)}
-                          className="w-24 bg-white dark:bg-ink border border-brand/20 rounded-lg px-2 py-1 text-sm font-bold outline-none"
+                          className="w-24 bg-white dark:bg-surface border border-brand/20 rounded-lg px-2 py-1 text-sm font-bold outline-none"
                           autoFocus
                           onKeyDown={(e) => e.key === 'Enter' && handleSalarySubmit()}
                         />
@@ -423,7 +423,7 @@ export default function Reports() {
               onClick={() => { setContext(c.id as any); setSelectedCategory(null); }}
               className={cn(
                 "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                context === c.id ? "bg-white dark:bg-ink text-brand shadow-sm" : "text-ink-soft hover:text-ink"
+                context === c.id ? "bg-white dark:bg-brand text-brand dark:text-white shadow-sm" : "text-ink-soft hover:text-ink"
               )}
             >
               {c.label}

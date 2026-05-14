@@ -106,6 +106,12 @@ import { auth } from "@/lib/firebase";
 const App = () => {
   const [initializing, setInitializing] = useState(true);
 
+  const theme = useStore((s) => s.theme);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+
   useEffect(() => {
     // Crucial for APK/WebView redirect handling
     const handleRedirect = async () => {

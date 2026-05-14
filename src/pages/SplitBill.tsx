@@ -611,7 +611,7 @@ export default function SplitBill() {
                   >
                     <div className={cn(
                       "size-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
-                      isSelected ? "bg-brand text-white shadow-brand" : "bg-white dark:bg-ink shadow-soft border border-hairline/20"
+                      isSelected ? "bg-brand text-white shadow-brand" : "bg-white dark:bg-surface shadow-soft border border-hairline/20"
                     )}>
                       <Icon className="size-4" strokeWidth={2.5} />
                     </div>

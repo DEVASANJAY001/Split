@@ -7,16 +7,17 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ALL_CURRENCIES } from "@/lib/currency-data";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check } from "lucide-react";
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { profile, updateProfile, expenses, personal, settlements } = useStore();
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
+  const { profile, updateProfile, expenses, personal, settlements, theme, setTheme } = useStore();
   const [notify, setNotify] = useState(true);
+  const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
+  const selectedCurrency = ALL_CURRENCIES.find(c => c.code === profile?.currency) || ALL_CURRENCIES[0];
 
   if (!profile) return null;
 
@@ -49,24 +50,46 @@ export default function Settings() {
               <h3 className="text-base font-bold text-ink">Currency</h3>
               <span className="text-[10px] uppercase tracking-widest font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full">Global</span>
             </div>
-            <div className="relative">
-              <select
-                value={profile.currency}
-                onChange={(e) => {
-                  updateProfile({ currency: e.target.value });
-                }}
-                className="w-full bg-surface-soft border border-hairline rounded-2xl py-4 px-4 text-sm font-bold text-ink outline-none focus:border-brand appearance-none"
-              >
-                {ALL_CURRENCIES.map(c => (
-                  <option key={c.code} value={c.code}>
-                    {c.code} ({c.symbol}) - {c.name}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-ink-soft">
-                <ArrowLeft className="size-4 -rotate-90" />
-              </div>
-            </div>
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className="w-full bg-surface-soft border border-hairline rounded-2xl py-4 px-4 text-sm font-bold text-ink outline-none focus:border-brand flex items-center justify-between text-left transition-all active:scale-[0.99]"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-ink">{selectedCurrency.code} ({selectedCurrency.symbol})</span>
+                    <span className="text-[10px] text-ink-soft font-bold uppercase tracking-widest">{selectedCurrency.name}</span>
+                  </div>
+                  <ChevronRight className={cn("size-4 text-ink-soft transition-transform", open ? "-rotate-90" : "rotate-90")} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-[--radix-popover-trigger-width] rounded-2xl shadow-2xl glass backdrop-blur-xl border-hairline overflow-hidden" align="start">
+                <Command className="bg-transparent">
+                  <CommandInput placeholder="Search currency..." className="h-12" />
+                  <CommandList className="max-h-[300px]">
+                    <CommandEmpty>No currency found.</CommandEmpty>
+                    <CommandGroup>
+                      {ALL_CURRENCIES.map((c) => (
+                        <CommandItem
+                          key={c.code}
+                          value={`${c.code} ${c.name} ${c.symbol}`}
+                          onSelect={() => {
+                            updateProfile({ currency: c.code });
+                            setOpen(false);
+                          }}
+                          className="rounded-xl flex items-center justify-between py-3 px-3 cursor-pointer hover:bg-surface-soft data-[selected='true']:bg-surface-soft"
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-bold text-ink text-sm">{c.code} ({c.symbol})</span>
+                            <span className="text-[10px] text-ink-soft font-bold uppercase tracking-widest">{c.name}</span>
+                          </div>
+                          {profile.currency === c.code && <Check className="size-4 text-brand" strokeWidth={3} />}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </SurfaceCard>
 
           <SurfaceCard padding="lg">
@@ -115,11 +138,11 @@ export default function Settings() {
 
           <SurfaceCard padding="md">
             <Row
-              icon={dark ? Moon : Sun}
+              icon={theme === "dark" ? Moon : Sun}
               title="Appearance"
-              subtitle={dark ? "Dark mode" : "Light mode"}
+              subtitle={theme === "dark" ? "Dark mode" : "Light mode"}
               trailing={
-                <Toggle on={dark} onChange={setDark} />
+                <Toggle on={theme === "dark"} onChange={(v) => setTheme(v ? "dark" : "light")} />
               }
             />
           </SurfaceCard>

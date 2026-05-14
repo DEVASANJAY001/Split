@@ -49,7 +49,7 @@ export default function Transactions() {
           node: (
             <li key={e.id} className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <BrandIcon description={e.description} person={payer!} size="md" imgClassName="dark:invert" />
+                <BrandIcon description={e.description} person={payer!} size="md" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
                   <p className="text-[11px] text-ink-soft truncate">{g.name} · {payer?.name?.split(" ")[0] || "User"}</p>
@@ -65,12 +65,12 @@ export default function Transactions() {
                       <MoreVertical className="size-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                  <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl">
                     <DropdownMenuItem onClick={() => navigate(`/split?edit=${e.id}`)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft">
                       <Edit3 className="size-3.5" />
                       <span className="text-xs font-bold">Edit</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setDeleteId({ id: e.id, isPersonal: false })} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50">
+                    <DropdownMenuItem onClick={() => setDeleteId({ id: e.id, isPersonal: false })} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
                       <Trash2 className="size-3.5" />
                       <span className="text-xs font-bold">Delete</span>
                     </DropdownMenuItem>
@@ -98,7 +98,6 @@ export default function Transactions() {
                 <BrandIcon 
                   description={e.description} 
                   size="md" 
-                  imgClassName="dark:invert"
                   fallback={
                     <div className="size-10 rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center shrink-0">
                       <Icon className="size-4" strokeWidth={2.25} />
@@ -118,7 +117,7 @@ export default function Transactions() {
                       <MoreVertical className="size-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[150px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                  <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[150px] p-1.5 glass backdrop-blur-xl">
                     <DropdownMenuItem 
                       onClick={() => navigate(`/personal/${e.id}`)}
                       className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
@@ -131,7 +130,7 @@ export default function Transactions() {
                       <Edit3 className="size-3.5" />
                       <span className="text-xs font-bold">Edit</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setDeleteId({ id: e.id, isPersonal: true })} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50">
+                    <DropdownMenuItem onClick={() => setDeleteId({ id: e.id, isPersonal: true })} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
                       <Trash2 className="size-3.5" />
                       <span className="text-xs font-bold">Delete</span>
                     </DropdownMenuItem>
@@ -214,7 +213,7 @@ export default function Transactions() {
                 onClick={() => setFilter(c)}
                 className={cn(
                   "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all shrink-0",
-                  filter === c ? "bg-brand text-white border-brand" : "bg-white text-ink-soft border-hairline hover:border-ink/20"
+                  filter === c ? "bg-brand text-white border-brand" : "bg-surface-soft text-ink-soft border-hairline hover:border-ink/20"
                 )}
               >
                 {c}
@@ -242,7 +241,7 @@ export default function Transactions() {
             Object.entries(grouped).map(([date, entries]) => (
               <div key={date} className="space-y-5">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-ink-soft ml-2">{date}</p>
-                <SurfaceCard padding="lg" className="border-none bg-white shadow-xl rounded-xl">
+                <SurfaceCard padding="lg" className="border-none bg-surface shadow-xl rounded-xl">
                   <ul className="divide-y divide-hairline">
                     {entries.map((it, idx) => (
                       <div key={idx} className={cn(idx !== 0 && "pt-4", idx !== entries.length - 1 && "pb-4")}>

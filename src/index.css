@@ -43,9 +43,9 @@
     --ink-soft: 230 10% 70%;
     --hairline: 230 15% 20%;
 
-    --brand: 230 100% 68%;
-    --brand-foreground: 230 40% 10%;
-    --brand-soft: 230 30% 15%;
+    --brand: 230 80% 50%;
+    --brand-foreground: 0 0% 100%;
+    --brand-soft: 230 30% 12%;
     --brand-soft-foreground: 230 100% 85%;
 
     --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.6);

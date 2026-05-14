@@ -15,7 +15,7 @@ import { CustomSelect } from "@/components/ui/select";
 const TYPES: GroupType[] = ["Trip", "Roommates", "Couple", "Friends", "Office", "Other"];
 
 export default function Groups() {
-  const { groups, expenses, settlements, people, friendIds, addGroup, userId, profile } = useStore();
+  const { groups, expenses, settlements, people, friendIds, addGroup, userId, profile, openModal, closeModal } = useStore();
   const cur = profile?.currency || "USD";
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
@@ -30,9 +30,10 @@ export default function Groups() {
   useEffect(() => {
     if (searchParams.get("create") === "true") {
       setShowCreate(true);
+      openModal();
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, openModal]);
 
   useEffect(() => {
     if (profile?.currency && !groupCurrency) {
@@ -93,6 +94,7 @@ export default function Groups() {
       });
       toast.success("Group created!");
       setShowCreate(false);
+      closeModal();
       setName(""); 
       setDescription("");
       setMembers(userId ? [userId] : []); 
@@ -173,7 +175,10 @@ export default function Groups() {
 
       {showCreate && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center px-4 sm:px-0">
-          <div className="absolute inset-0 bg-ink/60 backdrop-blur-md" onClick={() => setShowCreate(false)} />
+          <div className="absolute inset-0 bg-ink/60 backdrop-blur-md" onClick={() => {
+            setShowCreate(false);
+            closeModal();
+          }} />
           <div className="relative w-full max-w-xl bg-surface rounded-t-[3rem] shadow-float overflow-hidden flex flex-col max-h-[92vh] border-t border-hairline">
             {/* Header Section */}
             <div className="px-8 pt-8 pb-6 bg-surface border-b border-hairline/30 shrink-0">
@@ -182,7 +187,10 @@ export default function Groups() {
                 <h2 className="text-3xl font-black tracking-tightest text-ink">New Group</h2>
                 <p className="text-[10px] font-bold text-ink-soft uppercase tracking-[0.2em] mt-1">Start a shared ledger</p>
                 <button
-                  onClick={() => setShowCreate(false)}
+                  onClick={() => {
+                    setShowCreate(false);
+                    closeModal();
+                  }}
                   className="absolute right-0 top-1/2 -translate-y-1/2 size-10 rounded-full bg-surface-soft flex items-center justify-center hover:bg-hairline transition-colors"
                 >
                   <X className="size-5 text-ink" />

@@ -323,7 +323,7 @@ export default function Dashboard() {
                                   <MoreVertical className="size-3.5" />
                                 </button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[150px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                              <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[150px] p-1.5 glass backdrop-blur-xl">
                                 <DropdownMenuItem 
                                   onClick={() => {
                                     setSelectedExpense(e);
@@ -359,10 +359,10 @@ export default function Dashboard() {
                                   <Edit3 className="size-3.5" />
                                   <span className="text-xs font-bold">Edit</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => setDeleteId({ id: e.id, isPersonal: true })}
-                                  className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50"
-                                >
+                                  <DropdownMenuItem 
+                                    onClick={() => setDeleteId({ id: e.id, isPersonal: true })}
+                                    className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                                  >
                                   <Trash2 className="size-3.5" />
                                   <span className="text-xs font-bold">Delete</span>
                                 </DropdownMenuItem>
@@ -490,7 +490,7 @@ export default function Dashboard() {
                                   <MoreVertical className="size-4" />
                                 </button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                              <DropdownMenuContent align="start" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl">
                                 <DropdownMenuItem 
                                   onClick={() => navigate(`/split?edit=${e.id}`)}
                                   className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"

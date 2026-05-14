@@ -186,7 +186,9 @@ interface AppState {
   profile: Profile | null;
   userId: string | null;
   loading: boolean;
+  theme: "light" | "dark";
   setMode: (m: AppMode) => void;
+  setTheme: (t: "light" | "dark") => void;
   initialize: () => void;
   addGroup: (g: Omit<Group, "id" | "ownerId">) => Promise<string>;
   addExpense: (e: Omit<Expense, "id">) => Promise<string>;
@@ -255,8 +257,13 @@ export const useStore = create<AppState>()(
       profile: null,
       userId: null,
       loading: true,
+      theme: "light",
       isModalOpen: false,
       modalCount: 0,
+      setTheme: (t) => {
+        set({ theme: t });
+        document.documentElement.classList.toggle("dark", t === "dark");
+      },
       openModal: () => set((state: any) => ({ 
         modalCount: state.modalCount + 1,
         isModalOpen: true 
@@ -979,6 +986,7 @@ export const useStore = create<AppState>()(
         outgoing: state.outgoing,
         lastSeenRequests: state.lastSeenRequests,
         mode: state.mode,
+        theme: state.theme,
       }),
     },
   ),

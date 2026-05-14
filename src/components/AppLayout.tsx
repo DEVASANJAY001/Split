@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Home, Users, BarChart3, Receipt, Plus, UserPlus, User, ArrowLeft } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { PersonAvatar } from "@/components/Avatar";
+import { Logo } from "@/components/Logo";
 
 const tabs = [
   { to: "/", label: "Home", icon: Home },
@@ -19,7 +20,7 @@ export default function AppLayout() {
   const { requests, lastSeenRequests, isModalOpen } = useStore();
   const unreadCount = requests.filter(r => r.createdAt > lastSeenRequests).length;
 
-  const showNav = ["/", "/groups", "/friends", "/transactions", "/reports"].includes(location.pathname);
+  const showNav = ["/", "/groups", "/friends", "/transactions", "/reports"].includes(location.pathname) && !isModalOpen;
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
@@ -101,9 +102,10 @@ interface PageHeaderProps {
   showModeSwitch?: boolean;
   onAdd?: () => void;
   showBack?: boolean;
+  rightAction?: React.ReactNode;
 }
 
-export const PageHeader = memo(function PageHeader({ title, subtitle, showActions = true, showModeSwitch = false, onAdd, showBack = false }: PageHeaderProps) {
+export const PageHeader = memo(function PageHeader({ title, subtitle, showActions = true, showModeSwitch = false, onAdd, showBack = false, rightAction }: PageHeaderProps) {
   const navigate = useNavigate();
   const { mode, setMode, profile } = useStore();
   const handleAdd = onAdd ?? (() => navigate("/groups?create=true"));
@@ -122,12 +124,7 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, showAction
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className="relative size-6 shrink-0">
-                <div className="absolute inset-0 bg-brand rounded-[6px] rotate-45" />
-                <div className="absolute inset-0 bg-white dark:bg-ink rounded-[6px] rotate-45 scale-75 flex items-center justify-center">
-                  <div className="w-0.5 h-3 bg-brand -rotate-45 rounded-full" />
-                </div>
-              </div>
+              <Logo />
               <h1 className="text-3xl font-black tracking-tightest text-ink truncate">{title}</h1>
             </div>
             {subtitle && (
@@ -146,13 +143,17 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, showAction
               <span className="text-xs font-bold whitespace-nowrap">Create group</span>
             </button>
           )}
-          <button
-            onClick={() => navigate("/profile")}
-            aria-label="Profile"
-            className="active:scale-95 transition"
-          >
-            <PersonAvatar person={profile || { name: "User" }} size="md" />
-          </button>
+          {rightAction ? (
+            rightAction
+          ) : (
+            <button
+              onClick={() => navigate("/profile")}
+              aria-label="Profile"
+              className="active:scale-95 transition"
+            >
+              <PersonAvatar person={profile || { name: "User" }} size="md" />
+            </button>
+          )}
         </div>
       </div>
 

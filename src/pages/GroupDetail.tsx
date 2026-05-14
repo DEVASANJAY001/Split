@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { ConfirmModal } from "@/components/Modal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { BrandIcon } from "@/components/BrandIcon";
+import { Logo } from "@/components/Logo";
 
 const METHODS: SettleMethod[] = ["Cash", "UPI", "Bank Transfer", "Other"];
 
@@ -73,12 +74,12 @@ export default function GroupDetail() {
                     <MoreVertical className="size-4" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl">
                   <DropdownMenuItem onClick={() => navigate(`/split?edit=${e.id}`)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft">
                     <Edit3 className="size-3.5" />
                     <span className="text-xs font-bold">Edit</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setExpenseDeleteId(e.id)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50">
+                  <DropdownMenuItem onClick={() => setExpenseDeleteId(e.id)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
                     <Trash2 className="size-3.5" />
                     <span className="text-xs font-bold">Delete</span>
                   </DropdownMenuItem>
@@ -167,7 +168,7 @@ export default function GroupDetail() {
           <ArrowLeft className="size-4" />
         </button>
         <div className="text-center min-w-0 flex items-center gap-2">
-          <Icon className="size-4 text-brand shrink-0" strokeWidth={2.25} />
+          <Logo />
           <div className="min-w-0">
             <p className="text-xs text-ink-soft">{group.type}</p>
             <h1 className="text-lg font-bold tracking-tightest text-ink truncate">{group.name}</h1>
@@ -375,12 +376,12 @@ export default function GroupDetail() {
                                 <MoreVertical className="size-4" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                            <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl">
                               <DropdownMenuItem onClick={() => navigate(`/split?edit=${e.id}`)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft">
                                 <Edit3 className="size-3.5" />
                                 <span className="text-xs font-bold">Edit</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setExpenseDeleteId(e.id)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50">
+                              <DropdownMenuItem onClick={() => setExpenseDeleteId(e.id)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
                                 <Trash2 className="size-3.5" />
                                 <span className="text-xs font-bold">Delete</span>
                               </DropdownMenuItem>
