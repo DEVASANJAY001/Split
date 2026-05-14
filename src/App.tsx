@@ -104,11 +104,19 @@ import { auth } from "@/lib/firebase";
 const App = () => {
   useEffect(() => {
     // Crucial for APK/WebView redirect handling
-    getRedirectResult(auth).catch((error: any) => {
-      if (error.code !== "auth/redirect-cancelled-by-user") {
-        console.error("Auth redirect error:", error);
-      }
-    });
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          console.log("Redirect login successful:", result.user.email);
+        }
+      })
+      .catch((error: any) => {
+        if (error.code !== "auth/redirect-cancelled-by-user") {
+          console.error("Auth redirect error:", error);
+          // Show the error on the phone so they can debug
+          toast.error(`Auth Error: ${error.code}. Please check Firebase Authorized Domains.`);
+        }
+      });
   }, []);
 
   return (
