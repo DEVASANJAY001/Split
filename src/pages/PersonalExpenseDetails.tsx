@@ -35,6 +35,7 @@ export default function PersonalExpenseDetails() {
       <PageHeader 
         title={expense.description} 
         subtitle={`${expense.category} · ${new Date(expense.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+        showBack={true}
       />
 
       <div className="px-5 space-y-6">
