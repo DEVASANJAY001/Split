@@ -97,7 +97,7 @@ const OnboardingRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getRedirectResult } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
