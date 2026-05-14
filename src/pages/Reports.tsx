@@ -288,7 +288,7 @@ export default function Reports() {
             <div className="relative z-10">
               <div className="flex items-center gap-2 text-brand mb-1">
                 <Wallet className="size-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Total Consumption</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Total Spending</span>
               </div>
               <div className="flex items-baseline gap-2">
                 <h2 className="text-4xl font-black tracking-tightest text-ink">
@@ -335,7 +335,7 @@ export default function Reports() {
         <motion.div variants={itemVariants} className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft">
-              Daily Activity Pulse 
+              Daily Activity 
               <span className="ml-2 text-brand/60">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
             </h3>
             {selectedDate && (
@@ -438,8 +438,8 @@ export default function Reports() {
             <SurfaceCard padding="md" className="h-full rounded-2xl overflow-hidden">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-tight text-ink">Velocity</h3>
-                  <p className="text-[8px] text-ink-soft uppercase tracking-widest font-bold">Trends</p>
+                  <h3 className="text-[11px] font-black uppercase tracking-tight text-ink">Trends</h3>
+                  <p className="text-[8px] text-ink-soft uppercase tracking-widest font-bold">Spending Velocity</p>
                 </div>
                 <TrendingUp className="size-4 text-brand" />
               </div>
@@ -473,9 +473,9 @@ export default function Reports() {
             <SurfaceCard padding="md" className="h-full rounded-2xl">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-tight text-ink">Mix</h3>
+                  <h3 className="text-[11px] font-black uppercase tracking-tight text-ink">Categories</h3>
                   <p className="text-[8px] text-ink-soft uppercase tracking-widest font-bold truncate max-w-[60px]">
-                    {selectedCategory || "Categories"}
+                    {selectedCategory || "Breakdown"}
                   </p>
                 </div>
                 {selectedCategory ? (
@@ -522,8 +522,8 @@ export default function Reports() {
           <SurfaceCard padding="lg">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-sm font-bold text-ink">Wallet Share</h3>
-                <p className="text-[10px] text-ink-soft uppercase tracking-widest font-bold mt-0.5">Top Merchants</p>
+                <h3 className="text-sm font-bold text-ink">Top Merchants</h3>
+                <p className="text-[10px] text-ink-soft uppercase tracking-widest font-bold mt-0.5">Vendor Breakdown</p>
               </div>
               <ShoppingBag className="size-5 text-ink-soft/40" />
             </div>
