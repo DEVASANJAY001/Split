@@ -7,10 +7,29 @@ import { useStore, personById } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Send, Camera, Check, X, UserPlus, QrCode, Loader2, Users, Search } from "lucide-react";
 
+import { QRScanner } from "@/components/QRScanner";
+import { toast } from "sonner";
+
 type Tab = "friends" | "requests";
 
 export default function Friends() {
-  const { friendIds, requests, outgoing, people, sendRequest, withdrawRequest, acceptRequest, declineRequest, removeFriend, userId, profile, searchUsers, markRequestsAsSeen } = useStore();
+  const { 
+    friendIds, 
+    requests, 
+    outgoing, 
+    people, 
+    sendRequest, 
+    withdrawRequest, 
+    acceptRequest, 
+    declineRequest, 
+    removeFriend, 
+    userId, 
+    profile, 
+    searchUsers, 
+    markRequestsAsSeen, 
+    openModal, 
+    closeModal 
+  } = useStore();
   const [q, setQ] = useState("");
   const [searchResults, setSearchResults] = useState<{ username: string; displayName: string; avatar: string; uid: string }[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -24,6 +43,12 @@ export default function Friends() {
       markRequestsAsSeen();
     }
   }, [activeTab, markRequestsAsSeen]);
+
+  useEffect(() => {
+    if (showQR) openModal();
+    else closeModal();
+    return () => closeModal();
+  }, [showQR, openModal, closeModal]);
 
   const friends = useMemo(
     () => friendIds.map((id) => (id ? personById(people, id) : null)).filter(Boolean) as ReturnType<typeof personById>[],
@@ -68,9 +93,20 @@ export default function Friends() {
     }
   };
 
-  const simulateScan = () => {
+  const handleScan = async (data: string) => {
     setShowScanner(false);
-    handleSend("@scanned-user", "Scanned User");
+    if (data.startsWith("split://user/")) {
+      const username = data.replace("split://user/", "");
+      // In a real app, you'd fetch the user by username or ID
+      setQ(username);
+      toast.success(`Found user: ${username}`);
+    } else if (data.startsWith("http")) {
+      // Handle web URLs if they contain user IDs
+      const url = new URL(data);
+      const parts = url.pathname.split("/");
+      const id = parts[parts.length - 1];
+      setQ(`@${id}`);
+    }
   };
 
   return (
@@ -107,7 +143,7 @@ export default function Friends() {
         {q.trim() && (
           <SurfaceCard padding="md" className="border-brand/20 bg-brand/5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[11px] font-bold text-brand uppercase tracking-wider">Search Results</p>
+              <p className="text-[11px] font-bold text-brand tracking-wider">Search results</p>
               {isSearching && <Loader2 className="size-3 animate-spin text-brand" />}
             </div>
             {searchResults.length === 0 && !isSearching ? (
@@ -165,7 +201,6 @@ export default function Friends() {
             )}
           </SurfaceCard>
         )}
-
         <div className="flex bg-surface-soft p-1 rounded-xl shadow-inner border border-hairline">
           <button
             onClick={() => setActiveTab("friends")}
@@ -339,65 +374,49 @@ export default function Friends() {
 
       <div>
         {showQR && (
-          <div className="fixed inset-0 z-[70] flex items-end justify-center">
-            <div className="absolute inset-0 bg-ink/60 backdrop-blur-sm" />
-            <div className="relative w-full max-w-xl bg-surface rounded-t-[2.5rem] p-8 pb-12 shadow-float space-y-6 overflow-hidden border-t border-hairline text-center">
-              <div className="w-12 h-1.5 bg-hairline rounded-full mx-auto mb-2 opacity-50" />
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-black tracking-tightest text-ink">My Code</h2>
-                  <p className="text-xs font-semibold text-ink-soft uppercase tracking-wider mt-1">Scan to connect instantly</p>
-                </div>
-                <button
-                  onClick={() => setShowQR(false)}
-                  className="size-10 rounded-full bg-surface-soft flex items-center justify-center hover:bg-hairline transition-colors"
-                >
-                  <X className="size-5 text-ink" />
-                </button>
+        <div className="fixed inset-0 z-[70] bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowQR(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-surface/95 backdrop-blur-xl rounded-3xl p-6 space-y-5 text-center shadow-2xl animate-in zoom-in-95 duration-200 border border-hairline/50">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1 text-left">
+                <h2 className="text-xl font-black text-ink">My code</h2>
+                <p className="text-xs font-bold text-brand uppercase tracking-widest">{profile?.username}</p>
               </div>
-              <div className="flex justify-center py-6 bg-white rounded-3xl shadow-soft border border-hairline">
-                <QRCode value={`split://user/${userId}`} size={240} label={`@${profile?.username || "you"}`} />
-              </div>
-              <div className="p-4 bg-brand/5 rounded-2xl border border-brand/10">
-                <p className="text-sm font-bold text-brand">Your unique link is ready</p>
-                <p className="text-[11px] text-brand/60 mt-0.5">Show this to friends to skip the search</p>
-              </div>
+              <button onClick={() => setShowQR(false)} className="size-10 rounded-full bg-surface-soft flex items-center justify-center shrink-0">
+                <X className="size-5" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-ink-soft text-left">Scan this QR to add <span className="font-bold text-ink">{profile?.username}</span> instantly on Split.</p>
+            
+            <div className="flex justify-center py-4">
+              <QRCode value={`split://user/${userId}`} size={220} label={`${profile?.username}`} />
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  const link = `${window.location.origin}/user/${userId}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success("Profile link copied!");
+                }}
+                className="w-full bg-brand text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand/20 hover:opacity-90 active:scale-95 transition-all text-sm flex items-center justify-center gap-2"
+              >
+                <Search className="size-4" />
+                Copy profile link
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
       </div>
 
       <div>
         {showScanner && (
-          <div className="fixed inset-0 z-[70] flex items-end justify-center">
-            <div className="absolute inset-0 bg-ink/60 backdrop-blur-sm" />
-            <div className="relative w-full max-w-xl bg-surface rounded-t-[2.5rem] p-8 pb-12 shadow-float space-y-6 overflow-hidden border-t border-hairline">
-              <div className="w-12 h-1.5 bg-hairline rounded-full mx-auto mb-2 opacity-50" />
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-black tracking-tightest text-ink">Scanner</h2>
-                  <p className="text-xs font-semibold text-ink-soft uppercase tracking-wider mt-1">Find friends via QR</p>
-                </div>
-                <button
-                  onClick={() => setShowScanner(false)}
-                  className="size-10 rounded-full bg-surface-soft flex items-center justify-center hover:bg-hairline transition-colors"
-                >
-                  <X className="size-5 text-ink" />
-                </button>
-              </div>
-              <div className="aspect-square rounded-[2rem] bg-ink/95 relative overflow-hidden flex items-center justify-center shadow-xl border-4 border-surface-soft">
-                <div className="absolute inset-10 border-2 border-brand rounded-3xl opacity-50" />
-                <div className="absolute left-8 right-8 top-1/4 h-1 bg-brand shadow-[0_0_15px_rgba(var(--brand),0.5)] z-10" />
-                <Camera className="size-20 text-white/10" strokeWidth={1} />
-              </div>
-              <button
-                onClick={simulateScan}
-                className="w-full bg-brand text-brand-foreground py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-brand hover:opacity-90 active:scale-[0.98] transition-all"
-              >
-                Scan Now
-              </button>
-            </div>
-          </div>
+          <QRScanner 
+            onClose={() => setShowScanner(false)}
+            onScan={handleScan}
+            title="Scan Friend QR"
+          />
         )}
       </div>
     </div>

@@ -90,7 +90,7 @@ export default function Reports() {
 
     for (let i = 1; i <= daysToToday; i++) {
       const d = new Date(currentYear, currentMonth, i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dayTotal = allBaseExpenses
         .filter(e => e.date === dateStr)
         .reduce((sum, e) => sum + e.amount, 0) || 0;
@@ -173,7 +173,7 @@ export default function Reports() {
                 key={r.id}
                 onClick={() => { setRange(r.id as TimeRange); setSelectedCategory(null); }}
                 className={cn(
-                  "shrink-0 px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all",
+                  "shrink-0 px-4 py-2 rounded-full text-[11px] font-bold transition-all",
                   range === r.id ? "bg-brand text-white shadow-brand" : "bg-surface text-ink-soft border border-hairline/50"
                 )}
               >
@@ -192,7 +192,7 @@ export default function Reports() {
               >
                 <div className="flex gap-2 p-3 bg-surface-soft/50 rounded-2xl border border-hairline/50">
                   <div className="flex-1 space-y-1">
-                    <label className="text-[9px] font-black uppercase text-ink-soft ml-1">Start</label>
+                    <label className="text-[9px] font-black text-ink-soft ml-1">Start</label>
                     <input 
                       type="date" 
                       value={customStart}
@@ -201,7 +201,7 @@ export default function Reports() {
                     />
                   </div>
                   <div className="flex-1 space-y-1">
-                    <label className="text-[9px] font-black uppercase text-ink-soft ml-1">End</label>
+                    <label className="text-[9px] font-black text-ink-soft ml-1">End</label>
                     <input 
                       type="date" 
                       value={customEnd}
@@ -220,7 +220,7 @@ export default function Reports() {
             <div className="relative z-10 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft">Monthly Salary</h3>
+                  <h3 className="text-[10px] font-black text-ink-soft">Monthly salary</h3>
                   <div className="flex items-center gap-2">
                     {isEditingSalary ? (
                       <div className="flex items-center gap-1 mt-1">
@@ -247,7 +247,7 @@ export default function Reports() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[9px] font-black uppercase text-ink-soft">Remaining Balance</span>
+                  <span className="text-[9px] font-black text-ink-soft">Remaining balance</span>
                   <p className={cn(
                     "text-sm font-black",
                     ((profile?.salary || 0) - data.totalSpend) < 0 ? "text-red-500" : "text-brand"
@@ -258,8 +258,8 @@ export default function Reports() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex justify-between text-[9px] font-black uppercase text-ink-soft px-1">
-                  <span>Budget Used</span>
+                <div className="flex justify-between text-[9px] font-black text-ink-soft px-1">
+                  <span>Budget used</span>
                   <span>{profile?.salary ? Math.round(Math.min((data.totalSpend / profile.salary) * 100, 100)) : 0}%</span>
                 </div>
                 <div className="h-2.5 bg-surface-soft rounded-full overflow-hidden border border-hairline/30 shadow-inner">
@@ -288,7 +288,7 @@ export default function Reports() {
             <div className="relative z-10">
               <div className="flex items-center gap-2 text-brand mb-1">
                 <Wallet className="size-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Total Spending</span>
+                <span className="text-[10px] font-black">Total spending</span>
               </div>
               <div className="flex items-baseline gap-2">
                 <h2 className="text-4xl font-black tracking-tightest text-ink">
@@ -310,8 +310,8 @@ export default function Reports() {
 
               {budget > 0 && (
                 <div className="mt-6 space-y-2">
-                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-tightest">
-                    <span className="text-ink-soft">Budget Progress</span>
+                  <div className="flex justify-between text-[10px] font-bold tracking-tightest">
+                    <span className="text-ink-soft">Budget progress</span>
                     <span className={cn(budgetProgress > 90 ? "text-red-500" : "text-brand")}>
                       {Math.round(budgetProgress)}%
                     </span>
@@ -334,14 +334,14 @@ export default function Reports() {
         {/* Activity Heatmap */}
         <motion.div variants={itemVariants} className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft">
-              Daily Activity 
+            <h3 className="text-[10px] font-black text-ink-soft">
+              Daily activity 
               <span className="ml-2 text-brand/60">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
             </h3>
             {selectedDate && (
               <button 
                 onClick={() => setSelectedDate(null)}
-                className="text-[9px] font-black uppercase text-brand hover:underline"
+                className="text-[9px] font-black text-brand hover:underline"
               >
                 Reset
               </button>
@@ -358,8 +358,10 @@ export default function Reports() {
               }}
             >
               {heatmapData.map((d, i) => {
-                const opacity = d.amount === 0 ? 0.05 : Math.min(d.amount / (data.totalSpend / 10 + 1), 1);
+                const hasAmount = d.amount > 0;
                 const isSelected = selectedDate === d.date;
+                const currentOpacity = hasAmount ? Math.min(d.amount / (data.totalSpend / 10 + 1), 1) : 1;
+
                 return (
                   <button 
                     key={i} 
@@ -368,12 +370,13 @@ export default function Reports() {
                   >
                     <div 
                       className={cn(
-                        "size-8 rounded-full transition-all duration-300",
-                        isSelected ? "ring-2 ring-brand ring-offset-2 scale-110" : "group-hover:scale-105 shadow-soft"
+                        "size-8 rounded-full transition-all duration-300 border-2",
+                        isSelected ? "scale-110 border-brand shadow-lg shadow-brand/20" : "group-hover:scale-105 shadow-soft border-transparent",
+                        !hasAmount && "border-hairline/20 border-dashed"
                       )}
                       style={{ 
-                        backgroundColor: d.amount > 0 ? '#6366f1' : 'currentColor',
-                        opacity: isSelected ? 1 : opacity
+                        backgroundColor: hasAmount ? '#6366f1' : 'transparent',
+                        opacity: isSelected ? 1 : (hasAmount ? currentOpacity : 0.4)
                       }}
                     />
                     <span className={cn(
@@ -392,22 +395,22 @@ export default function Reports() {
           <SurfaceCard padding="md" className="bg-emerald-500/5 border-emerald-500/20">
             <div className="flex items-center gap-2 text-emerald-500 mb-3">
               <Target className="size-3.5" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Savings</span>
+              <span className="text-[9px] font-black">Savings</span>
             </div>
             <p className="text-lg font-black text-ink">{Math.round(data.savingsProgress)}%</p>
             <div className="h-1.5 bg-emerald-500/10 rounded-full mt-2 overflow-hidden">
               <div className="h-full bg-emerald-500" style={{ width: `${data.savingsProgress}%` }} />
             </div>
-            <p className="text-[9px] font-bold text-ink-soft mt-2 uppercase tracking-tighter">{fmt(data.savingsTotal, profile?.currency || "USD")} Saved</p>
+            <p className="text-[9px] font-bold text-ink-soft mt-2 tracking-tighter">{fmt(data.savingsTotal, profile?.currency || "USD")} saved</p>
           </SurfaceCard>
 
           <SurfaceCard padding="md" className="bg-amber-500/5 border-amber-500/20">
             <div className="flex items-center gap-2 text-amber-500 mb-3">
               <Repeat className="size-3.5" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Forecast</span>
+              <span className="text-[9px] font-black">Forecast</span>
             </div>
             <p className="text-lg font-black text-ink">{fmt(data.recurringForecast, profile?.currency || "USD")}</p>
-            <p className="text-[9px] font-bold text-ink-soft mt-1.5 uppercase tracking-widest">Upcoming Bills</p>
+            <p className="text-[9px] font-bold text-ink-soft mt-1.5 tracking-widest">Upcoming bills</p>
           </SurfaceCard>
         </motion.div>
 
@@ -422,7 +425,7 @@ export default function Reports() {
               key={c.id}
               onClick={() => { setContext(c.id as any); setSelectedCategory(null); }}
               className={cn(
-                "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                "flex-1 py-2.5 rounded-xl text-[10px] font-black transition-all",
                 context === c.id ? "bg-white dark:bg-brand text-brand dark:text-white shadow-sm" : "text-ink-soft hover:text-ink"
               )}
             >
@@ -438,8 +441,8 @@ export default function Reports() {
             <SurfaceCard padding="md" className="h-full rounded-2xl overflow-hidden">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-tight text-ink">Trends</h3>
-                  <p className="text-[8px] text-ink-soft uppercase tracking-widest font-bold">Spending Velocity</p>
+                  <h3 className="text-[11px] font-black text-ink">Trends</h3>
+                  <p className="text-[8px] text-ink-soft tracking-widest font-bold">Spending velocity</p>
                 </div>
                 <TrendingUp className="size-4 text-brand" />
               </div>
@@ -473,13 +476,13 @@ export default function Reports() {
             <SurfaceCard padding="md" className="h-full rounded-2xl">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-tight text-ink">Categories</h3>
-                  <p className="text-[8px] text-ink-soft uppercase tracking-widest font-bold truncate max-w-[60px]">
+                  <h3 className="text-[11px] font-black text-ink">Categories</h3>
+                  <p className="text-[8px] text-ink-soft tracking-widest font-bold truncate max-w-[60px]">
                     {selectedCategory || "Breakdown"}
                   </p>
                 </div>
                 {selectedCategory ? (
-                  <button onClick={() => setSelectedCategory(null)} className="text-[8px] font-black uppercase text-brand">Clear</button>
+                  <button onClick={() => setSelectedCategory(null)} className="text-[8px] font-black text-brand">Clear</button>
                 ) : (
                   <PieIcon className="size-4 text-ink-soft/40" />
                 )}
@@ -522,8 +525,8 @@ export default function Reports() {
           <SurfaceCard padding="lg">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-sm font-bold text-ink">Top Merchants</h3>
-                <p className="text-[10px] text-ink-soft uppercase tracking-widest font-bold mt-0.5">Vendor Breakdown</p>
+                <h3 className="text-sm font-bold text-ink">Top merchants</h3>
+                <p className="text-[10px] text-ink-soft tracking-widest font-bold mt-0.5">Vendor breakdown</p>
               </div>
               <ShoppingBag className="size-5 text-ink-soft/40" />
             </div>
@@ -550,7 +553,7 @@ export default function Reports() {
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-black text-ink">{fmt(m.value, profile?.currency || "USD")}</p>
-                      <p className="text-[9px] font-bold text-ink-soft uppercase tracking-tightest">{Math.round((m.value / data.totalSpend) * 100)}% share</p>
+                      <p className="text-[9px] font-bold text-ink-soft tracking-tightest">{Math.round((m.value / data.totalSpend) * 100)}% share</p>
                     </div>
                   </motion.div>
                 ))}
@@ -562,7 +565,7 @@ export default function Reports() {
         {/* Strategic Advisory */}
         <motion.div variants={itemVariants} className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft">Strategic Advisory</h3>
+            <h3 className="text-[10px] font-black text-ink-soft">Strategic advisory</h3>
             <Sparkles className="size-3 text-brand" />
           </div>
           

@@ -440,9 +440,9 @@ export default function SplitBill() {
             </div>
             <button 
               onClick={() => setIsCatModalOpen(true)}
-              className="text-[10px] font-black uppercase tracking-widest text-brand flex items-center gap-1 hover:opacity-80 transition-opacity"
+              className="text-[10px] font-black text-brand flex items-center gap-1 hover:opacity-80 transition-opacity"
             >
-              <LayoutGrid className="size-3" /> All Categories
+              <LayoutGrid className="size-3" /> All categories
             </button>
           </div>
           <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-5 px-5 py-3">

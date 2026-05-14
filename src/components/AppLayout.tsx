@@ -76,7 +76,7 @@ export default function AppLayout() {
                             <span className="absolute top-1.5 right-1.5 size-2.5 bg-destructive border-2 border-white dark:border-black rounded-full shadow-sm" />
                           )}
                         </div>
-                        <span className={cn("text-[8px] mt-0.5 font-black uppercase tracking-widest transition-opacity", isActive ? "opacity-100" : "opacity-40")}>
+                        <span className={cn("text-[8px] mt-0.5 font-black tracking-widest transition-opacity", isActive ? "opacity-100" : "opacity-40")}>
                           {label}
                         </span>
                         {isActive && (
@@ -162,7 +162,7 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, showAction
           <button
             onClick={() => setMode("group")}
             className={cn(
-              "flex-1 py-2 rounded-[1.25rem] text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5",
+              "flex-1 py-2 rounded-[1.25rem] text-xs font-black tracking-widest transition-all flex items-center justify-center gap-1.5",
               mode === "group" ? "bg-white dark:bg-brand text-brand shadow-xl dark:text-white" : "text-ink-soft",
             )}
           >
@@ -171,7 +171,7 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, showAction
           <button
             onClick={() => setMode("personal")}
             className={cn(
-              "flex-1 py-2 rounded-[1.25rem] text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5",
+              "flex-1 py-2 rounded-[1.25rem] text-xs font-black tracking-widest transition-all flex items-center justify-center gap-1.5",
               mode === "personal" ? "bg-white dark:bg-brand text-brand shadow-xl dark:text-white" : "text-ink-soft",
             )}
           >

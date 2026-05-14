@@ -23,9 +23,15 @@ const currencies = [
 export default function Profile() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { profile, updateProfile, uploadAvatar, friendIds, groups, expenses, personal, userId, isUsernameAvailable, loading } = useStore();
+  const { profile, updateProfile, uploadAvatar, friendIds, groups, expenses, personal, userId, isUsernameAvailable, loading, openModal, closeModal } = useStore();
   const [showQR, setShowQR] = useState(false);
   const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    if (showQR) openModal();
+    else closeModal();
+    return () => closeModal();
+  }, [showQR, openModal, closeModal]);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "available" | "taken">("idle");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -332,29 +338,36 @@ export default function Profile() {
 
       {showQR && (
         <div className="fixed inset-0 z-[70] bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowQR(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-surface/95 backdrop-blur-xl rounded-3xl p-6 space-y-4 text-center shadow-2xl animate-in zoom-in-95 duration-200 border border-hairline/50">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-surface/95 backdrop-blur-xl rounded-3xl p-6 space-y-5 text-center shadow-2xl animate-in zoom-in-95 duration-200 border border-hairline/50">
             <div className="flex items-center justify-between">
               <div className="space-y-1 text-left">
-                <h2 className="text-xl font-black tracking-tightest text-ink">My QR code</h2>
+                <h2 className="text-xl font-black tracking-tightest text-ink">My Code</h2>
                 <p className="text-xs font-bold text-brand uppercase tracking-widest">{profile.username}</p>
               </div>
               <button onClick={() => setShowQR(false)} className="size-10 rounded-full bg-surface-soft flex items-center justify-center shrink-0">
                 <X className="size-5" />
               </button>
             </div>
+            
             <p className="text-sm text-ink-soft text-left">Scan this QR to add <span className="font-bold text-ink">{profile.username}</span> instantly on Split.</p>
-            <div className="flex justify-center">
+            
+            <div className="flex justify-center py-4">
               <QRCode value={`split://user/${userId}`} size={220} label={`${profile.username}`} />
             </div>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(`https://${window.location.host}/user/${userId}`);
-                toast.success("Link copied!");
-              }}
-              className="w-full bg-brand text-white dark:bg-brand dark:text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand/20 hover:opacity-90 active:scale-95 transition-all text-sm mt-4"
-            >
-              Copy profile link
-            </button>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  const link = `${window.location.origin}/user/${userId}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success("Profile link copied!");
+                }}
+                className="w-full bg-brand text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand/20 hover:opacity-90 active:scale-95 transition-all text-sm flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="size-4" />
+                Copy profile link
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -380,7 +393,7 @@ export default function Profile() {
                   <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
                 </label>
               </div>
-              <p className="text-[10px] text-ink-soft font-bold uppercase tracking-widest">Change Photo</p>
+              <p className="text-[10px] text-ink-soft font-bold tracking-widest">Change photo</p>
             </div>
             <div className="space-y-4">
               <div>

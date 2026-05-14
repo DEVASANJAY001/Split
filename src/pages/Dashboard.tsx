@@ -93,8 +93,8 @@ export default function Dashboard() {
               
               {personalStats.budget > 0 && (
                 <div className="mt-6 space-y-2 relative z-10">
-                  <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest opacity-90">
-                    <span>Monthly Budget</span>
+                  <div className="flex items-center justify-between text-[11px] font-black tracking-widest opacity-90">
+                    <span>Monthly budget</span>
                     <span>{Math.round(personalStats.progress)}%</span>
                   </div>
                   <div className="h-3 bg-brand-foreground/20 rounded-full overflow-hidden p-0.5">
@@ -119,11 +119,11 @@ export default function Dashboard() {
 
               <div className="mt-6 grid grid-cols-2 gap-3 relative z-10">
                 <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/5">
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">All-time</p>
+                  <p className="text-[10px] font-black tracking-widest opacity-70 mb-1">All-time</p>
                   <p className="text-xl font-black tabular-nums">{fmt(personalStats.total, cur)}</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/5">
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Top Category</p>
+                  <p className="text-[10px] font-black tracking-widest opacity-70 mb-1">Top category</p>
                   <p className="text-xl font-black truncate">{personalStats.topCat}</p>
                 </div>
               </div>
@@ -132,7 +132,7 @@ export default function Dashboard() {
 
             <div className="space-y-3">
               <div className="flex items-center justify-between px-1">
-                <h3 className="text-sm font-black uppercase tracking-widest text-ink/70">Savings Goals</h3>
+                <h3 className="text-sm font-black tracking-widest text-ink/70">Savings goals</h3>
                 <button 
                   onClick={() => {
                     setPromptConfig({
@@ -186,7 +186,7 @@ export default function Dashboard() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <p className="text-sm font-black text-ink uppercase tracking-tight">{goal.title}</p>
+                              <p className="text-sm font-black text-ink tracking-tight"> {goal.title}</p>
                               <p className="text-xs font-black tabular-nums text-brand">{fmt(goal.currentAmount, cur)}</p>
                             </div>
                             <div className="h-2 bg-brand/5 rounded-full overflow-hidden">
@@ -197,14 +197,14 @@ export default function Dashboard() {
                             </div>
                             <div className="flex justify-between mt-1.5 opacity-60">
                               <div className="flex items-center gap-1.5">
-                                <p className="text-[9px] font-bold uppercase tracking-widest">Progress {Math.round(progress)}%</p>
+                                <p className="text-[9px] font-bold tracking-widest">Progress {Math.round(progress)}%</p>
                                 {goal.streak > 0 && (
                                   <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-warning/20 text-warning text-[8px] font-black">
                                     🔥 {goal.streak}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[9px] font-bold uppercase tracking-widest">Target {fmt(goal.targetAmount, cur)}</p>
+                              <p className="text-[9px] font-bold tracking-widest">Target {fmt(goal.targetAmount, cur)}</p>
                             </div>
                             {progress < 100 && goal.currentAmount > 0 && (
                               <p className="text-[8px] font-bold text-brand mt-1 opacity-80 italic">
@@ -381,22 +381,29 @@ export default function Dashboard() {
           <>
             <div>
               <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden shadow-brand bg-gradient-to-br from-brand to-[#4338ca]">
-                <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Net Balance</p>
-                <div className="flex items-baseline gap-1">
-                  <p className="text-4xl font-extrabold tracking-tightest tabular-nums">
+                <div className="relative z-10">
+                  <p className="text-sm font-medium opacity-90 mb-2 tracking-widest">Net balance</p>
+                  <p className="text-5xl font-extrabold tracking-tightest tabular-nums">
                     {summary.owed - summary.owe >= 0 ? "+" : ""}{fmt(summary.owed - summary.owe, cur)}
                   </p>
-                </div>
-                <div className="mt-6 grid grid-cols-2 gap-4 relative z-10">
-                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                    <div className="flex items-center gap-1.5 opacity-80 text-[10px] font-bold uppercase tracking-wider mb-1"><TrendingUp className="size-3" /> Owed</div>
-                    <p className="text-xl font-bold tabular-nums">{fmt(summary.owed, cur)}</p>
+                  
+                  <div className="mt-6 grid grid-cols-2 gap-3">
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/5">
+                      <div className="flex items-center gap-1.5 opacity-70 text-[10px] font-black tracking-widest mb-1">
+                        <TrendingUp className="size-3" /> Owed
+                      </div>
+                      <p className="text-xl font-black tabular-nums">{fmt(summary.owed, cur)}</p>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/5">
+                      <div className="flex items-center gap-1.5 opacity-70 text-[10px] font-black tracking-widest mb-1">
+                        <TrendingDown className="size-3" /> Owes
+                      </div>
+                      <p className="text-xl font-black tabular-nums">{fmt(summary.owe, cur)}</p>
+                    </div>
                   </div>
-                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                    <div className="flex items-center gap-1.5 opacity-80 text-[10px] font-bold uppercase tracking-wider mb-1"><TrendingDown className="size-3" /> Owes</div>
-                    <p className="text-xl font-bold tabular-nums">{fmt(summary.owe, cur)}</p>
-                  </div>
                 </div>
+                <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />
+                <div className="absolute -left-10 -top-10 size-32 rounded-full bg-white/5" />
               </SurfaceCard>
             </div>
 
@@ -450,7 +457,7 @@ export default function Dashboard() {
                               <p className={cn("text-base font-black tabular-nums", v > 0.01 ? "text-success" : v < -0.01 ? "text-destructive" : "text-ink-soft")}>
                                 {v > 0.01 ? "+" : ""}{fmt(v, cur)}
                               </p>
-                              <p className="text-[10px] font-bold uppercase tracking-tight text-ink-soft opacity-60">{v > 0.01 ? "Receivable" : v < -0.01 ? "Payable" : "Settled"}</p>
+                              <p className="text-[10px] font-bold tracking-tight text-ink-soft opacity-60">{v > 0.01 ? "Receivable" : v < -0.01 ? "Payable" : "Settled"}</p>
                             </div>
                           </div>
                           <div className="mt-4 flex items-center justify-between">

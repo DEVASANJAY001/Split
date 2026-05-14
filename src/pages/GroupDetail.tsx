@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { SurfaceCard } from "@/components/SurfaceCard";
 import { AvatarStack, PersonAvatar } from "@/components/Avatar";
@@ -7,7 +7,7 @@ import { useStore, netBalances, simplifyDebts, personById, SettleMethod } from "
 import { fmt } from "@/lib/finance";
 import { groupIcons } from "@/lib/icons";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ArrowRight, Plus, Check, X, QrCode, UserPlus, Trash2, UserMinus, MessageSquare, ExternalLink, Download, MoreVertical, Edit3, ArrowDownLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Check, X, XCircle, QrCode, UserPlus, Trash2, UserMinus, MessageSquare, ExternalLink, Download, MoreVertical, Edit3, ArrowDownLeft } from "lucide-react";
 import { GroupChat } from "@/components/GroupChat";
 import { toast } from "sonner";
 import { ConfirmModal } from "@/components/Modal";
@@ -20,19 +20,36 @@ const METHODS: SettleMethod[] = ["Cash", "UPI", "Bank Transfer", "Other"];
 export default function GroupDetail() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { groups, expenses, settlements, people, friendIds, addSettlement, updateGroupMembers, userId, profile, deleteGroup, shoppingLists, addShoppingItem, toggleShoppingItem, deleteShoppingItem, deleteExpense } = useStore();
+  const { groups, expenses, settlements, people, friendIds, addSettlement, updateGroupMembers, userId, profile, deleteGroup, shoppingLists, addShoppingItem, toggleShoppingItem, deleteShoppingItem, deleteExpense, openModal, closeModal, closeGroup, reopenGroup } = useStore();
   const group = groups.find((g) => g.id === id);
   const cur = group?.currency || profile?.currency || "USD";
 
   const [settleIdx, setSettleIdx] = useState<number | null>(null);
   const [method, setMethod] = useState<SettleMethod>("UPI");
   const [showQR, setShowQR] = useState(false);
+
+  useEffect(() => {
+    if (showQR) openModal();
+    else closeModal();
+    return () => closeModal();
+  }, [showQR, openModal, closeModal]);
+
+  // Auto-close when expiry date has passed
+  useEffect(() => {
+    if (!group || group.status === "closed" || !group.expiryDate) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if (today > group.expiryDate) {
+      closeGroup(group.id);
+      toast.info("Trip auto-closed", { description: `${group.name} reached its end date.` });
+    }
+  }, [group?.expiryDate, group?.status, group?.id]);
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [activeTab, setActiveTab] = useState<"balances" | "list">("balances");
   const [newItemText, setNewItemText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; personId: string; name: string }>({ open: false, personId: "", name: "" });
   const [expenseDeleteId, setExpenseDeleteId] = useState<string | null>(null);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   const net = useMemo(() => group ? netBalances(group, expenses, settlements) : {}, [group, expenses, settlements]);
   const plan = useMemo(() => simplifyDebts(net), [net]);
@@ -112,14 +129,14 @@ export default function GroupDetail() {
                 <p className="text-[11px] text-ink-soft">Settled{s.method ? ` · ${s.method}` : ""}</p>
               </div>
             </div>
-            <p className="text-sm font-bold tabular-nums text-success">{fmt(s.amount, group.currency)}</p>
+            <p className="text-sm font-bold tabular-nums text-success">{fmt(s.amount, group?.currency)}</p>
           </li>
         )
       });
     }
 
     return items.sort((a, b) => b.ts - a.ts);
-  }, [groupExpenses, groupSettlements, people, userId, cur, navigate, group.currency]);
+  }, [groupExpenses, groupSettlements, people, userId, cur, navigate, group?.currency]);
 
   const availableFriends = useMemo(() => {
     if (!group) return [];
@@ -142,6 +159,10 @@ export default function GroupDetail() {
   const members = group.memberIds.map((mid) => personById(people, mid)!).filter(Boolean);
   const total = groupExpenses.reduce((a, e) => a + e.amount, 0);
   const myNet = net[userId || ""] ?? 0;
+
+  // All settled when every net balance is within rounding tolerance
+  const isAllSettled = Object.values(net).every(v => Math.abs(v) < 0.01);
+  const isClosed = group.status === "closed";
 
   const confirmSettle = () => {
     if (settleIdx === null) return;
@@ -199,7 +220,11 @@ export default function GroupDetail() {
           </button>
           <button
             onClick={() => navigate(`/split?group=${group.id}`)}
-            className="size-10 rounded-full bg-ink text-background flex items-center justify-center shadow-lg"
+            disabled={isClosed}
+            className={cn(
+              "size-10 rounded-full flex items-center justify-center shadow-lg transition-all",
+              isClosed ? "bg-surface text-ink-soft opacity-50" : "bg-ink text-background"
+            )}
             aria-label="Add expense"
           >
             <Plus className="size-4" strokeWidth={2.5} />
@@ -227,12 +252,53 @@ export default function GroupDetail() {
           <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />
         </SurfaceCard>
 
+        {/* Trip lifecycle banner */}
+        {isClosed ? (
+          <div className="flex items-center justify-between bg-ink-soft/10 border border-ink-soft/20 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-2">
+              <XCircle className="size-4 text-ink-soft" strokeWidth={2} />
+              <span className="text-xs font-bold text-ink-soft">This trip is closed</span>
+            </div>
+            <button
+              onClick={async () => { await reopenGroup(group.id); toast.success("Trip reopened!"); }}
+              className="text-xs font-black text-brand hover:opacity-80 transition-opacity"
+            >
+              Reopen
+            </button>
+          </div>
+        ) : isAllSettled && total > 0 ? (
+          <div className="flex items-center justify-between bg-success/10 border border-success/20 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Check className="size-4 text-success" strokeWidth={2.5} />
+              <div>
+                <span className="text-xs font-black text-success">All settled up!</span>
+                <p className="text-[10px] text-success/70">Everyone is even — ready to close?</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCloseConfirm(true)}
+              className="text-xs font-black text-success bg-success/10 hover:bg-success hover:text-white px-3 py-1.5 rounded-xl transition-all"
+            >
+              Close trip
+            </button>
+          </div>
+        ) : group.expiryDate ? (
+          <div className="flex items-center gap-2 bg-surface-soft rounded-xl px-3 py-2">
+            <span className="text-[10px] text-ink-soft">
+              {new Date().toISOString().slice(0,10) > group.expiryDate
+                ? "Trip expired"
+                : `Ends ${new Date(group.expiryDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+              }
+            </span>
+          </div>
+        ) : null}
+
         {/* Tab Switcher */}
         <div className="flex bg-surface-soft/50 p-1 rounded-2xl border border-hairline no-print">
           <button 
             onClick={() => setActiveTab("balances")}
             className={cn(
-              "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+              "flex-1 py-2 text-[10px] font-black rounded-xl transition-all",
               activeTab === "balances" ? "bg-white dark:bg-brand text-brand dark:text-white shadow-sm" : "text-ink-soft"
             )}
           >
@@ -241,11 +307,11 @@ export default function GroupDetail() {
           <button 
             onClick={() => setActiveTab("list")}
             className={cn(
-              "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2",
+              "flex-1 py-2 text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-2",
               activeTab === "list" ? "bg-white dark:bg-brand text-brand dark:text-white shadow-sm" : "text-ink-soft"
             )}
           >
-            Shopping List
+            History
             {(shoppingLists[id]?.length ?? 0) > 0 && (
               <span className="size-4 rounded-full bg-brand/10 text-brand text-[8px] flex items-center justify-center">
                 {shoppingLists[id].length}
@@ -538,17 +604,37 @@ export default function GroupDetail() {
       )}
 
       {showQR && (
-        <div className="fixed inset-0 z-[70] bg-ink/40 flex items-end md:items-center justify-center" onClick={() => setShowQR(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full md:max-w-md bg-surface rounded-t-3xl md:rounded-3xl p-6 space-y-4 text-center">
+        <div className="fixed inset-0 z-[70] bg-ink/40 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowQR(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-surface/95 backdrop-blur-xl rounded-3xl p-6 space-y-5 text-center shadow-2xl animate-in zoom-in-95 duration-200 border border-hairline/50">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold tracking-tightest text-ink">Group QR code</h2>
-              <button onClick={() => setShowQR(false)} className="size-8 rounded-full bg-surface-soft flex items-center justify-center">
-                <X className="size-4" />
+              <div className="space-y-1 text-left">
+                <h2 className="text-xl font-black tracking-tightest text-ink">Group QR</h2>
+                <p className="text-xs font-bold text-brand uppercase tracking-widest">{group.name}</p>
+              </div>
+              <button onClick={() => setShowQR(false)} className="size-10 rounded-full bg-surface-soft flex items-center justify-center shrink-0">
+                <X className="size-5" />
               </button>
             </div>
-            <p className="text-xs text-ink-soft">Friends scan to instantly join this group.</p>
-            <div className="flex justify-center">
-              <QRCode value={`split://group/${group.id}`} size={200} label={`${group.name} · ${members.length} members`} />
+            
+            <div className="flex justify-center py-4">
+              <QRCode value={`split://group/${group.id}`} size={220} label={`${group.name} · ${group.memberIds.length} members`} />
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  const link = `${window.location.origin}/groups/${group.id}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success("Group link copied!");
+                }}
+                className="w-full bg-brand text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand/20 hover:opacity-90 active:scale-95 transition-all text-sm flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="size-4" />
+                Copy group link
+              </button>
+              <p className="text-[10px] text-ink-soft uppercase tracking-widest font-bold">
+                Scan to join this group instantly
+              </p>
             </div>
           </div>
         </div>
@@ -619,6 +705,25 @@ export default function GroupDetail() {
         confirmVariant="destructive"
       >
         Are you sure you want to delete this expense? This action cannot be undone.
+      </ConfirmModal>
+
+      <ConfirmModal
+        isOpen={showCloseConfirm}
+        onClose={() => setShowCloseConfirm(false)}
+        title="Close trip"
+        onConfirm={async () => {
+          await closeGroup(group.id);
+          toast.success("Trip closed!");
+        }}
+        confirmText="Yes, close it"
+        confirmVariant="brand"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-ink-soft leading-relaxed">
+            Closing <span className="font-bold text-ink">{group.name}</span> will mark it as finished. No new expenses can be added.
+          </p>
+          <p className="text-sm text-ink-soft">You can always reopen it later if needed.</p>
+        </div>
       </ConfirmModal>
     </div>
   );

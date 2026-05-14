@@ -62,6 +62,8 @@ export type ShoppingListItem = {
   createdAt: number;
 };
 
+export type GroupStatus = "active" | "closed";
+
 export type Group = {
   id: string;
   name: string;
@@ -71,6 +73,9 @@ export type Group = {
   ownerId: string;
   currency: string;
   createdAt: number;
+  startDate?: string;
+  expiryDate?: string;
+  status: GroupStatus;
 };
 
 export type Expense = {
@@ -217,7 +222,10 @@ interface AppState {
   >;
   markRequestsAsSeen: () => void;
   deleteAccount: () => Promise<void>;
+  addGroup: (group: Omit<Group, "id" | "createdAt">) => Promise<string>;
   updateGroupMembers: (groupId: string, memberIds: string[]) => Promise<void>;
+  closeGroup: (groupId: string) => Promise<void>;
+  reopenGroup: (groupId: string) => Promise<void>;
   deleteGroup: (groupId: string) => Promise<void>;
   sendMessage: (groupId: string, text: string) => Promise<void>;
   addRecurringTemplate: (t: Omit<RecurringTemplate, "id" | "userId">) => Promise<string>;
@@ -501,9 +509,10 @@ export const useStore = create<AppState>()(
         });
       },
       addGroup: async (g) => {
+        const uid = get().userId;
+        if (!uid) throw new Error("Not authenticated");
         const docRef = await addDoc(collection(db, "groups"), {
           ...g,
-          ownerId: auth.currentUser?.uid,
           createdAt: Date.now(),
         });
         return docRef.id;
@@ -867,10 +876,27 @@ export const useStore = create<AppState>()(
         await auth.currentUser?.delete();
         set({ userId: null, profile: null });
       },
+      addGroup: async (g) => {
+        const uid = get().userId;
+        if (!uid) throw new Error("Not authenticated");
+        const docRef = await addDoc(collection(db, "groups"), {
+          ...g,
+          ownerId: uid,
+          createdAt: Date.now(),
+        });
+        return docRef.id;
+      },
       updateGroupMembers: async (groupId, memberIds) => {
-        const userId = auth.currentUser?.uid;
-        if (!userId) return;
-        await updateDoc(doc(db, "groups", groupId), { memberIds });
+        const groupRef = doc(db, "groups", groupId);
+        await updateDoc(groupRef, { memberIds });
+      },
+      closeGroup: async (groupId) => {
+        const groupRef = doc(db, "groups", groupId);
+        await updateDoc(groupRef, { status: "closed" });
+      },
+      reopenGroup: async (groupId) => {
+        const groupRef = doc(db, "groups", groupId);
+        await updateDoc(groupRef, { status: "active" });
       },
       deleteGroup: async (groupId) => {
         const userId = auth.currentUser?.uid;
