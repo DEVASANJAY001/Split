@@ -171,7 +171,7 @@ export default function Friends() {
             onClick={() => setActiveTab("friends")}
             className={cn(
               "flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2",
-              activeTab === "friends" ? "bg-white text-ink shadow-sm ring-1 ring-hairline" : "text-ink-soft"
+              activeTab === "friends" ? "bg-surface dark:bg-brand text-ink dark:text-white shadow-sm ring-1 ring-hairline" : "text-ink-soft"
             )}
           >
             <Users className="size-3.5" /> Friends ({friends.length})
@@ -180,7 +180,7 @@ export default function Friends() {
             onClick={() => setActiveTab("requests")}
             className={cn(
               "flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 relative",
-              activeTab === "requests" ? "bg-white text-ink shadow-sm ring-1 ring-hairline" : "text-ink-soft"
+              activeTab === "requests" ? "bg-surface dark:bg-brand text-ink dark:text-white shadow-sm ring-1 ring-hairline" : "text-ink-soft"
             )}
           >
             <div className="relative">
