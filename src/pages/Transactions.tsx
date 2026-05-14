@@ -6,7 +6,7 @@ import { useStore, personById, Category } from "@/lib/store";
 import { fmt } from "@/lib/finance";
 import { cn } from "@/lib/utils";
 import { CustomSelect } from "@/components/ui/select";
-import { ArrowDownLeft, ArrowUpRight, Search, SlidersHorizontal, Trash2, ArrowRight, MoreVertical, Edit3, History as HistoryIcon } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Search, SlidersHorizontal, Trash2, ArrowRight, MoreVertical, Edit3, History as HistoryIcon, Eye } from "lucide-react";
 import { categoryIcons, groupIcons } from "@/lib/icons";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { ConfirmModal } from "@/components/Modal";
@@ -118,7 +118,15 @@ export default function Transactions() {
                       <MoreVertical className="size-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                  <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[150px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                    <DropdownMenuItem 
+                      onClick={() => navigate(`/personal/${e.id}`)}
+                      className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
+                    >
+                      <Eye className="size-3.5" />
+                      <span className="text-xs font-bold">View Details</span>
+                    </DropdownMenuItem>
+                    <div className="h-px bg-hairline my-1" />
                     <DropdownMenuItem onClick={() => navigate(`/split?edit=${e.id}`)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft">
                       <Edit3 className="size-3.5" />
                       <span className="text-xs font-bold">Edit</span>

@@ -18,6 +18,7 @@ import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 import AboutDAVNS from "./pages/legal/AboutDAVNS";
 import SupportTickets from "./pages/support/SupportTickets";
 import HelpCenter from "./pages/support/HelpCenter";
+import PersonalExpenseDetails from "./pages/PersonalExpenseDetails";
 import NotFound from "./pages/NotFound.tsx";
 import LoginPage from "./pages/Auth/LoginPage";
 import UserDetail from "./pages/UserDetail";
@@ -174,6 +175,7 @@ const App = () => {
                 <Route path="/legal/terms" element={<TermsOfService />} />
                 <Route path="/legal/privacy" element={<PrivacyPolicy />} />
                 <Route path="/legal/about" element={<AboutDAVNS />} />
+                <Route path="/personal/:id" element={<PersonalExpenseDetails />} />
                 <Route path="/support/tickets" element={<SupportTickets />} />
                 <Route path="/support/help" element={<HelpCenter />} />
               </Route>

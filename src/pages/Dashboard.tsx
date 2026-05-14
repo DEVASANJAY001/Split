@@ -24,7 +24,6 @@ export default function Dashboard() {
 
   const [promptOpen, setPromptOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [subEntryModalOpen, setSubEntryModalOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<PersonalExpense | null>(null);
   const [deleteId, setDeleteId] = useState<{ id: string; isPersonal: boolean } | null>(null);
@@ -346,10 +345,7 @@ export default function Dashboard() {
                                   <span className="text-xs font-bold">+ ADD</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
-                                  onClick={() => {
-                                    setSelectedExpense(e);
-                                    setDetailModalOpen(true);
-                                  }}
+                                  onClick={() => navigate(`/personal/${e.id}`)}
                                   className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
                                 >
                                   <Eye className="size-3.5" />
@@ -580,43 +576,6 @@ export default function Dashboard() {
       >
         Are you sure you want to delete this expense? This action cannot be undone.
       </ConfirmModal>
-
-      <Modal isOpen={detailModalOpen} onClose={() => setDetailModalOpen(false)} title={selectedExpense?.description || "Expense Details"}>
-        <div className="space-y-6 py-2">
-          <div className="flex justify-between items-end pb-4 border-b border-hairline/50">
-            <div>
-              <p className="text-[10px] font-black uppercase text-ink-soft mb-1 tracking-widest">Total Spend</p>
-              <p className="text-3xl font-black text-ink tabular-nums">{fmt(selectedExpense?.amount || 0, cur)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-black uppercase text-ink-soft mb-1 tracking-widest">Initial Entry</p>
-              <p className="text-xs font-bold text-ink">{selectedExpense && new Date(selectedExpense.date).toLocaleDateString()}</p>
-            </div>
-          </div>
-          
-          <div className="space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-widest text-ink-soft">Sub-Entry Breakdown</p>
-            <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
-              {selectedExpense?.subEntries?.map((sub) => (
-                <div key={sub.id} className="flex justify-between items-center p-4 bg-surface-soft/50 rounded-2xl border border-hairline/30">
-                  <div>
-                    <p className="text-sm font-bold text-ink tabular-nums">{fmt(sub.amount, cur)}</p>
-                    <p className="text-[10px] text-ink-soft font-semibold">{new Date(sub.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
-                  </div>
-                  <div className="size-8 rounded-full bg-brand/10 text-brand flex items-center justify-center">
-                    <PlusCircle className="size-3.5" />
-                  </div>
-                </div>
-              ))}
-              {(!selectedExpense?.subEntries || selectedExpense.subEntries.length === 0) && (
-                <div className="text-center py-8 bg-surface-soft/30 rounded-2xl border border-dashed border-hairline">
-                  <p className="text-xs text-ink-soft font-medium italic">No sub-entries added yet.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }
