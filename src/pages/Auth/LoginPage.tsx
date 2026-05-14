@@ -77,22 +77,15 @@ export default function LoginPage() {
     const handleGoogleLogin = async () => {
         setGoogleLoading(true);
         try {
-            // Try Popup first - this is more likely to stay "in-app" if the WebView allows it
-            const { signInWithPopup } = await import("firebase/auth");
-            await signInWithPopup(auth, googleProvider);
+            const { loginWithGoogle } = await import("@/lib/auth-native");
+            await loginWithGoogle();
             toast.success("Welcome back!");
             navigate("/");
         } catch (error: any) {
-            if (error.code === "auth/popup-closed-by-user") {
+            if (error.code === "auth/popup-closed-by-user" || error.message?.includes("cancel")) {
                 toast.error("Login cancelled");
             } else {
-                console.warn("Popup blocked or failed, falling back to redirect:", error.code);
-                try {
-                    // Fallback to Redirect if Popup is blocked/unsupported
-                    await signInWithRedirect(auth, googleProvider);
-                } catch (redirError: any) {
-                    toast.error(redirError.message);
-                }
+                toast.error(error.message || "Login failed");
             }
         } finally {
             setGoogleLoading(false);

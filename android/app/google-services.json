@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "16306937848",
+    "firebase_url": "https://split-ea9d4-default-rtdb.firebaseio.com",
+    "project_id": "split-ea9d4",
+    "storage_bucket": "split-ea9d4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:16306937848:android:77f378b804416e8749800d",
+        "android_client_info": {
+          "package_name": "com.davnsindusrties.split"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "16306937848-8sv3bbv62mh7pn5sg3scjtdkl1tnh7h6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxHMPXbbHnKzG9LtrT-SYP6IeWrG0TtuU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "16306937848-5ke01eo4q885rt03k2pl920ap2upj6b0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

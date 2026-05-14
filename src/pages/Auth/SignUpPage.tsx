@@ -180,19 +180,20 @@ export default function SignUpPage() {
     };
 
     const handleGoogleLogin = async () => {
+        setGoogleLoading(true);
         try {
-            // Try Popup first - this is more likely to stay "in-app" if the WebView allows it
-            const { signInWithPopup } = await import("firebase/auth");
-            await signInWithPopup(auth, googleProvider);
+            const { loginWithGoogle } = await import("@/lib/auth-native");
+            await loginWithGoogle();
+            toast.success("Welcome to Split!");
             navigate("/");
         } catch (error: any) {
-            console.warn("Popup blocked or failed, falling back to redirect:", error.code);
-            try {
-                // Fallback to Redirect if Popup is blocked/unsupported
-                await signInWithRedirect(auth, googleProvider);
-            } catch (redirError: any) {
-                toast.error(redirError.message);
+            if (error.code === "auth/popup-closed-by-user" || error.message?.includes("cancel")) {
+                toast.error("Sign up cancelled");
+            } else {
+                toast.error(error.message || "Sign up failed");
             }
+        } finally {
+            setGoogleLoading(false);
         }
     };
 
