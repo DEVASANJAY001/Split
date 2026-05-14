@@ -72,10 +72,6 @@ export default function SignUpPage() {
         return () => clearTimeout(delay);
     }, [email, step]);
 
-    const generateOTP = () => {
-        return Math.floor(100000 + Math.random() * 900000).toString();
-    };
-
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         if (emailStatus === "taken") return;
@@ -92,11 +88,10 @@ export default function SignUpPage() {
                 return;
             }
 
-            const otp = generateOTP();
             setStep("otp");
 
             try {
-                await sendOTPEmail(email, otp, name);
+                await sendOTPEmail(email, name);
                 toast.success("Verification code sent!");
             } catch (err: any) {
                 console.error("Failed to send verification email:", err);
@@ -173,9 +168,8 @@ export default function SignUpPage() {
     };
 
     const handleResendOtp = async () => {
-        const otp = generateOTP();
         try {
-            await sendOTPEmail(email, otp, name);
+            await sendOTPEmail(email, name);
             toast.success("New code sent!");
         } catch (err: any) {
             console.error("Failed to resend email:", err);

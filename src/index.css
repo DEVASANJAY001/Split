@@ -34,21 +34,21 @@
   }
 
   .dark {
-    --background: 230 30% 6%;
-    --foreground: 230 20% 98%;
+    --background: 230 20% 4%;
+    --foreground: 230 10% 98%;
 
-    --surface: 230 25% 12%;
-    --surface-soft: 230 20% 18%;
-    --ink: 230 20% 98%;
-    --ink-soft: 230 15% 65%;
-    --hairline: 230 20% 20%;
+    --surface: 230 15% 10%;
+    --surface-soft: 230 15% 15%;
+    --ink: 0 0% 100%;
+    --ink-soft: 230 10% 70%;
+    --hairline: 230 15% 20%;
 
-    --brand: 230 90% 65%;
+    --brand: 230 100% 68%;
     --brand-foreground: 230 40% 10%;
-    --brand-soft: 230 40% 16%;
-    --brand-soft-foreground: 230 90% 85%;
+    --brand-soft: 230 30% 15%;
+    --brand-soft-foreground: 230 100% 85%;
 
-    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -73,7 +73,7 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-glass;
+    @apply bg-white/70 dark:bg-black/60 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-glass;
   }
   
   .glass-brand {

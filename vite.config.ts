@@ -53,7 +53,8 @@ export default defineConfig(({ mode }) => {
               });
               req.on("end", async () => {
                 try {
-                  const { email, otp, name, type } = JSON.parse(body);
+                  const { email, name, type } = JSON.parse(body);
+                  const otp = Math.floor(100000 + Math.random() * 900000).toString();
                   const isReset = type === 'reset';
                   
                   // Optimistically initialize admin but keep it silent if it fails

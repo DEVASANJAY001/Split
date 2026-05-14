@@ -50,11 +50,12 @@ export default async function handler(req, res) {
         return { status: 405, error: 'Method not allowed' };
       }
 
-      const { email, otp, name, type } = req.body;
+      const { email, name, type } = req.body;
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const isReset = type === 'reset';
 
-      if (!email || !otp) {
-        return { status: 400, error: 'Email and OTP are required' };
+      if (!email) {
+        return { status: 400, error: 'Email is required' };
       }
 
       let finalName = name || "User";

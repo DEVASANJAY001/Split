@@ -350,8 +350,22 @@ export const useStore = create<AppState>()(
                     ),
                   });
                 }));
+                const messagesQuery = query(
+                  collection(db, "messages"),
+                  where("groupId", "in", groupIds.slice(0, 30)),
+                );
+                newUnsubs.push(onSnapshot(messagesQuery, (msgSnap) => {
+                  const all = msgSnap.docs.map(d => ({ ...d.data(), id: d.id }) as Message);
+                  const grouped: Record<string, Message[]> = {};
+                  all.forEach(m => {
+                    if (!grouped[m.groupId]) grouped[m.groupId] = [];
+                    grouped[m.groupId].push(m);
+                  });
+                  Object.keys(grouped).forEach(gid => grouped[gid].sort((a, b) => a.createdAt - b.createdAt));
+                  set({ messages: grouped });
+                }));
               } else {
-                set({ expenses: [], settlements: [] });
+                set({ expenses: [], settlements: [], messages: {} });
               }
             }));
 
@@ -408,17 +422,6 @@ export const useStore = create<AppState>()(
               }
             }));
 
-            // 8. Messages
-            newUnsubs.push(onSnapshot(collection(db, "messages"), (s) => {
-              const all = s.docs.map(d => ({ ...d.data(), id: d.id }) as Message);
-              const grouped: Record<string, Message[]> = {};
-              all.forEach(m => {
-                if (!grouped[m.groupId]) grouped[m.groupId] = [];
-                grouped[m.groupId].push(m);
-              });
-              Object.keys(grouped).forEach(gid => grouped[gid].sort((a, b) => a.createdAt - b.createdAt));
-              set({ messages: grouped });
-            }));
 
             // 8.5 Recurring Templates
             newUnsubs.push(onSnapshot(collection(db, "users", uid, "recurring_templates"), (s) => {

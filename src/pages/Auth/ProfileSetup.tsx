@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "@/lib/store";
-import { User, AtSign, Camera, Check, Loader2, CheckCircle2, AlertCircle, ChevronDown } from "lucide-react";
+import { User, AtSign, Camera, Check, Loader2, CheckCircle2, AlertCircle, ChevronDown, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ALL_CURRENCIES } from "@/lib/currency-data";
@@ -241,6 +241,17 @@ export default function ProfileSetup() {
                         ) : (
                             <><Check className="size-5" /> Start Splitting</>
                         )}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => {
+                            auth.signOut();
+                            navigate("/login");
+                        }}
+                        className="w-full bg-transparent text-ink-soft hover:text-destructive rounded-2xl py-2 font-bold transition-all flex items-center justify-center gap-2 mt-2"
+                    >
+                        <LogOut className="size-4" /> Log Out
                     </button>
                 </form>
             </div>
