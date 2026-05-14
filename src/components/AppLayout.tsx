@@ -23,9 +23,9 @@ export default function AppLayout() {
   const showNav = ["/", "/groups", "/friends", "/transactions", "/reports"].includes(location.pathname) && !isModalOpen;
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden">
-      {/* Premium Background Elements */}
-      <div className="fixed inset-0 pointer-events-none">
+    <div className="min-h-screen bg-background relative">
+      {/* Premium Background Elements - fixed so they never affect layout */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute top-[-10%] right-[-10%] size-[50%] bg-brand/5 blur-[120px] rounded-full animate-float" />
         <div className="absolute bottom-[10%] left-[-10%] size-[40%] bg-success/5 blur-[100px] rounded-full" />
         <div className="absolute inset-0 bg-grid-white bg-[size:40px_40px] opacity-20" />
@@ -110,7 +110,7 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, showAction
   const { mode, setMode, profile } = useStore();
   const handleAdd = onAdd ?? (() => navigate("/groups?create=true"));
   return (
-    <header className="px-5 pt-8 pb-5 space-y-4">
+    <header className="sticky top-0 z-30 px-5 pt-8 pb-5 space-y-4 bg-background/75 backdrop-blur-xl after:absolute after:inset-x-0 after:top-full after:h-8 after:bg-gradient-to-b after:from-background/60 after:to-transparent after:pointer-events-none">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4 min-w-0">
           {showBack && (

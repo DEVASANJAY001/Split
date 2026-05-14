@@ -348,13 +348,15 @@ export default function Reports() {
             )}
           </div>
           
-          <div className="relative">
+          <div className="relative rounded-3xl overflow-hidden glass shadow-2xl">
+            {/* inner glow top edge */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
             <div 
               ref={pulseScrollRef}
-              className="flex gap-3 overflow-x-auto scrollbar-hide -mx-5 px-8 py-4 snap-x"
+              className="flex gap-3 overflow-x-auto scrollbar-hide px-5 py-5 snap-x"
               style={{ 
-                maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)'
+                maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)'
               }}
             >
               {heatmapData.map((d, i) => {
@@ -371,17 +373,21 @@ export default function Reports() {
                     <div 
                       className={cn(
                         "size-8 rounded-full transition-all duration-300 border-2",
-                        isSelected ? "scale-110 border-brand shadow-lg shadow-brand/20" : "group-hover:scale-105 shadow-soft border-transparent",
-                        !hasAmount && "border-hairline/20 border-dashed"
+                        isSelected
+                          ? "scale-110 border-brand shadow-lg shadow-brand/30 ring-2 ring-brand/20 ring-offset-1 ring-offset-transparent"
+                          : "group-hover:scale-105",
+                        hasAmount
+                          ? "border-brand/60"
+                          : "border-white/15 border-dashed"
                       )}
                       style={{ 
-                        backgroundColor: hasAmount ? '#6366f1' : 'transparent',
-                        opacity: isSelected ? 1 : (hasAmount ? currentOpacity : 0.4)
+                        backgroundColor: hasAmount ? 'hsl(var(--brand))' : 'transparent',
+                        opacity: isSelected ? 1 : (hasAmount ? Math.max(currentOpacity, 0.45) : 1)
                       }}
                     />
                     <span className={cn(
                       "text-[8px] font-bold transition-colors",
-                      isSelected ? "text-brand" : "text-ink-soft/40"
+                      isSelected ? "text-brand" : "text-ink-soft/50"
                     )}>{d.day}</span>
                   </button>
                 );

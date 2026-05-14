@@ -184,7 +184,7 @@ export default function GroupDetail() {
 
   return (
     <div>
-      <header className="px-5 pt-8 pb-5 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-30 px-5 pt-8 pb-5 flex items-center justify-between gap-4 bg-background/70 backdrop-blur-xl after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-background/60 after:to-transparent after:pointer-events-none">
         <button onClick={() => navigate(-1)} className="size-10 rounded-full bg-surface border border-hairline flex items-center justify-center">
           <ArrowLeft className="size-4" />
         </button>
