@@ -18,7 +18,7 @@ import {
   ToggleRight, Trash2, Trello, TrendingDown, TrendingUp, Triangle, Tv, 
   Twitter, Type, Umbrella, Unlock, Upload, User, UserCheck, UserMinus, 
   UserPlus, Users, Video, VideoOff, Voicemail, Volume2, Watch, Wifi, Wind, 
-  X, XCircle, XSquare, Youtube, ZoomIn, ZoomOut
+  X, XCircle, XSquare, Youtube, ZoomIn, ZoomOut, Landmark
 } from "lucide-react";
 
 export const CATEGORY_LIBRARY = [
@@ -53,7 +53,6 @@ export const CATEGORY_LIBRARY = [
   // Tech
   { id: "Software", name: "Apps & Software", icon: Smartphone, color: "sky" },
   { id: "Electronics", name: "Electronics", icon: Monitor, color: "blue" },
-  { id: "Streaming", name: "Subscriptions", icon: Tv, color: "red" },
   
   // Work
   { id: "Office", name: "Office Supplies", icon: Briefcase, color: "slate" },
@@ -65,9 +64,13 @@ export const CATEGORY_LIBRARY = [
   { id: "Furniture", name: "Furniture", icon: Box, color: "amber" },
   { id: "Pets", name: "Pets", icon: Heart, color: "rose" },
   
-  // Others
+  // Finance
   { id: "Investment", name: "Investment", icon: TrendingUp, color: "emerald" },
+  { id: "Bank", name: "Banking & Transfer", icon: Landmark, color: "slate" },
   { id: "Tax", name: "Taxes", icon: PieChart, color: "red" },
+  { id: "Streaming", name: "Subscriptions", icon: Repeat, color: "indigo" },
+  
+  // Others
   { id: "Other", name: "Other", icon: HelpCircle, color: "gray" },
 ];
 
@@ -134,25 +137,27 @@ export function suggestCategory(description: string): string | null {
   if (!d) return null;
 
   const mapping: Record<string, string[]> = {
-    Food: ["food", "rest", "pizza", "burger", "eat", "lunch", "dinner", "meal", "breakfast", "swiggy", "zomato", "mcdonald", "kfc", "subway", "restaurant", "dining", "barbeque", "buffet"],
-    Travel: ["travel", "flight", "hotel", "trip", "ticket", "stay", "airline", "indigo", "airasia", "vistara", "booking", "airbnb", "resort", "vacation", "tour", "visa", "passport"],
-    Rent: ["rent", "home", "house", "mortgage", "flat", "apartment", "owner", "maintenance", "pg", "hostel", "deposit"],
-    Utilities: ["electric", "water", "utility", "bill", "power", "gas", "recharge", "wifi", "internet", "broadband", "jio", "airtel", "vi", "sewage", "trash"],
-    Shopping: ["shop", "amazon", "flipkart", "clothe", "buy", "myntra", "ajio", "mall", "store", "product", "item", "purchase", "gift", "shoe", "bag", "accessory"],
-    Entertainment: ["movie", "film", "netflix", "game", "play", "show", "cinema", "theatre", "concert", "event", "club", "party", "pub", "ps5", "xbox", "gaming", "hotstar", "prime"],
-    Fuel: ["fuel", "gas", "petrol", "diesel", "cng", "shell", "hp", "bpcl", "iocl", "filling"],
-    Health: ["health", "med", "doctor", "gym", "fit", "hospital", "clinic", "pharmacy", "medicine", "yoga", "checkup", "dentist", "optical", "therapy"],
-    Education: ["school", "edu", "course", "book", "learn", "college", "uni", "tuition", "fee", "exam", "training", "workshop", "stationery", "udemy", "coursera"],
-    Taxi: ["taxi", "uber", "ola", "cab", "ride", "auto", "rapido", "rickshaw", "transport", "shuttle"],
-    Coffee: ["coffee", "starbuck", "tea", "snack", "cafe", "baker", "cake", "cookie", "ccd", "chai", "blue tokai"],
-    Groceries: ["grocery", "milk", "vege", "market", "mart", "blinkit", "zepto", "instamart", "bigbasket", "fruits", "vegetables", "kirana", "provisions"],
+    Food: ["food", "rest", "pizza", "burger", "eat", "lunch", "dinner", "meal", "breakfast", "swiggy", "zomato", "mcdonald", "kfc", "subway", "restaurant", "dining", "barbeque", "buffet", "starbuck", "ccd", "chai", "theobroma", "waffle", "momo", "haldiram", "saravana", "bikanervala", "behrouz", "faasos", "freshmenu", "eatsure", "eatfit", "box8", "truffles", "bakery", "cake"],
+    Travel: ["travel", "flight", "hotel", "trip", "ticket", "stay", "airline", "indigo", "airasia", "vistara", "booking", "airbnb", "resort", "vacation", "tour", "visa", "passport", "makemytrip", "mmt", "goibibo", "cleartrip", "yatra", "agoda", "skyscanner", "oyo", "treebo", "fabhotel", "taj", "itc", "marriott", "hilton", "hyatt", "akasa", "emirates", "qatar", "singapore", "lufthansa", "british", "etihad", "turkish", "cathay", "vfs"],
+    Rent: ["rent", "home", "house", "mortgage", "flat", "apartment", "owner", "maintenance", "pg", "hostel", "deposit", "nobroker", "magicbricks", "99acres", "housing", "housejoy", "rentomojo", "nestaway", "zolo", "colive"],
+    Utilities: ["electric", "water", "utility", "bill", "power", "gas", "recharge", "wifi", "internet", "broadband", "jio", "airtel", "vi", "sewage", "trash", "bsnl", "act", "hathway", "adani", "bescom", "tangedco", "tataplay", "dishtv", "sun direct", "kent", "livpure", "forbes"],
+    Shopping: ["shop", "amazon", "flipkart", "clothe", "buy", "myntra", "ajio", "mall", "store", "product", "item", "purchase", "gift", "shoe", "bag", "accessory", "meesho", "nykaa", "tatacliq", "reliance", "croma", "dmart", "big bazaar", "spencer", "ikea", "decathlon", "pepperfry", "firstcry", "snapdeal", "shopclues", "zara", "zudio", "westside", "nike", "adidas", "puma", "levi", "solly", "heusen", "market", "mart", "electronics"],
+    Entertainment: ["movie", "film", "netflix", "game", "play", "show", "cinema", "theatre", "concert", "event", "club", "party", "pub", "ps5", "xbox", "gaming", "hotstar", "prime", "sony", "zee5", "gaana", "wynk", "mxplayer", "audible", "steam", "playstation", "epic", "garena", "dream11", "mpl", "winzo", "ludo", "bookmyshow", "twitch", "discord", "youtube", "yt", "vimeo"],
+    Fuel: ["fuel", "gas", "petrol", "diesel", "cng", "shell", "hp", "bpcl", "iocl", "filling", "nayara", "bharat petroleum", "indian oil"],
+    Health: ["health", "med", "doctor", "gym", "fit", "hospital", "clinic", "pharmacy", "medicine", "yoga", "checkup", "dentist", "optical", "therapy", "apollo", "practo", "1mg", "netmeds", "pharmeasy", "medplus", "fortis", "max", "thyrocare", "metropolis", "srl", "manipal", "columbia", "care hospitals", "wellness"],
+    Education: ["school", "edu", "course", "book", "learn", "college", "uni", "tuition", "fee", "exam", "training", "workshop", "stationery", "udemy", "coursera", "byju", "unacademy", "vedantu", "toppr", "doubtnut", "skillshare", "edx", "simplilearn", "scaler", "upgrad", "internshala", "khan academy", "upsc", "ssc", "nta", "tcs ion", "duolingo", "udacity", "pluralsight", "whitehat"],
+    Taxi: ["taxi", "uber", "ola", "cab", "ride", "auto", "rapido", "rickshaw", "transport", "shuttle", "namma metro", "delhi metro", "metro", "redbus", "abhibus", "confirmtkt", "railyatri", "blablacar"],
+    Coffee: ["coffee", "starbuck", "tea", "snack", "cafe", "baker", "cake", "cookie", "ccd", "chai", "blue tokai", "third wave", "chaipoint", "chaayos", "theobroma", "barista"],
+    Groceries: ["grocery", "milk", "vege", "market", "mart", "blinkit", "zepto", "instamart", "bigbasket", "fruits", "vegetables", "kirana", "provisions", "jiomart", "dunzo", "reliance smart", "dmart"],
     Pets: ["pet", "dog", "cat", "vet", "food", "groom", "animal", "bird", "fish"],
-    Software: ["software", "app", "subsc", "cloud", "it", "saas", "hosting", "domain", "adobe", "figma", "notion", "slack", "zoom", "google", "apple", "icloud"],
-    Insurance: ["insurance", "premium", "policy", "lic", "medical", "term", "car insurance", "bike insurance"],
-    Grooming: ["groom", "salon", "parlor", "hair", "cut", "spa", "massage", "facial", "makeup"],
+    Software: ["software", "app", "cloud", "it", "saas", "hosting", "domain", "adobe", "figma", "notion", "slack", "zoom", "google", "apple", "icloud", "aws", "azure", "salesforce", "hubspot", "zoho", "freshworks", "github", "gitlab", "digitalocean", "vercel", "netlify"],
+    Streaming: ["subsc", "netflix", "spotify", "youtube", "premium", "disney", "hulu", "hbo", "hotstar", "prime", "membership", "plan", "monthly", "yearly", "apple music", "jio saavn", "gaana", "wynk"],
+    Insurance: ["insurance", "premium", "policy", "lic", "medical", "term", "car insurance", "bike insurance", "hdfc life", "icici prudential", "star health", "niva bupa", "religare"],
+    Grooming: ["groom", "salon", "parlor", "hair", "cut", "spa", "massage", "facial", "makeup", "sephora", "purplle", "mamaearth", "lakme", "beardo", "shaving", "ustraa"],
     Gifts: ["gift", "present", "birthday", "anniversary", "wedding", "charity", "donation", "tip"],
-    Furniture: ["furn", "table", "chair", "bed", "sofa", "desk", "decor", "curtain", "lamp", "ikea"],
-    Investment: ["invest", "stock", "mutual", "sip", "fd", "gold", "crypto", "bitcoin", "share", "broker", "zerodha", "groww"],
+    Furniture: ["furn", "table", "chair", "bed", "sofa", "desk", "decor", "curtain", "lamp", "ikea", "pepperfry", "urban ladder", "godrej"],
+    Investment: ["invest", "stock", "mutual", "sip", "fd", "gold", "crypto", "bitcoin", "share", "broker", "zerodha", "groww", "upstox", "angel one", "kite", "et money", "kuvera", "indmoney", "coinswitch", "wazirx", "binance", "coinbase", "fidelity", "vanguard", "robinhood", "etoro", "schwab", "wealthy", "tanishq"],
+    Bank: ["bank", "transfer", "hdfc", "icici", "sbi", "axis", "kotak", "atm", "cash", "neft", "rtgs", "imps", "wire", "hsbc", "standard chartered", "citi", "amex", "rupay", "slice", "onecard", "lazypay", "simpl", "phonepe", "paytm", "gpay", "bharatpe"],
   };
 
   // Direct match search

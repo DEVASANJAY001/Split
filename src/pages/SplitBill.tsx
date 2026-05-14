@@ -15,6 +15,7 @@ import { CATEGORY_LIBRARY, ALL_ICONS, suggestCategory } from "@/lib/categories";
 import { Modal } from "@/components/Modal";
 import { Search, ChevronRight, Grid, LayoutGrid, Sparkles, Image as ImageIcon } from "lucide-react";
 import { getBrandIcon } from "@/lib/brand-icons";
+import { BrandIcon } from "@/components/BrandIcon";
 
 const MODES: { id: SplitMode; label: string }[] = [
   { id: "equal", label: "Equally" },
@@ -264,7 +265,7 @@ export default function SplitBill() {
               value={title}
               onChange={(e) => onTitleChange(e.target.value)}
               placeholder="Add - enter here"
-              className="w-full bg-transparent text-xl font-bold outline-none placeholder:text-brand-foreground/40"
+              className="w-full bg-transparent text-lg font-bold outline-none placeholder:text-brand-foreground/40"
             />
           </div>
 
@@ -284,7 +285,7 @@ export default function SplitBill() {
                 value={total || ""}
                 onChange={(e) => setTotal(parseFloat(e.target.value) || 0)}
                 placeholder="0.00"
-                className="text-6xl font-black tracking-tightest bg-transparent outline-none w-full tabular-nums placeholder:text-brand-foreground/30 focus:placeholder:opacity-0 transition-all"
+                className="text-4xl font-black tracking-tightest bg-transparent outline-none w-full tabular-nums placeholder:text-brand-foreground/30 focus:placeholder:opacity-0 transition-all"
                 autoFocus
               />
             </div>
@@ -301,15 +302,16 @@ export default function SplitBill() {
             <SurfaceCard padding="sm" className="bg-surface-soft/40 border-dashed border-brand/20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {getBrandIcon(title) ? (
-                    <div className="size-9 rounded-xl bg-white shadow-sm flex items-center justify-center p-1.5 shrink-0 border border-hairline/30">
-                      <img src={getBrandIcon(title)!} alt="" className="size-full object-contain" />
-                    </div>
-                  ) : (
-                    <div className="size-9 rounded-xl bg-brand/5 text-brand flex items-center justify-center shrink-0">
-                      <Sparkles className={cn("size-4", isIdentifying && "animate-spin-slow")} />
-                    </div>
-                  )}
+                  <BrandIcon 
+                    description={title} 
+                    size="md" 
+                    className="rounded-xl bg-white border-hairline/30 p-1.5"
+                    fallback={
+                      <div className="size-9 rounded-xl bg-brand/5 text-brand flex items-center justify-center shrink-0">
+                        <Sparkles className={cn("size-4", isIdentifying && "animate-spin-slow")} />
+                      </div>
+                    }
+                  />
                   
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-brand/80">
@@ -548,76 +550,85 @@ export default function SplitBill() {
       <Modal
         isOpen={isCatModalOpen}
         onClose={() => setIsCatModalOpen(false)}
-        title="Choose Category"
-        className="md:max-w-xl"
+        title="Category & Icons"
+        className="md:max-w-md"
       >
-        <div className="space-y-6">
-          <div className="relative">
-            <Search className="size-4 text-ink-soft absolute left-4 top-1/2 -translate-y-1/2" />
-            <input 
-              value={catSearch}
-              onChange={(e) => setCatSearch(e.target.value)}
-              placeholder="Search hundreds of categories..."
-              className="w-full bg-surface-soft rounded-2xl pl-11 pr-4 py-3.5 text-sm outline-none border border-hairline focus:ring-2 focus:ring-brand transition-all"
-            />
-          </div>
-
-          <div className="space-y-4">
-            <label className="text-[10px] font-black uppercase tracking-widest text-ink-soft">Custom Category</label>
-            <div className="flex gap-2">
+        <div className="space-y-5">
+          {/* Unified Search & Custom Add */}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="size-4 text-ink-soft absolute left-4 top-1/2 -translate-y-1/2" />
               <input 
-                value={customCategory}
-                onChange={(e) => setCustomCategory(e.target.value)}
-                placeholder="Enter custom name..."
-                className="flex-1 bg-surface-soft rounded-2xl px-4 py-3 text-sm outline-none border border-hairline focus:ring-2 focus:ring-brand transition-all"
+                value={catSearch}
+                onChange={(e) => setCatSearch(e.target.value)}
+                placeholder="Search categories..."
+                className="w-full bg-surface-soft rounded-xl pl-11 pr-4 py-3 text-sm outline-none border border-hairline focus:ring-2 focus:ring-brand transition-all"
               />
-              <button 
-                disabled={!customCategory.trim()}
-                onClick={() => {
-                  setCategory(customCategory.trim() as Category);
-                  setIsCatModalOpen(false);
-                }}
-                className="px-6 rounded-2xl bg-brand text-white font-bold text-xs uppercase tracking-widest disabled:opacity-50 transition-all hover:opacity-90 active:scale-95"
-              >
-                Add
-              </button>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-            {CATEGORY_LIBRARY.filter(c => c.name.toLowerCase().includes(catSearch.toLowerCase())).map((c) => {
-              const Icon = c.icon;
-              return (
-                <button
-                  key={c.id}
+            
+            {!catSearch && (
+              <div className="flex gap-2">
+                <input 
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  placeholder="Or enter custom name..."
+                  className="flex-1 bg-surface-soft/50 rounded-xl px-4 py-2.5 text-[11px] outline-none border border-hairline/50 focus:border-brand transition-all"
+                />
+                <button 
+                  disabled={!customCategory.trim()}
                   onClick={() => {
-                    setCategory(c.id as Category);
+                    setCategory(customCategory.trim() as Category);
                     setIsCatModalOpen(false);
                   }}
-                  className={cn(
-                    "flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all hover:scale-105 active:scale-95",
-                    category === c.id 
-                      ? "bg-brand/10 border-brand text-brand shadow-sm" 
-                      : "bg-surface-soft/50 border-hairline text-ink-soft hover:bg-surface-soft"
-                  )}
+                  className="px-4 rounded-xl bg-brand text-white font-bold text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all active:scale-95"
                 >
-                  <div className={cn(
-                    "size-10 rounded-xl flex items-center justify-center transition-colors",
-                    category === c.id ? "bg-brand text-white" : "bg-white dark:bg-ink shadow-sm"
-                  )}>
-                    <Icon className="size-5" />
-                  </div>
-                  <span className="text-[11px] font-bold text-center leading-tight">{c.name}</span>
+                  Add
                 </button>
-              );
-            })}
+              </div>
+            )}
+          </div>
+
+          {/* Main Grid: Horizontal Style */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft/60 px-1">Library Categories</h3>
+            <div className="grid grid-cols-2 gap-2 max-h-[35vh] overflow-y-auto pr-1 custom-scrollbar">
+              {CATEGORY_LIBRARY.filter(c => c.name.toLowerCase().includes(catSearch.toLowerCase())).map((c) => {
+                const Icon = c.icon;
+                const isSelected = category === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setCategory(c.id as Category);
+                      setIsCatModalOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 p-2 rounded-xl border transition-all text-left",
+                      isSelected 
+                        ? "bg-brand/10 border-brand text-brand ring-1 ring-brand/20" 
+                        : "bg-surface-soft/30 border-hairline/50 text-ink hover:bg-surface-soft hover:border-hairline"
+                    )}
+                  >
+                    <div className={cn(
+                      "size-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                      isSelected ? "bg-brand text-white shadow-brand" : "bg-white dark:bg-ink shadow-soft border border-hairline/20"
+                    )}>
+                      <Icon className="size-4" strokeWidth={2.5} />
+                    </div>
+                    <span className="text-[11px] font-bold truncate pr-1">{c.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           
-          <div className="pt-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-ink-soft block mb-3">Usage Library</label>
-            <div className="flex flex-wrap gap-2">
-              {ALL_ICONS.slice(0, 30).map((item) => {
+          {/* Usage Library: Compact Icons */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft/60 px-1">Visual Glyphs</h3>
+            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
+              {ALL_ICONS.slice(0, 32).map((item) => {
                 const Icon = item.icon;
+                const isSelected = category === item.name;
                 return (
                   <button
                     key={item.name}
@@ -626,13 +637,13 @@ export default function SplitBill() {
                       setIsCatModalOpen(false);
                     }}
                     className={cn(
-                      "size-9 rounded-xl flex items-center justify-center transition-all",
-                      category === item.name 
-                        ? "bg-brand text-white shadow-brand scale-110" 
-                        : "bg-surface-soft text-ink-soft hover:bg-brand/10 hover:text-brand"
+                      "size-8 rounded-lg flex items-center justify-center transition-all",
+                      isSelected 
+                        ? "bg-brand text-white shadow-brand ring-2 ring-brand/20 scale-110" 
+                        : "bg-surface-soft/50 text-ink-soft hover:bg-brand/10 hover:text-brand"
                     )}
                   >
-                    <Icon className="size-4" />
+                    <Icon className="size-3.5" />
                   </button>
                 );
               })}

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { Person } from "@/lib/store";
 
@@ -41,7 +42,7 @@ const getGradient = (name: string) => {
   return gradients[Math.abs(hash) % gradients.length];
 };
 
-export function PersonAvatar({ person, size = "md", className, ring }: AvatarProps) {
+export const PersonAvatar = memo(function PersonAvatar({ person, size = "md", className, ring }: AvatarProps) {
   const name = person.displayName || person.name || "User";
   const initials = person.initials || name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
@@ -73,9 +74,9 @@ export function PersonAvatar({ person, size = "md", className, ring }: AvatarPro
       )}
     </div>
   );
-}
+});
 
-export function AvatarStack({
+export const AvatarStack = memo(function AvatarStack({
   people: list,
   max = 4,
   size = "md",
@@ -103,4 +104,4 @@ export function AvatarStack({
       )}
     </div>
   );
-}
+});

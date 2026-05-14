@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SurfaceCard } from "../SurfaceCard";
@@ -18,7 +18,7 @@ interface SelectProps {
   variant?: "glass" | "outline" | "surface";
 }
 
-export function CustomSelect({ value, onChange, options, placeholder = "Select...", className, variant = "surface" }: SelectProps) {
+export const CustomSelect = memo(function CustomSelect({ value, onChange, options, placeholder = "Select...", className, variant = "surface" }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const selected = options.find(o => o.value === value);
@@ -80,4 +80,4 @@ export function CustomSelect({ value, onChange, options, placeholder = "Select..
       )}
     </div>
   );
-}
+});

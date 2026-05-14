@@ -1,14 +1,13 @@
 import { cn } from "@/lib/utils";
-import { HTMLAttributes, forwardRef } from "react";
-
+import { HTMLAttributes, forwardRef, memo } from "react";
 interface SurfaceCardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: "default" | "brand" | "soft" | "outline" | "glass";
   padding?: "sm" | "md" | "lg" | "none";
 }
 
-const padMap = { sm: "p-3", md: "p-4", lg: "p-6", none: "p-0" };
+const padMap = { sm: "p-2", md: "p-3", lg: "p-4", none: "p-0" };
 
-export const SurfaceCard = forwardRef<HTMLDivElement, SurfaceCardProps>(
+export const SurfaceCard = memo(forwardRef<HTMLDivElement, SurfaceCardProps>(
   ({ className, variant = "default", padding = "md", ...props }, ref) => {
     const variantClasses = {
       default: "bg-surface shadow-soft border border-hairline/50",
@@ -25,5 +24,5 @@ export const SurfaceCard = forwardRef<HTMLDivElement, SurfaceCardProps>(
       />
     );
   },
-);
+));
 SurfaceCard.displayName = "SurfaceCard";

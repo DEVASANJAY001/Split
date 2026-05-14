@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { Home, Users, BarChart3, Receipt, Plus, UserPlus, User, ArrowLeft } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -102,7 +103,7 @@ interface PageHeaderProps {
   showBack?: boolean;
 }
 
-export function PageHeader({ title, subtitle, showActions = true, showModeSwitch = false, onAdd, showBack = false }: PageHeaderProps) {
+export const PageHeader = memo(function PageHeader({ title, subtitle, showActions = true, showModeSwitch = false, onAdd, showBack = false }: PageHeaderProps) {
   const navigate = useNavigate();
   const { mode, setMode, profile } = useStore();
   const handleAdd = onAdd ?? (() => navigate("/groups?create=true"));
@@ -179,4 +180,4 @@ export function PageHeader({ title, subtitle, showActions = true, showModeSwitch
       )}
     </header>
   );
-}
+});

@@ -9,10 +9,10 @@ import { CustomSelect } from "@/components/ui/select";
 import { ArrowDownLeft, ArrowUpRight, Search, SlidersHorizontal, Trash2, ArrowRight, MoreVertical, Edit3, History as HistoryIcon } from "lucide-react";
 import { categoryIcons, groupIcons } from "@/lib/icons";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { getBrandIcon } from "@/lib/brand-icons";
 import { ConfirmModal } from "@/components/Modal";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { BrandIcon } from "@/components/BrandIcon";
 
 const CATS: ("All" | Category)[] = ["All", "Food", "Travel", "Rent", "Utilities", "Shopping", "Entertainment", "Fuel", "Bills", "Other"];
 
@@ -42,7 +42,6 @@ export default function Transactions() {
         if (amountRange && (e.amount < amountRange[0] || e.amount > amountRange[1])) continue;
 
         const payer = personById(people, e.paidBy, profile);
-        const Icon = categoryIcons[e.category] || categoryIcons["Other"];
         const isIncome = e.paidBy !== userId;
         
         out.push({
@@ -50,15 +49,7 @@ export default function Transactions() {
           node: (
             <li key={e.id} className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                {getBrandIcon(e.description) ? (
-                  <div className="size-10 rounded-full bg-surface shadow-soft flex items-center justify-center p-2.5 shrink-0 border border-hairline/50">
-                    <img src={getBrandIcon(e.description)!} alt="" className="size-full object-contain dark:invert" />
-                  </div>
-                ) : (
-                  <div className="size-10 rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center shrink-0">
-                    <Icon className="size-4" strokeWidth={2.25} />
-                  </div>
-                )}
+                <BrandIcon description={e.description} person={payer!} size="md" imgClassName="dark:invert" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
                   <p className="text-[11px] text-ink-soft truncate">{g.name} · {payer?.name?.split(" ")[0] || "User"}</p>
@@ -104,15 +95,16 @@ export default function Transactions() {
           node: (
             <li key={e.id} className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                {getBrandIcon(e.description) ? (
-                  <div className="size-10 rounded-full bg-surface shadow-soft flex items-center justify-center p-2.5 shrink-0 border border-hairline/50">
-                    <img src={getBrandIcon(e.description)!} alt="" className="size-full object-contain dark:invert" />
-                  </div>
-                ) : (
-                  <div className="size-10 rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center shrink-0">
-                    <Icon className="size-4" strokeWidth={2.25} />
-                  </div>
-                )}
+                <BrandIcon 
+                  description={e.description} 
+                  size="md" 
+                  imgClassName="dark:invert"
+                  fallback={
+                    <div className="size-10 rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center shrink-0">
+                      <Icon className="size-4" strokeWidth={2.25} />
+                    </div>
+                  }
+                />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
                   <p className="text-[11px] text-ink-soft truncate">Personal · {e.category}</p>
@@ -273,10 +265,11 @@ export default function Transactions() {
           }
         }}
         title="Delete Transaction?"
-        message="This action cannot be undone. All related data will be permanently removed."
         confirmText="Delete"
-        variant="destructive"
-      />
+        confirmVariant="destructive"
+      >
+        This action cannot be undone. All related data will be permanently removed.
+      </ConfirmModal>
     </div>
   );
 }

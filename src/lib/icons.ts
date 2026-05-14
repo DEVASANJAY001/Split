@@ -1,4 +1,4 @@
-import { Plane, Home, Heart, PartyPopper, Briefcase, Package, Utensils, Car, Lightbulb, ShoppingBag, Film, Fuel, Receipt, Wallet, type LucideIcon } from "lucide-react";
+import { Plane, Home, Heart, PartyPopper, Briefcase, Package, Utensils, Car, Lightbulb, ShoppingBag, Film, Fuel, Receipt, Wallet, TrendingUp, Landmark, Repeat, type LucideIcon } from "lucide-react";
 import type { GroupType, Category } from "./store";
 
 export const groupIcons: Record<GroupType, LucideIcon> = {
@@ -19,6 +19,9 @@ export const categoryIcons: Record<Category, LucideIcon> = {
   Entertainment: Film,
   Fuel: Fuel,
   Bills: Receipt,
+  Investment: TrendingUp,
+  Bank: Landmark,
+  Streaming: Repeat,
   Other: Package,
 };
 

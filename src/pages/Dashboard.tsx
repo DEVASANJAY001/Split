@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/AppLayout";
 import { SurfaceCard } from "@/components/SurfaceCard";
 import { AvatarStack, PersonAvatar } from "@/components/Avatar";
@@ -11,10 +11,12 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { PromptModal, ConfirmModal } from "@/components/Modal";
 import { Trash2, MoreVertical, Edit3 } from "lucide-react";
-import { getBrandIcon } from "@/lib/brand-icons";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { BrandIcon } from "@/components/BrandIcon";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { groups, expenses, settlements, people, mode, personal, userId, profile, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal, savingsGoals, deleteExpense } = useStore();
   const cur = profile?.currency || "USD";
 
@@ -38,88 +40,8 @@ export default function Dashboard() {
     return { owe, owed, perGroup };
   }, [groups, expenses, settlements, userId]);
 
-  const recent = useMemo(() => {
-    const items: Array<{ id: string; ts: number; node: React.ReactNode }> = [];
-    for (const e of expenses) {
-      const g = groups.find((x) => x.id === e.groupId);
-      const payer = personById(people, e.paidBy);
-      const Icon = categoryIcons[e.category] || categoryIcons["Other"];
-      if (!g || !payer) continue;
-      items.push({
-        id: e.id, ts: e.createdAt,
-        node: (
-          <li key={e.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="size-10 rounded-full bg-surface-soft text-ink-soft flex items-center justify-center shrink-0 hover:bg-surface hover:text-ink transition-all">
-                      <MoreVertical className="size-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
-                    <DropdownMenuItem 
-                      onClick={() => navigate(`/split?edit=${e.id}`)}
-                      className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
-                    >
-                      <Edit3 className="size-3.5" />
-                      <span className="text-xs font-bold">Edit</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => setDeleteId({ id: e.id, isPersonal: false })}
-                      className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50"
-                    >
-                      <Trash2 className="size-3.5" />
-                      <span className="text-xs font-bold">Delete</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {getBrandIcon(e.description) ? (
-                  <div className="size-10 rounded-full bg-surface shadow-soft flex items-center justify-center p-2.5 shrink-0 border border-hairline/50">
-                    <img src={getBrandIcon(e.description)!} alt="" className="size-full object-contain" />
-                  </div>
-              ) : (
-                <PersonAvatar person={payer} size="md" />
-              )}
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
-                <p className="text-[11px] text-ink-soft truncate">
-                  {payer.id === userId ? "You" : payer?.name?.split(" ")[0] || "User"} paid · {g.name}
-                </p>
-              </div>
-            </div>
-            <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
-          </li>
-        ),
-      });
-    }
-    for (const s of settlements) {
-      const g = groups.find((x) => x.id === s.groupId);
-      const from = personById(people, s.from);
-      const to = personById(people, s.to);
-      if (!g || !from || !to) continue;
-      items.push({
-        id: s.id, ts: s.createdAt,
-        node: (
-          <li key={s.id} className="flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="size-10 rounded-full bg-success/15 text-success flex items-center justify-center shrink-0">
-                <ArrowDownLeft className="size-4" strokeWidth={2.25} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-ink truncate">
-                  {from.id === userId ? "You" : from?.name?.split(" ")[0] || "User"} → {to.id === userId ? "you" : to?.name?.split(" ")[0] || "User"}
-                </p>
-                <p className="text-[11px] text-ink-soft truncate">Settled · {g.name}</p>
-              </div>
-            </div>
-            <p className="text-sm font-bold tabular-nums text-success shrink-0">{fmt(s.amount, cur)}</p>
-          </li>
-        ),
-      });
-    }
-    return items.sort((a, b) => b.ts - a.ts).slice(0, 6);
-  }, [expenses, settlements, groups, people, userId, cur]);
+  const groupExpenses = useMemo(() => expenses.sort((a, b) => b.createdAt - a.createdAt).slice(0, 5), [expenses]);
+  const groupSettlements = useMemo(() => settlements.sort((a, b) => b.createdAt - a.createdAt).slice(0, 5), [settlements]);
 
   const personalStats = useMemo(() => {
     const total = personal.reduce((a, e) => a + e.amount, 0);
@@ -154,12 +76,13 @@ export default function Dashboard() {
     }).sort((a, b) => b.lastActivity - a.lastActivity).slice(0, 4);
   }, [groups, expenses, settlements]);
 
-  if (mode === "personal") {
-    return (
-      <div>
-        <PageHeader title="Split" subtitle="Personal expenses" showModeSwitch />
-        <div className="px-5 space-y-4">
-          <div>
+  return (
+    <div className="min-h-screen bg-background pb-nav-clearance">
+      <PageHeader title="Split" subtitle={mode === "personal" ? "Personal expenses" : "Shared expenses, simplified"} showModeSwitch />
+
+      <div className="px-5 space-y-4">
+        {mode === "personal" ? (
+          <>
             <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden">
               <p className="text-sm font-medium opacity-90 mb-2">Spent this month</p>
               <p className="text-5xl font-bold tracking-tightest tabular-nums">{fmt(personalStats.month, cur)}</p>
@@ -203,25 +126,6 @@ export default function Dashboard() {
               <div className="absolute -right-20 -bottom-20 size-56 rounded-full bg-brand-foreground/10" />
             </SurfaceCard>
 
-            <SurfaceCard variant="glass" className="border-warning/30">
-              <div className="flex items-center gap-4">
-                <div className="size-12 rounded-2xl bg-warning/20 text-warning flex items-center justify-center shrink-0 shadow-lg shadow-warning/10">
-                  <Sparkles className="size-6" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-black text-ink uppercase tracking-wider">Smart Insight</p>
-                  <p className="text-xs text-ink-soft leading-relaxed font-medium mt-0.5">
-                    {personalStats.progress > 80 
-                      ? "Critical: You've used over 80% of your budget. Slow down on non-essentials."
-                      : personalStats.topCat !== "None"
-                      ? `Your biggest expense is ${personalStats.topCat}. Could you save 10% there next month?`
-                      : "Add more expenses to unlock AI-powered spending insights."}
-                  </p>
-                </div>
-              </div>
-            </SurfaceCard>
-
-            {/* Savings Goals Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-sm font-black uppercase tracking-widest text-ink/70">Savings Goals</h3>
@@ -360,221 +264,286 @@ export default function Dashboard() {
             >
               Are you sure you want to delete the goal <span className="font-bold text-ink">"{selectedGoal?.title}"</span>? This will permanently remove your progress.
             </ConfirmModal>
-          </div>
 
-          <div>
-            <Link to="/split" className="block">
-              <SurfaceCard padding="md" className="hover:shadow-card transition-shadow flex items-center gap-3">
-                <div className="size-10 rounded-full bg-brand text-brand-foreground flex items-center justify-center">
-                  <Wallet className="size-5" strokeWidth={2.25} />
+            <div>
+              <Link to="/split" className="block">
+                <SurfaceCard padding="md" className="hover:shadow-card transition-shadow flex items-center gap-3">
+                  <div className="size-10 rounded-full bg-brand text-brand-foreground flex items-center justify-center">
+                    <Wallet className="size-5" strokeWidth={2.25} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-ink">Add personal expense</p>
+                    <p className="text-[11px] text-ink-soft">Track a private spend</p>
+                  </div>
+                </SurfaceCard>
+              </Link>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-end justify-between pt-2 px-1">
+                <h3 className="text-base font-bold text-ink">Recent personal</h3>
+                <Link to="/transactions?mode=personal" className="text-xs text-brand font-semibold">See all</Link>
+              </div>
+              <SurfaceCard padding="md">
+                {recentPersonal.length === 0 ? (
+                  <p className="text-sm text-ink-soft text-center py-4">No personal expenses yet.</p>
+                ) : (
+                  <ul className="space-y-4">
+                    {recentPersonal.map((e) => {
+                      const Icon = categoryIcons[e.category] || categoryIcons["Other"];
+                      return (
+                        <li key={e.id}>
+                          <div className="flex items-center justify-between group/item">
+                            <Link key={e.id} to={`/split?edit=${e.id}`} className="flex items-center justify-between flex-1 min-w-0">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <BrandIcon 
+                                  description={e.description} 
+                                  size="md" 
+                                  fallback={
+                                    <div className="size-10 rounded-full bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                                      <Icon className="size-4" strokeWidth={2} />
+                                    </div>
+                                  } 
+                                />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
+                                  <p className="text-[11px] text-ink-soft">{e.category} · {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                                </div>
+                              </div>
+                              <p className="text-sm font-bold tabular-nums text-ink shrink-0 mr-2">{fmt(e.amount, cur)}</p>
+                            </Link>
+                            
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="size-8 rounded-full bg-surface-soft text-ink-soft flex items-center justify-center shrink-0 hover:bg-surface hover:text-ink transition-all">
+                                  <MoreVertical className="size-3.5" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                                <DropdownMenuItem 
+                                  onClick={() => navigate(`/split?edit=${e.id}`)}
+                                  className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
+                                >
+                                  <Edit3 className="size-3.5" />
+                                  <span className="text-xs font-bold">Edit</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => setDeleteId({ id: e.id, isPersonal: true })}
+                                  className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                  <span className="text-xs font-bold">Delete</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </SurfaceCard>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden shadow-brand bg-gradient-to-br from-brand to-[#4338ca]">
+                <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Net Balance</p>
+                <div className="flex items-baseline gap-1">
+                  <p className="text-4xl font-extrabold tracking-tightest tabular-nums">
+                    {summary.owed - summary.owe >= 0 ? "+" : ""}{fmt(summary.owed - summary.owe, cur)}
+                  </p>
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-ink">Add personal expense</p>
-                  <p className="text-[11px] text-ink-soft">Track a private spend</p>
+                <div className="mt-6 grid grid-cols-2 gap-4 relative z-10">
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+                    <div className="flex items-center gap-1.5 opacity-80 text-[10px] font-bold uppercase tracking-wider mb-1"><TrendingUp className="size-3" /> Owed</div>
+                    <p className="text-xl font-bold tabular-nums">{fmt(summary.owed, cur)}</p>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+                    <div className="flex items-center gap-1.5 opacity-80 text-[10px] font-bold uppercase tracking-wider mb-1"><TrendingDown className="size-3" /> Owes</div>
+                    <p className="text-xl font-bold tabular-nums">{fmt(summary.owe, cur)}</p>
+                  </div>
                 </div>
               </SurfaceCard>
-            </Link>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-end justify-between pt-2 px-1">
-              <h3 className="text-base font-bold text-ink">Recent personal</h3>
-              <Link to="/transactions?mode=personal" className="text-xs text-brand font-semibold">See all</Link>
             </div>
-            <SurfaceCard padding="md">
-              {recentPersonal.length === 0 ? (
-                <p className="text-sm text-ink-soft text-center py-4">No personal expenses yet.</p>
-              ) : (
-                <ul className="space-y-4">
-                  {recentPersonal.map((e) => {
-                    const Icon = categoryIcons[e.category] || categoryIcons["Other"];
-                    return (
-                      <li key={e.id}>
-                        <div className="flex items-center justify-between group/item">
-                          <Link key={e.id} to={`/split?edit=${e.id}`} className="flex items-center justify-between flex-1 min-w-0">
-                            <div className="flex items-center gap-3 min-w-0">
-                              {getBrandIcon(e.description) ? (
-                                <div className="size-10 rounded-full bg-surface shadow-soft flex items-center justify-center p-2.5 shrink-0 border border-hairline/50">
-                                  <img src={getBrandIcon(e.description)!} alt="" className="size-full object-contain" />
-                                </div>
-                              ) : (
-                                <div className={cn("size-10 rounded-full flex items-center justify-center shrink-0", "bg-brand/10 text-brand")}>
-                                  <Icon className="size-4" strokeWidth={2} />
-                                </div>
-                              )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <Link to="/split" className="block">
+                <SurfaceCard padding="md" className="h-full hover:shadow-card transition-shadow">
+                  <div className="size-9 rounded-full bg-brand text-brand-foreground flex items-center justify-center mb-3">
+                    <Receipt className="size-4" strokeWidth={2.25} />
+                  </div>
+                  <p className="text-sm font-bold text-ink">Add expense</p>
+                  <p className="text-[11px] text-ink-soft">Split a new bill</p>
+                </SurfaceCard>
+              </Link>
+              <Link to="/groups" className="block">
+                <SurfaceCard padding="md" className="h-full hover:shadow-card transition-shadow">
+                  <div className="size-9 rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center mb-3">
+                    <ArrowUpRight className="size-4" strokeWidth={2.25} />
+                  </div>
+                  <p className="text-sm font-bold text-ink">Settle up</p>
+                  <p className="text-[11px] text-ink-soft">Mark debts as paid</p>
+                </SurfaceCard>
+              </Link>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-end justify-between pt-2 px-1">
+                <h3 className="text-base font-bold text-ink">Your groups</h3>
+                <Link to="/groups" className="text-xs text-brand font-semibold">See all</Link>
+              </div>
+
+              <div className="space-y-3">
+                {sortedGroups.map((g) => {
+                  const v = summary.perGroup[g.id] ?? 0;
+                  const members = g.memberIds.map((id) => personById(people, id)!).filter(Boolean);
+                  const Icon = groupIcons[g.type];
+                  return (
+                    <div key={g.id}>
+                      <Link to={`/groups/${g.id}`} className="block">
+                        <SurfaceCard padding="md" className="hover:shadow-card transition-all border-none bg-surface/50 backdrop-blur-sm">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className="size-12 rounded-2xl bg-brand text-white flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
+                                <Icon className="size-6" strokeWidth={2} />
+                              </div>
                               <div className="min-w-0">
-                                <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
-                                <p className="text-[11px] text-ink-soft">{e.category} · {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                                <p className="font-bold text-base text-ink truncate">{g.name}</p>
+                                <p className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">{g.type} · {members.length} members</p>
                               </div>
                             </div>
-                            <p className="text-sm font-bold tabular-nums text-ink shrink-0 mr-2">{fmt(e.amount, cur)}</p>
-                          </Link>
-                          
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="size-8 rounded-full bg-surface-soft text-ink-soft flex items-center justify-center shrink-0 hover:bg-surface hover:text-ink transition-all">
-                                <MoreVertical className="size-3.5" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
-                              <DropdownMenuItem 
-                                onClick={() => navigate(`/split?edit=${e.id}`)}
-                                className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
-                              >
-                                <Edit3 className="size-3.5" />
-                                <span className="text-xs font-bold">Edit</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => setDeleteId({ id: e.id, isPersonal: true })}
-                                className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50"
-                              >
-                                <Trash2 className="size-3.5" />
-                                <span className="text-xs font-bold">Delete</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </SurfaceCard>
-          </div>
-        </div>
-        <ConfirmModal
-          isOpen={!!deleteId}
-          onClose={() => setDeleteId(null)}
-          onConfirm={async () => {
-            if (deleteId) {
-              await deleteExpense(deleteId.id, deleteId.isPersonal);
-              setDeleteId(null);
-              toast.success("Expense deleted");
-            }
-          }}
-          title="Delete Expense"
-          description="Are you sure you want to delete this expense? This action cannot be undone."
-          confirmText="Delete"
-          variant="danger"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <PageHeader title="Split" subtitle="Shared expenses, simplified" showModeSwitch />
-
-      <div className="px-5 space-y-4">
-        <div>
-          <SurfaceCard variant="brand" padding="lg" className="relative overflow-hidden shadow-brand bg-gradient-to-br from-brand to-[#4338ca]">
-            <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Net Balance</p>
-            <div className="flex items-baseline gap-1">
-              <p className="text-4xl font-extrabold tracking-tightest tabular-nums">
-                {summary.owed - summary.owe >= 0 ? "+" : ""}{fmt(summary.owed - summary.owe, cur)}
-              </p>
-            </div>
-            <div className="mt-6 grid grid-cols-2 gap-4 relative z-10">
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                <div className="flex items-center gap-1.5 opacity-80 text-[10px] font-bold uppercase tracking-wider mb-1"><TrendingUp className="size-3" /> Owed</div>
-                <p className="text-xl font-bold tabular-nums">{fmt(summary.owed, cur)}</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                <div className="flex items-center gap-1.5 opacity-80 text-[10px] font-bold uppercase tracking-wider mb-1"><TrendingDown className="size-3" /> Owes</div>
-                <p className="text-xl font-bold tabular-nums">{fmt(summary.owe, cur)}</p>
+                            <div className="text-right shrink-0">
+                              <p className={cn("text-base font-black tabular-nums", v > 0.01 ? "text-success" : v < -0.01 ? "text-destructive" : "text-ink-soft")}>
+                                {v > 0.01 ? "+" : ""}{fmt(v, cur)}
+                              </p>
+                              <p className="text-[10px] font-bold uppercase tracking-tight text-ink-soft opacity-60">{v > 0.01 ? "Receivable" : v < -0.01 ? "Payable" : "Settled"}</p>
+                            </div>
+                          </div>
+                          <div className="mt-4 flex items-center justify-between">
+                            <AvatarStack people={members} max={5} size="sm" />
+                            <div className="px-2 py-1 bg-surface-soft rounded-full text-[10px] font-bold text-ink-soft">
+                              View Details
+                            </div>
+                          </div>
+                        </SurfaceCard>
+                      </Link>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </SurfaceCard>
-        </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Link to="/split" className="block">
-            <SurfaceCard padding="md" className="h-full hover:shadow-card transition-shadow">
-              <div className="size-9 rounded-full bg-brand text-brand-foreground flex items-center justify-center mb-3">
-                <Receipt className="size-4" strokeWidth={2.25} />
+            <div className="space-y-4">
+              <div className="flex items-end justify-between pt-2 px-1">
+                <h3 className="text-base font-bold text-ink">Recent shared expenses</h3>
+                <Link to="/transactions?mode=group" className="text-xs text-brand font-semibold">See all</Link>
               </div>
-              <p className="text-sm font-bold text-ink">Add expense</p>
-              <p className="text-[11px] text-ink-soft">Split a new bill</p>
-            </SurfaceCard>
-          </Link>
-          <Link to="/groups" className="block">
-            <SurfaceCard padding="md" className="h-full hover:shadow-card transition-shadow">
-              <div className="size-9 rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center mb-3">
-                <ArrowUpRight className="size-4" strokeWidth={2.25} />
+              <SurfaceCard padding="md">
+                {groupExpenses.length === 0 ? (
+                  <p className="text-sm text-ink-soft text-center py-4">No shared expenses yet.</p>
+                ) : (
+                  <ul className="space-y-4">
+                    {groupExpenses.map((e) => {
+                      const g = groups.find((x) => x.id === e.groupId);
+                      const payer = personById(people, e.paidBy);
+                      if (!g || !payer) return null;
+                      return (
+                        <li key={e.id} className="flex items-center justify-between group/item">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="size-10 rounded-full bg-surface-soft text-ink-soft flex items-center justify-center shrink-0 hover:bg-surface hover:text-ink transition-all">
+                                  <MoreVertical className="size-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                                <DropdownMenuItem 
+                                  onClick={() => navigate(`/split?edit=${e.id}`)}
+                                  className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
+                                >
+                                  <Edit3 className="size-3.5" />
+                                  <span className="text-xs font-bold">Edit</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => setDeleteId({ id: e.id, isPersonal: false })}
+                                  className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                  <span className="text-xs font-bold">Delete</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            <BrandIcon description={e.description} person={payer} size="md" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
+                              <p className="text-[11px] text-ink-soft truncate">
+                                {payer.id === userId ? "You" : payer?.name?.split(" ")[0] || "User"} paid · {g.name}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </SurfaceCard>
+            </div>
+
+            {groupSettlements.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-base font-bold text-ink px-1 pt-2">Recent settlements</h3>
+                <SurfaceCard padding="md">
+                  <ul className="space-y-4">
+                    {groupSettlements.map((s) => {
+                      const g = groups.find((x) => x.id === s.groupId);
+                      const from = personById(people, s.from);
+                      const to = personById(people, s.to);
+                      if (!g || !from || !to) return null;
+                      return (
+                        <li key={s.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="size-10 rounded-full bg-success/15 text-success flex items-center justify-center shrink-0">
+                              <ArrowDownLeft className="size-4" strokeWidth={2.25} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-ink truncate">
+                                {from.id === userId ? "You" : from?.name?.split(" ")[0] || "User"} → {to.id === userId ? "you" : to?.name?.split(" ")[0] || "User"}
+                              </p>
+                              <p className="text-[11px] text-ink-soft truncate">Settled · {g.name}</p>
+                            </div>
+                          </div>
+                          <p className="text-sm font-bold tabular-nums text-success shrink-0">{fmt(s.amount, cur)}</p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </SurfaceCard>
               </div>
-              <p className="text-sm font-bold text-ink">Settle up</p>
-              <p className="text-[11px] text-ink-soft">Mark debts as paid</p>
-            </SurfaceCard>
-          </Link>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-end justify-between pt-2 px-1">
-            <h3 className="text-base font-bold text-ink">Your groups</h3>
-            <Link to="/groups" className="text-xs text-brand font-semibold">See all</Link>
-          </div>
-
-          <div className="space-y-3">
-            {sortedGroups.map((g) => {
-              const v = summary.perGroup[g.id] ?? 0;
-              const members = g.memberIds.map((id) => personById(people, id)!).filter(Boolean);
-              const Icon = groupIcons[g.type];
-              return (
-                <div key={g.id}>
-                  <Link to={`/groups/${g.id}`} className="block">
-                    <SurfaceCard padding="md" className="hover:shadow-card transition-all border-none bg-surface/50 backdrop-blur-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div className="size-12 rounded-2xl bg-brand text-white flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
-                            <Icon className="size-6" strokeWidth={2} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-base text-ink truncate">{g.name}</p>
-                            <p className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">{g.type} · {members.length} members</p>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className={cn("text-base font-black tabular-nums", v > 0.01 ? "text-success" : v < -0.01 ? "text-destructive" : "text-ink-soft")}>
-                            {v > 0.01 ? "+" : ""}{fmt(v, cur)}
-                          </p>
-                          <p className="text-[10px] font-bold uppercase tracking-tight text-ink-soft opacity-60">{v > 0.01 ? "Receivable" : v < -0.01 ? "Payable" : "Settled"}</p>
-                        </div>
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <AvatarStack people={members} max={5} size="sm" />
-                        <div className="px-2 py-1 bg-surface-soft rounded-full text-[10px] font-bold text-ink-soft">
-                          View Details
-                        </div>
-                      </div>
-                    </SurfaceCard>
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-end justify-between pt-2 px-1">
-            <h3 className="text-base font-bold text-ink">Recent activity</h3>
-            <Link to="/transactions" className="text-xs text-brand font-semibold">See all</Link>
-          </div>
-
-          <SurfaceCard padding="md">
-            {recent.length === 0 ? (
-              <p className="text-sm text-ink-soft text-center py-4">No activity yet.</p>
-            ) : (
-              <ul className="space-y-4">
-                {recent.map((r, i) => (
-                  <div key={r.id} className={cn(i === 0 && "bg-brand/5 -mx-2 px-2 py-1 rounded-xl ring-1 ring-brand/10")}>
-                    {r.node}
-                  </div>
-                ))}
-              </ul>
             )}
-          </SurfaceCard>
-        </div>
+          </>
+        )}
       </div>
+      
+      <ConfirmModal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={async () => {
+          if (deleteId) {
+            await deleteExpense(deleteId.id, deleteId.isPersonal);
+            setDeleteId(null);
+            toast.success("Expense deleted");
+          }
+        }}
+        title="Delete Expense"
+        confirmText="Delete"
+        confirmVariant="destructive"
+      >
+        Are you sure you want to delete this expense? This action cannot be undone.
+      </ConfirmModal>
     </div>
   );
 }

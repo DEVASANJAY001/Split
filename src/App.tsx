@@ -26,6 +26,7 @@ import ForgotPassword from "./pages/Auth/ForgotPassword";
 import ProfileSetup from "./pages/Auth/ProfileSetup";
 import GetStarted from "./pages/Auth/GetStarted";
 import { useStore } from "./lib/store";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -100,6 +101,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <ScrollToTop />
         <div className="h-full">
           <Routes>
             <Route path="/get-started" element={<OnboardingRoute><GetStarted /></OnboardingRoute>} />

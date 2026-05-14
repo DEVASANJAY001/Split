@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useStore } from "@/lib/store";
 import { Mail, Lock, LogIn, Eye, EyeOff, AlertCircle } from "lucide-react";
@@ -19,6 +19,15 @@ export default function LoginPage() {
             navigate("/");
         }
     }, [userId, authLoading, navigate]);
+
+    // Handle Redirect Result for APK/WebView environments
+    useEffect(() => {
+        getRedirectResult(auth).catch((error: any) => {
+            if (error.code !== "auth/redirect-cancelled-by-user") {
+                console.error("Redirect error:", error);
+            }
+        });
+    }, []);
 
     const [shakeEmail, setShakeEmail] = useState(false);
     const [shakePassword, setShakePassword] = useState(false);
@@ -53,7 +62,7 @@ export default function LoginPage() {
                 toast.error("Email is wrong");
                 setEmailError("Entered email id is invalid");
                 triggerShake('email');
-            } else if (error.code === "auth/too-many-requests") {
+              } else if (error.code === "auth/too-many-requests") {
                 toast.error("Too many failed attempts. Please try again later.");
             } else {
                 toast.error(error.message);
@@ -65,8 +74,8 @@ export default function LoginPage() {
 
     const handleGoogleLogin = async () => {
         try {
-            await signInWithPopup(auth, googleProvider);
-            navigate("/");
+            // Use Redirect instead of Popup for better compatibility with APK/WebViews
+            await signInWithRedirect(auth, googleProvider);
         } catch (error: any) {
             toast.error(error.message);
         }

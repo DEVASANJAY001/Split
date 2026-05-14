@@ -7,17 +7,19 @@ import { useStore, netBalances, simplifyDebts, personById, SettleMethod } from "
 import { fmt } from "@/lib/finance";
 import { groupIcons } from "@/lib/icons";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ArrowRight, Plus, Check, X, QrCode, UserPlus, Trash2, UserMinus, MessageSquare, ExternalLink, Download } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Check, X, QrCode, UserPlus, Trash2, UserMinus, MessageSquare, ExternalLink, Download, MoreVertical, Edit3, ArrowDownLeft } from "lucide-react";
 import { GroupChat } from "@/components/GroupChat";
 import { toast } from "sonner";
 import { ConfirmModal } from "@/components/Modal";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { BrandIcon } from "@/components/BrandIcon";
 
 const METHODS: SettleMethod[] = ["Cash", "UPI", "Bank Transfer", "Other"];
 
 export default function GroupDetail() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { groups, expenses, settlements, people, friendIds, addSettlement, updateGroupMembers, userId, profile, deleteGroup, shoppingLists, addShoppingItem, toggleShoppingItem, deleteShoppingItem } = useStore();
+  const { groups, expenses, settlements, people, friendIds, addSettlement, updateGroupMembers, userId, profile, deleteGroup, shoppingLists, addShoppingItem, toggleShoppingItem, deleteShoppingItem, deleteExpense } = useStore();
   const group = groups.find((g) => g.id === id);
   const cur = group?.currency || profile?.currency || "USD";
 
@@ -29,6 +31,7 @@ export default function GroupDetail() {
   const [activeTab, setActiveTab] = useState<"balances" | "list">("balances");
   const [newItemText, setNewItemText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; personId: string; name: string }>({ open: false, personId: "", name: "" });
+  const [expenseDeleteId, setExpenseDeleteId] = useState<string | null>(null);
 
   const net = useMemo(() => group ? netBalances(group, expenses, settlements) : {}, [group, expenses, settlements]);
   const plan = useMemo(() => simplifyDebts(net), [net]);
@@ -40,6 +43,82 @@ export default function GroupDetail() {
     () => settlements.filter((s) => s.groupId === id).sort((a, b) => b.createdAt - a.createdAt),
     [settlements, id],
   );
+
+  const activity = useMemo(() => {
+    const items: Array<{ id: string; ts: number; node: React.ReactNode }> = [];
+    
+    // Add Expenses
+    for (const e of groupExpenses) {
+      const payer = personById(people, e.paidBy)!;
+      if (!payer) continue;
+      items.push({
+        id: e.id,
+        ts: e.createdAt,
+        node: (
+          <li key={e.id} className="flex items-center justify-between group/item">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <PersonAvatar person={payer} size="md" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
+                <p className="text-[11px] text-ink-soft">
+                  {payer.id === userId ? "You" : payer.name.split(" ")[0]} paid · {e.category} · {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="size-8 rounded-full text-ink-soft hover:bg-surface-soft flex items-center justify-center shrink-0 transition-all opacity-0 group-hover/item:opacity-100">
+                    <MoreVertical className="size-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                  <DropdownMenuItem onClick={() => navigate(`/split?edit=${e.id}`)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft">
+                    <Edit3 className="size-3.5" />
+                    <span className="text-xs font-bold">Edit</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setExpenseDeleteId(e.id)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50">
+                    <Trash2 className="size-3.5" />
+                    <span className="text-xs font-bold">Delete</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </li>
+        )
+      });
+    }
+
+    // Add Settlements
+    for (const s of groupSettlements) {
+      const from = personById(people, s.from)!;
+      const to = personById(people, s.to)!;
+      if (!from || !to) continue;
+      items.push({
+        id: s.id,
+        ts: s.createdAt,
+        node: (
+          <li key={s.id} className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="size-10 rounded-full bg-success/15 text-success flex items-center justify-center shrink-0">
+                <ArrowDownLeft className="size-4" strokeWidth={2.25} />
+              </div>
+              <div className="min-w-0 ml-1">
+                <p className="text-xs font-semibold text-ink">
+                  {from.id === userId ? "You" : from.name.split(" ")[0]} → {to.id === userId ? "you" : to.name.split(" ")[0]}
+                </p>
+                <p className="text-[11px] text-ink-soft">Settled{s.method ? ` · ${s.method}` : ""}</p>
+              </div>
+            </div>
+            <p className="text-sm font-bold tabular-nums text-success">{fmt(s.amount, group.currency)}</p>
+          </li>
+        )
+      });
+    }
+
+    return items.sort((a, b) => b.ts - a.ts);
+  }, [groupExpenses, groupSettlements, people, userId, cur, navigate, group.currency]);
 
   const availableFriends = useMemo(() => {
     if (!group) return [];
@@ -276,10 +355,11 @@ export default function GroupDetail() {
                 <ul className="space-y-4">
                   {groupExpenses.map((e) => {
                     const payer = personById(people, e.paidBy)!;
+                    if (!payer) return null;
                     return (
-                      <li key={e.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <PersonAvatar person={payer} size="md" />
+                      <li key={e.id} className="flex items-center justify-between group/item">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <BrandIcon description={e.description} person={payer} size="md" />
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
                             <p className="text-[11px] text-ink-soft">
@@ -287,7 +367,26 @@ export default function GroupDetail() {
                             </p>
                           </div>
                         </div>
-                        <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="size-8 rounded-full text-ink-soft hover:bg-surface-soft flex items-center justify-center shrink-0 transition-all opacity-0 group-hover/item:opacity-100">
+                                <MoreVertical className="size-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[120px] p-1.5 glass backdrop-blur-xl bg-white/80 dark:bg-ink/80">
+                              <DropdownMenuItem onClick={() => navigate(`/split?edit=${e.id}`)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft">
+                                <Edit3 className="size-3.5" />
+                                <span className="text-xs font-bold">Edit</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setExpenseDeleteId(e.id)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50">
+                                <Trash2 className="size-3.5" />
+                                <span className="text-xs font-bold">Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </li>
                     );
                   })}
@@ -302,6 +401,7 @@ export default function GroupDetail() {
                   {groupSettlements.map((s) => {
                     const from = personById(people, s.from)!;
                     const to = personById(people, s.to)!;
+                    if (!from || !to) return null;
                     return (
                       <li key={s.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0">
@@ -501,6 +601,23 @@ export default function GroupDetail() {
         confirmVariant="destructive"
       >
         Are you sure you want to remove <span className="font-bold text-ink">{confirmDelete.name}</span> from this group? This action cannot be undone.
+      </ConfirmModal>
+
+      <ConfirmModal
+        isOpen={!!expenseDeleteId}
+        onClose={() => setExpenseDeleteId(null)}
+        title="Delete Expense"
+        onConfirm={async () => {
+          if (expenseDeleteId) {
+            await deleteExpense(expenseDeleteId, false);
+            setExpenseDeleteId(null);
+            toast.success("Expense deleted");
+          }
+        }}
+        confirmText="Delete"
+        confirmVariant="destructive"
+      >
+        Are you sure you want to delete this expense? This action cannot be undone.
       </ConfirmModal>
     </div>
   );

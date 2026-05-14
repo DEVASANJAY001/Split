@@ -16,7 +16,7 @@ export default function GetStarted() {
     {
       icon: Receipt,
       title: "Quick Entries",
-      desc: "Log every expense on the go with smart insights.",
+      desc: "Log every expense on the go with easy tracking.",
       color: "bg-amber-500/10 text-amber-500"
     },
     {
