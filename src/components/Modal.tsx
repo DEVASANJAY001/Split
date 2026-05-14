@@ -13,6 +13,8 @@ interface ModalProps {
   className?: string;
 }
 
+import { createPortal } from "react-dom";
+
 export function Modal({ isOpen, onClose, title, children, footer, className }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -51,10 +53,10 @@ export function Modal({ isOpen, onClose, title, children, footer, className }: M
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[999] flex items-end md:items-center justify-center p-0 md:p-6 pb-28 md:pb-6">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center p-0 md:p-6 pb-28 md:pb-6">
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity" 
+        className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300" 
         onClick={onClose} 
       />
       
@@ -62,31 +64,32 @@ export function Modal({ isOpen, onClose, title, children, footer, className }: M
         variant="glass" 
         padding="none"
         className={cn(
-          "relative w-full md:max-w-md bg-background rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-300 z-10 border-brand/10",
+          "relative w-full md:max-w-md bg-background rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-12 duration-500 z-10 border-brand/10",
           className
         )}
       >
-        <div className="flex items-center justify-between p-6 pb-2">
+        <div className="flex items-center justify-between p-7 pb-2">
           <h2 className="text-xl font-black text-ink tracking-tightest uppercase">{title}</h2>
           <button 
             onClick={onClose} 
-            className="size-10 rounded-2xl bg-surface-soft hover:bg-hairline flex items-center justify-center transition-colors"
+            className="size-11 rounded-2xl bg-surface-soft hover:bg-hairline flex items-center justify-center transition-all active:scale-90"
           >
             <X className="size-5" />
           </button>
         </div>
         
-        <div className="p-6 pt-2">
+        <div className="p-7 pt-2">
           {children}
         </div>
 
         {footer && (
-          <div className="p-6 pt-0 flex gap-3">
+          <div className="p-7 pt-0 flex gap-3">
             {footer}
           </div>
         )}
       </SurfaceCard>
-    </div>
+    </div>,
+    document.body
   );
 }
 
