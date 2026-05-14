@@ -95,9 +95,14 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-background px-6">
             <div className="w-full max-w-sm space-y-8">
-                <div className="text-center space-y-2">
-                    <h1 className="text-4xl font-extrabold tracking-tightest text-ink italic">split</h1>
-                    <p className="text-ink-soft">Sign in to your account</p>
+                <div className="text-center space-y-4">
+                    <div className="flex justify-center">
+                        <img src="/icon-192.png" alt="Split Logo" className="size-20 rounded-3xl shadow-brand/20 shadow-2xl animate-reveal" />
+                    </div>
+                    <div className="space-y-1">
+                        <h1 className="text-4xl font-extrabold tracking-tightest text-ink italic">split</h1>
+                        <p className="text-ink-soft">Sign in to your account</p>
+                    </div>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4">
