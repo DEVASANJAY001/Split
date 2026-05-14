@@ -102,22 +102,50 @@ import { getRedirectResult } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 const App = () => {
+  const [initializing, setInitializing] = useState(true);
+
   useEffect(() => {
     // Crucial for APK/WebView redirect handling
-    getRedirectResult(auth)
-      .then((result) => {
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
         if (result?.user) {
           console.log("Redirect login successful:", result.user.email);
         }
-      })
-      .catch((error: any) => {
+      } catch (error: any) {
         if (error.code !== "auth/redirect-cancelled-by-user") {
           console.error("Auth redirect error:", error);
-          // Show the error on the phone so they can debug
           toast.error(`Auth Error: ${error.code}. Please check Firebase Authorized Domains.`);
         }
-      });
+      } finally {
+        // Only stop initializing after we've checked for a redirect result
+        setInitializing(false);
+      }
+    };
+
+    handleRedirect();
   }, []);
+
+  if (initializing) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-6">
+      <div className="relative">
+        <div className="size-20 rounded-full border-4 border-brand/10" />
+        <div className="absolute top-0 left-0 size-20 rounded-full border-4 border-brand border-t-transparent animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative size-10">
+            <div className="absolute inset-0 bg-brand rounded-lg rotate-45 animate-pulse" />
+            <div className="absolute inset-0 bg-background rounded-lg rotate-45 scale-75 flex items-center justify-center">
+              <div className="w-1 h-6 bg-brand -rotate-45 rounded-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col items-center gap-2 animate-pulse">
+        <h2 className="text-xl font-bold tracking-tightest italic">split</h2>
+        <p className="text-xs font-black text-ink-soft uppercase tracking-widest">Verifying Session...</p>
+      </div>
+    </div>
+  );
 
   return (
     <QueryClientProvider client={queryClient}>
