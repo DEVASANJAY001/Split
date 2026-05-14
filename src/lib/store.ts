@@ -145,6 +145,7 @@ export type Profile = {
   avatar: string;
   currency: string;
   budget?: number;
+  salary?: number;
   upiId?: string;
   isVerified?: boolean;
   completedSetup?: boolean;

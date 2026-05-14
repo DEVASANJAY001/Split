@@ -11,7 +11,7 @@ import {
 import { 
   TrendingUp, Wallet, PieChart as PieIcon, Calendar, 
   ArrowUpRight, ArrowDownRight, ShoppingBag, Target, 
-  Repeat, Sparkles, AlertCircle, Download 
+  Repeat, Sparkles, AlertCircle, Download, Check, Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandIcon } from "@/components/BrandIcon";
@@ -44,6 +44,19 @@ export default function Reports() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [isEditingSalary, setIsEditingSalary] = useState(false);
+  const [tempSalary, setTempSalary] = useState(profile?.salary?.toString() || "");
+
+  const handleSalarySubmit = async () => {
+    const val = parseFloat(tempSalary);
+    if (isNaN(val)) {
+        toast.error("Please enter a valid amount");
+        return;
+    }
+    await useStore.getState().updateProfile({ salary: val });
+    setIsEditingSalary(false);
+    toast.success("Income source updated!");
+  };
 
   const data = useMemo(() => {
     if (!userId) return null;
@@ -186,6 +199,73 @@ export default function Reports() {
             )}
           </AnimatePresence>
         </div>
+        {/* Income & Expense Pulse */}
+        <motion.div variants={itemVariants}>
+          <SurfaceCard padding="lg" className="relative overflow-hidden group border-brand/10">
+            <div className="relative z-10 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-ink-soft">Monthly Liquidity</h3>
+                  <div className="flex items-center gap-2">
+                    {isEditingSalary ? (
+                      <div className="flex items-center gap-1 mt-1">
+                        <input 
+                          type="number"
+                          value={tempSalary}
+                          onChange={(e) => setTempSalary(e.target.value)}
+                          className="w-24 bg-white dark:bg-ink border border-brand/20 rounded-lg px-2 py-1 text-sm font-bold outline-none"
+                          autoFocus
+                          onKeyDown={(e) => e.key === 'Enter' && handleSalarySubmit()}
+                        />
+                        <button onClick={handleSalarySubmit} className="size-8 bg-brand text-white rounded-lg flex items-center justify-center active:scale-90 transition-all">
+                          <Check className="size-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 group/salary cursor-pointer" onClick={() => setIsEditingSalary(true)}>
+                        <span className="text-2xl font-black text-ink">{fmt(profile?.salary || 0, profile?.currency || "USD")}</span>
+                        <div className="size-6 rounded-full bg-brand/10 text-brand flex items-center justify-center opacity-0 group-hover/salary:opacity-100 transition-all">
+                          <Plus className="size-3" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[9px] font-black uppercase text-ink-soft">Remaining Balance</span>
+                  <p className={cn(
+                    "text-sm font-black",
+                    ((profile?.salary || 0) - data.totalSpend) < 0 ? "text-red-500" : "text-brand"
+                  )}>
+                    {fmt((profile?.salary || 0) - data.totalSpend, profile?.currency || "USD")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-[9px] font-black uppercase text-ink-soft px-1">
+                  <span>Spending Velocity</span>
+                  <span>{profile?.salary ? Math.round(Math.min((data.totalSpend / profile.salary) * 100, 100)) : 0}%</span>
+                </div>
+                <div className="h-2.5 bg-surface-soft rounded-full overflow-hidden border border-hairline/30 shadow-inner">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${profile?.salary ? Math.min((data.totalSpend / profile.salary) * 100, 100) : 0}%` }}
+                    className={cn(
+                      "h-full rounded-full transition-colors relative",
+                      profile?.salary && (data.totalSpend / profile.salary) > 0.9 ? "bg-gradient-to-r from-red-500 to-rose-600" : "bg-gradient-to-r from-brand to-indigo-600"
+                    )}
+                  >
+                    <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:20px_20px] animate-shimmer opacity-20" />
+                  </motion.div>
+                </div>
+              </div>
+            </div>
+            <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none group-hover:opacity-[0.05] transition-opacity">
+              <TrendingUp className="size-24" />
+            </div>
+          </SurfaceCard>
+        </motion.div>
 
         {/* Hero Summary */}
         <motion.div variants={itemVariants}>
