@@ -74,10 +74,18 @@ export default function LoginPage() {
 
     const handleGoogleLogin = async () => {
         try {
-            // Use Redirect instead of Popup for better compatibility with APK/WebViews
-            await signInWithRedirect(auth, googleProvider);
+            // Try Popup first - this is more likely to stay "in-app" if the WebView allows it
+            const { signInWithPopup } = await import("firebase/auth");
+            await signInWithPopup(auth, googleProvider);
+            navigate("/");
         } catch (error: any) {
-            toast.error(error.message);
+            console.warn("Popup blocked or failed, falling back to redirect:", error.code);
+            try {
+                // Fallback to Redirect if Popup is blocked/unsupported
+                await signInWithRedirect(auth, googleProvider);
+            } catch (redirError: any) {
+                toast.error(redirError.message);
+            }
         }
     };
 
