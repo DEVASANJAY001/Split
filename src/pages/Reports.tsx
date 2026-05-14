@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { PageHeader } from "@/components/AppLayout";
 import { SurfaceCard } from "@/components/SurfaceCard";
 import { useStore } from "@/lib/store";
@@ -46,6 +46,7 @@ export default function Reports() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isEditingSalary, setIsEditingSalary] = useState(false);
   const [tempSalary, setTempSalary] = useState(profile?.salary?.toString() || "");
+  const pulseScrollRef = useRef<HTMLDivElement>(null);
 
   const handleSalarySubmit = async () => {
     const val = parseFloat(tempSalary);
@@ -97,6 +98,16 @@ export default function Reports() {
     }
     return dates;
   }, [personal, expenses, userId]);
+
+  // Auto-scroll pulse to recent data
+  useEffect(() => {
+    if (pulseScrollRef.current) {
+      pulseScrollRef.current.scrollTo({
+        left: pulseScrollRef.current.scrollWidth,
+        behavior: 'smooth'
+      });
+    }
+  }, [heatmapData]);
 
   const filteredMerchants = useMemo(() => {
     if (!data) return [];
@@ -337,33 +348,42 @@ export default function Reports() {
             )}
           </div>
           
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-5 px-5 pb-4 snap-x">
-            {heatmapData.map((d, i) => {
-              const opacity = d.amount === 0 ? 0.05 : Math.min(d.amount / (data.totalSpend / 10 + 1), 1);
-              const isSelected = selectedDate === d.date;
-              return (
-                <button 
-                  key={i} 
-                  onClick={() => setSelectedDate(isSelected ? null : d.date)}
-                  className="flex flex-col items-center gap-1.5 group outline-none shrink-0 snap-center"
-                >
-                  <div 
-                    className={cn(
-                      "size-10 rounded-xl transition-all duration-300",
-                      isSelected ? "ring-2 ring-brand ring-offset-2 scale-110" : "group-hover:scale-105 shadow-soft"
-                    )}
-                    style={{ 
-                      backgroundColor: d.amount > 0 ? '#6366f1' : 'currentColor',
-                      opacity: isSelected ? 1 : opacity
-                    }}
-                  />
-                  <span className={cn(
-                    "text-[8px] font-bold transition-colors",
-                    isSelected ? "text-brand" : "text-ink-soft/40"
-                  )}>{d.day}</span>
-                </button>
-              );
-            })}
+          <div className="relative">
+            <div 
+              ref={pulseScrollRef}
+              className="flex gap-3 overflow-x-auto scrollbar-hide -mx-5 px-8 pb-4 snap-x"
+              style={{ 
+                maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)'
+              }}
+            >
+              {heatmapData.map((d, i) => {
+                const opacity = d.amount === 0 ? 0.05 : Math.min(d.amount / (data.totalSpend / 10 + 1), 1);
+                const isSelected = selectedDate === d.date;
+                return (
+                  <button 
+                    key={i} 
+                    onClick={() => setSelectedDate(isSelected ? null : d.date)}
+                    className="flex flex-col items-center gap-1.5 group outline-none shrink-0 snap-center"
+                  >
+                    <div 
+                      className={cn(
+                        "size-8 rounded-full transition-all duration-300",
+                        isSelected ? "ring-2 ring-brand ring-offset-2 scale-110" : "group-hover:scale-105 shadow-soft"
+                      )}
+                      style={{ 
+                        backgroundColor: d.amount > 0 ? '#6366f1' : 'currentColor',
+                        opacity: isSelected ? 1 : opacity
+                      }}
+                    />
+                    <span className={cn(
+                      "text-[8px] font-bold transition-colors",
+                      isSelected ? "text-brand" : "text-ink-soft/40"
+                    )}>{d.day}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </motion.div>
 
