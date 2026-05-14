@@ -98,6 +98,13 @@ export type Settlement = {
   createdAt: number;
 };
 
+export type SubEntry = {
+  id: string;
+  amount: number;
+  date: string;
+  note?: string;
+};
+
 export type PersonalExpense = {
   id: string;
   description: string;
@@ -108,6 +115,7 @@ export type PersonalExpense = {
   attachmentUrl?: string;
   originalAmount?: number;
   originalCurrency?: string;
+  subEntries?: SubEntry[];
 };
 
 export type Message = {
@@ -185,6 +193,7 @@ interface AppState {
   addSettlement: (s: Omit<Settlement, "id">) => Promise<string>;
   addPersonalExpense: (e: Omit<PersonalExpense, "id">) => Promise<string>;
   updatePersonalExpense: (id: string, e: Partial<PersonalExpense>) => Promise<void>;
+  addSubEntry: (id: string, sub: Omit<SubEntry, "id">) => Promise<void>;
   updateExpense: (id: string, e: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string, isPersonal?: boolean) => Promise<void>;
   addFriend: (id: string) => Promise<string>;
@@ -516,6 +525,31 @@ export const useStore = create<AppState>()(
         const userId = auth.currentUser?.uid;
         if (!userId) throw new Error("Not authenticated");
         await updateDoc(doc(db, "users", userId, "personal_expenses", id), e);
+      },
+      addSubEntry: async (id, sub) => {
+        const userId = auth.currentUser?.uid;
+        if (!userId) throw new Error("Not authenticated");
+        const expense = get().personal.find((e) => e.id === id);
+        if (!expense) return;
+
+        let updatedSubEntries = expense.subEntries || [];
+        
+        // If this is the first sub-entry being added, 
+        // treat the current expense amount as the first sub-entry
+        if (updatedSubEntries.length === 0) {
+          updatedSubEntries = [
+            { id: 'original', amount: expense.amount, date: expense.date, note: 'Initial entry' }
+          ];
+        }
+
+        const newSub = { ...sub, id: Math.random().toString(36).substr(2, 9) };
+        updatedSubEntries = [...updatedSubEntries, newSub];
+        
+        await updateDoc(doc(db, "users", userId, "personal_expenses", id), {
+          amount: expense.amount + sub.amount,
+          date: sub.date,
+          subEntries: updatedSubEntries
+        });
       },
       updateExpense: async (id, e) => {
         await updateDoc(doc(db, "expenses", id), e);
