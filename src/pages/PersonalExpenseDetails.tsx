@@ -32,22 +32,17 @@ export default function PersonalExpenseDetails() {
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      <div className="px-5 pt-6 pb-4">
-        <button 
-          onClick={() => navigate(-1)}
-          className="size-10 rounded-full bg-surface-soft border border-hairline flex items-center justify-center hover:bg-surface transition-colors mb-6"
-        >
-          <ArrowLeft className="size-5" />
-        </button>
-        
-        <div className="flex items-center gap-4 mb-8">
-          <div className="size-16 rounded-3xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/20">
-            <Icon className="size-8" />
+      <PageHeader 
+        title={expense.description} 
+        subtitle={`${expense.category} · ${new Date(expense.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+      />
+
+      <div className="px-5 space-y-6">
+        <div className="flex items-center gap-4">
+          <div className="size-14 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/10 shrink-0">
+            <Icon className="size-6" />
           </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-black text-ink truncate">{expense.description}</h1>
-            <p className="text-xs font-bold text-ink-soft uppercase tracking-widest">{expense.category}</p>
-          </div>
+          <div className="h-px flex-1 bg-hairline/50" />
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-8">
