@@ -282,16 +282,29 @@ export default function GroupDetail() {
               Close trip
             </button>
           </div>
-        ) : group.expiryDate ? (
-          <div className="flex items-center gap-2 bg-surface-soft rounded-xl px-3 py-2">
-            <span className="text-[10px] text-ink-soft">
-              {new Date().toISOString().slice(0,10) > group.expiryDate
-                ? "Trip expired"
-                : `Ends ${new Date(group.expiryDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
-              }
-            </span>
+        ) : (
+          <div className="flex items-center justify-between bg-surface-soft border border-hairline/50 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-2">
+              {group.expiryDate && (
+                <span className="text-[10px] text-ink-soft">
+                  {new Date().toISOString().slice(0,10) > group.expiryDate
+                    ? "⚠️ Trip expired"
+                    : `Ends ${new Date(group.expiryDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                  }
+                </span>
+              )}
+              {!group.expiryDate && (
+                <span className="text-[10px] text-ink-soft">Active trip</span>
+              )}
+            </div>
+            <button
+              onClick={() => setShowCloseConfirm(true)}
+              className="text-xs font-black text-ink-soft hover:text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-xl transition-all"
+            >
+              Close trip
+            </button>
           </div>
-        ) : null}
+        )}
 
         {/* Tab Switcher */}
         <div className="flex bg-surface-soft/50 p-1 rounded-2xl border border-hairline no-print">
