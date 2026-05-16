@@ -57,7 +57,7 @@ export const PersonAvatar = memo(function PersonAvatar({ person, size = "md", cl
       )}
     >
       <span className="select-none">{initials}</span>
-      {person.avatar && !person.avatar.includes("dicebear.com") && (
+      {person.avatar && (
         <img
           src={person.avatar}
           alt={name}

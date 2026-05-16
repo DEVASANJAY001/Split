@@ -123,6 +123,24 @@
   animation: float 6s ease-in-out infinite;
 }
 
+@keyframes scan {
+  0% { top: 0%; }
+  100% { top: 100%; }
+}
+
+.animate-scan {
+  animation: scan 2s linear infinite;
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
 /* Print styles for Statements */
 @media print {
   nav, .bottom-nav-fab, .fixed, button, .no-print {

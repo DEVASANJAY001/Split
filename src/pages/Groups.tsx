@@ -1,5 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { PageHeader } from "@/components/AppLayout";
 import { SurfaceCard } from "@/components/SurfaceCard";
 import { AvatarStack, PersonAvatar } from "@/components/Avatar";
@@ -17,6 +19,7 @@ import { motion } from "framer-motion";
 const TYPES: GroupType[] = ["Trip", "Roommates", "Couple", "Friends", "Office", "Other"];
 
 export default function Groups() {
+  const navigate = useNavigate();
   const { groups, expenses, settlements, people, friendIds, addGroup, userId, profile, openModal, closeModal } = useStore();
   const cur = profile?.currency || "USD";
   const [showCreate, setShowCreate] = useState(false);
@@ -356,11 +359,43 @@ export default function Groups() {
       {showScanner && (
         <QRScanner 
           onClose={() => setShowScanner(false)}
-          onScan={(data) => {
+          onScan={async (data) => {
             if (data.startsWith("split://group/")) {
-              const groupId = data.replace("split://group/", "");
-              window.location.href = `/groups/${groupId}`;
-              toast.success("Joined group!");
+              const gid = data.replace("split://group/", "");
+              setShowScanner(false);
+              
+              // Check if user is already a member
+              const isMember = groups.some(g => g.id === gid);
+              
+              if (isMember) {
+                navigate(`/groups/${gid}`);
+                toast.success("Opening group...");
+              } else {
+                // Try to join the group
+                try {
+                  const groupRef = doc(db, "groups", gid);
+                  const snap = await getDoc(groupRef);
+                  
+                  if (snap.exists()) {
+                    const groupData = snap.data();
+                    const currentMembers = groupData.memberIds || [];
+                    if (!userId) throw new Error("Not logged in");
+                    
+                    if (!currentMembers.includes(userId)) {
+                      await updateDoc(groupRef, {
+                        memberIds: [...currentMembers, userId]
+                      });
+                    }
+                    navigate(`/groups/${gid}`);
+                    toast.success(`Joined ${groupData.name}!`);
+                  } else {
+                    toast.error("Group not found");
+                  }
+                } catch (err) {
+                  console.error(err);
+                  toast.error("Failed to join group");
+                }
+              }
             } else {
               toast.error("Invalid Group QR");
             }

@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { isSameDay, parseISO } from "date-fns";
 import { PageHeader } from "@/components/AppLayout";
 import { SurfaceCard } from "@/components/SurfaceCard";
 import { useStore } from "@/lib/store";
@@ -79,8 +80,13 @@ export default function Reports() {
   const heatmapData = useMemo(() => {
     const dates = [];
     const allBaseExpenses = [
-      ...personal.map(e => ({ ...e, isGroup: false })),
-      ...expenses.map(e => ({ ...e, amount: e.shares[userId] || 0, isGroup: true }))
+      ...personal.flatMap(e => {
+        if (e.subEntries && e.subEntries.length > 0) {
+          return e.subEntries.map(s => ({ amount: s.amount, date: s.date }));
+        }
+        return [{ amount: e.amount, date: e.date }];
+      }),
+      ...expenses.map(e => ({ amount: e.shares[userId] || 0, date: e.date }))
     ];
 
     const today = new Date();
@@ -92,7 +98,7 @@ export default function Reports() {
       const d = new Date(currentYear, currentMonth, i);
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dayTotal = allBaseExpenses
-        .filter(e => e.date === dateStr)
+        .filter(e => isSameDay(parseISO(e.date), d))
         .reduce((sum, e) => sum + e.amount, 0) || 0;
       dates.push({ date: dateStr, amount: dayTotal, day: d.getDate() });
     }
@@ -525,6 +531,67 @@ export default function Reports() {
             </SurfaceCard>
           </motion.div>
         </div>
+
+        {/* Selected Date Details / Transaction List */}
+        <AnimatePresence>
+          {selectedDate && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="space-y-3"
+            >
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-[10px] font-black text-ink-soft">
+                  Transactions on {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </h3>
+                <span className="text-[10px] font-bold text-brand">{data.allExpenses.length} items</span>
+              </div>
+              
+              <div className="space-y-2">
+                {data.allExpenses.length === 0 ? (
+                  <SurfaceCard padding="md" className="text-center py-6">
+                    <p className="text-xs text-ink-soft">No transactions found for this date.</p>
+                  </SurfaceCard>
+                ) : (
+                  data.allExpenses.map((e, i) => (
+                    <motion.div
+                      key={e.id || i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                    >
+                      <SurfaceCard padding="md" className="group hover:border-brand/30 transition-all">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <BrandIcon description={e.description} size="sm" className="rounded-xl p-1 bg-white" />
+                            <div>
+                              <p className="text-xs font-bold text-ink">{e.description}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-brand/60 px-1.5 py-0.5 bg-brand/5 rounded-md">
+                                  {e.category}
+                                </span>
+                                {e.isGroup && (
+                                  <span className="text-[9px] font-bold text-ink-soft/60">Shared</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-black text-ink">{fmt(e.amount, profile?.currency || "USD")}</p>
+                            {e.isGroup && (
+                              <p className="text-[8px] font-bold text-ink-soft mt-0.5">Your share</p>
+                            )}
+                          </div>
+                        </div>
+                      </SurfaceCard>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Wallet Share & Merchants */}
         <motion.div variants={itemVariants}>

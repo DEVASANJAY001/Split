@@ -557,7 +557,7 @@ export const useStore = create<AppState>()(
         // treat the current expense amount as the first sub-entry
         if (updatedSubEntries.length === 0) {
           updatedSubEntries = [
-            { id: 'original', amount: expense.amount, date: expense.date, note: 'Initial entry' }
+            { id: 'original', amount: expense.amount, date: expense.date, note: expense.description }
           ];
         }
 

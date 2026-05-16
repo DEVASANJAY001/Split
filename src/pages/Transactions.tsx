@@ -89,57 +89,70 @@ export default function Transactions() {
         if (filter !== "All" && e.category !== filter) continue;
         if (q && !e.description.toLowerCase().includes(q.toLowerCase())) continue;
         if (amountRange && (e.amount < amountRange[0] || e.amount > amountRange[1])) continue;
+        
         const Icon = categoryIcons[e.category] || categoryIcons["Other"];
-        out.push({
-          kind: "expense", ts: new Date(e.date).getTime(), date: e.date, cat: e.category, group: "Personal",
-          node: (
-            <li key={e.id} className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <BrandIcon 
-                  description={e.description} 
-                  size="md" 
-                  fallback={
-                    <div className="size-10 rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center shrink-0">
-                      <Icon className="size-4" strokeWidth={2.25} />
-                    </div>
-                  }
-                />
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
-                  <p className="text-[11px] text-ink-soft truncate">Personal · {e.category}</p>
+        
+        const processItem = (amount: number, date: string, desc: string, isSub: boolean) => {
+          out.push({
+            kind: "expense", ts: new Date(date).getTime(), date, cat: e.category, group: "Personal",
+            node: (
+              <li key={isSub ? `${e.id}-${date}-${amount}` : e.id} className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <BrandIcon 
+                    description={desc} 
+                    size="md" 
+                    fallback={
+                      <div className="size-10 rounded-full bg-brand-soft text-brand-soft-foreground flex items-center justify-center shrink-0">
+                        <Icon className="size-4" strokeWidth={2.25} />
+                      </div>
+                    }
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-ink truncate">{desc}</p>
+                    <p className="text-[11px] text-ink-soft truncate">Personal · {e.category}{isSub ? " · Entry" : ""}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(e.amount, cur)}</p>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="size-8 rounded-full text-ink-soft hover:bg-surface-soft flex items-center justify-center shrink-0 transition-all">
-                      <MoreVertical className="size-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[150px] p-1.5 glass backdrop-blur-xl">
-                    <DropdownMenuItem 
-                      onClick={() => navigate(`/personal/${e.id}`)}
-                      className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
-                    >
-                      <Eye className="size-3.5" />
-                      <span className="text-xs font-bold">View Details</span>
-                    </DropdownMenuItem>
-                    <div className="h-px bg-hairline my-1" />
-                    <DropdownMenuItem onClick={() => navigate(`/split?edit=${e.id}`)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft">
-                      <Edit3 className="size-3.5" />
-                      <span className="text-xs font-bold">Edit</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setDeleteId({ id: e.id, isPersonal: true })} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
-                      <Trash2 className="size-3.5" />
-                      <span className="text-xs font-bold">Delete</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </li>
-          ),
-        });
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold tabular-nums text-ink shrink-0">{fmt(amount, cur)}</p>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="size-8 rounded-full text-ink-soft hover:bg-surface-soft flex items-center justify-center shrink-0 transition-all">
+                        <MoreVertical className="size-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[150px] p-1.5 glass backdrop-blur-xl">
+                      <DropdownMenuItem 
+                        onClick={() => navigate(`/personal/${e.id}`)}
+                        className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
+                      >
+                        <Eye className="size-3.5" />
+                        <span className="text-xs font-bold">View Details</span>
+                      </DropdownMenuItem>
+                      <div className="h-px bg-hairline my-1" />
+                      <DropdownMenuItem onClick={() => navigate(`/split?edit=${e.id}`)} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft">
+                        <Edit3 className="size-3.5" />
+                        <span className="text-xs font-bold">Edit</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setDeleteId({ id: e.id, isPersonal: true })} className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
+                        <Trash2 className="size-3.5" />
+                        <span className="text-xs font-bold">Delete</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </li>
+            ),
+          });
+        };
+
+        if (e.subEntries && e.subEntries.length > 0) {
+          for (const s of e.subEntries) {
+            const displayDesc = (s.note === "Initial entry" ? e.description : s.note) || e.description;
+            processItem(s.amount, s.date, displayDesc, true);
+          }
+        } else {
+          processItem(e.amount, e.date, e.description, false);
+        }
       }
     }
 

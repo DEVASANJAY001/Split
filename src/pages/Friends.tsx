@@ -1,4 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { PageHeader } from "@/components/AppLayout";
 import { SurfaceCard } from "@/components/SurfaceCard";
 import { PersonAvatar } from "@/components/Avatar";
@@ -95,17 +97,47 @@ export default function Friends() {
 
   const handleScan = async (data: string) => {
     setShowScanner(false);
+    let targetUid = "";
+    
     if (data.startsWith("split://user/")) {
-      const username = data.replace("split://user/", "");
-      // In a real app, you'd fetch the user by username or ID
-      setQ(username);
-      toast.success(`Found user: ${username}`);
+      targetUid = data.replace("split://user/", "");
     } else if (data.startsWith("http")) {
-      // Handle web URLs if they contain user IDs
-      const url = new URL(data);
-      const parts = url.pathname.split("/");
-      const id = parts[parts.length - 1];
-      setQ(`@${id}`);
+      try {
+        const url = new URL(data);
+        const parts = url.pathname.split("/");
+        targetUid = parts[parts.length - 1];
+      } catch (e) {
+        toast.error("Invalid QR Link");
+        return;
+      }
+    }
+
+    if (targetUid) {
+      setIsSearching(true);
+      try {
+        // Fetch user from people registry
+        const userRef = doc(db, "people", targetUid);
+        const snap = await getDoc(userRef);
+        
+        if (snap.exists()) {
+          const userData = snap.data();
+          setSearchResults([{
+            username: userData.username || userData.email || "user",
+            displayName: userData.name || "User",
+            avatar: userData.avatar || "",
+            uid: targetUid
+          }]);
+          setQ(""); // Clear search query to show results
+          toast.success(`Found ${userData.name}!`);
+        } else {
+          toast.error("User not found");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to fetch user");
+      } finally {
+        setIsSearching(false);
+      }
     }
   };
 
@@ -140,7 +172,7 @@ export default function Friends() {
           </button>
         </div>
 
-        {q.trim() && (
+        {(q.trim() || searchResults.length > 0) && (
           <SurfaceCard padding="md" className="border-brand/20 bg-brand/5">
             <div className="flex items-center justify-between mb-3">
               <p className="text-[11px] font-bold text-brand tracking-wider">Search results</p>

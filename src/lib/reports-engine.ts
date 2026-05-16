@@ -1,5 +1,5 @@
-import { Expense, PersonalExpense } from "./store";
-import { isWithinInterval, startOfMonth, endOfMonth, startOfQuarter, subMonths, parseISO } from "date-fns";
+import { Expense, PersonalExpense, SavingsGoal, RecurringTemplate } from "./store";
+import { isWithinInterval, startOfMonth, endOfMonth, startOfQuarter, subMonths, parseISO, startOfDay, endOfDay } from "date-fns";
 
 export type TimeRange = "this-month" | "last-month" | "this-quarter" | "all-time" | "custom";
 
@@ -21,7 +21,7 @@ export function getFilteredData(
   if (selectedDate) {
     // If a specific date is selected via heatmap, we focus exclusively on it
     const targetDate = parseISO(selectedDate);
-    interval = { start: targetDate, end: targetDate };
+    interval = { start: startOfDay(targetDate), end: endOfDay(targetDate) };
   } else {
     switch (range) {
       case "this-month":
@@ -47,16 +47,30 @@ export function getFilteredData(
 
   const isAllTime = range === "all-time" && !selectedDate;
 
+  // Flatten personal expenses to include sub-entries if they exist
+  const flattenedPersonal = personal.flatMap(e => {
+    if (e.subEntries && e.subEntries.length > 0) {
+      return e.subEntries.map(s => ({
+        ...e,
+        id: `${e.id}-${s.id}`,
+        amount: s.amount,
+        date: s.date,
+        description: (s.note === "Initial entry" ? e.description : s.note) || e.description,
+        isSubEntry: true,
+        parentId: e.id
+      }));
+    }
+    return [{ ...e, isSubEntry: false }];
+  });
+
   const filteredPersonal = (context === "all" || context === "personal") 
-    ? personal.filter(e => {
-        if (selectedDate) return e.date === selectedDate;
+    ? flattenedPersonal.filter(e => {
         return isAllTime || isWithinInterval(parseISO(e.date), interval);
       })
     : [];
 
   const filteredGroups = (context === "all" || context === "group")
     ? expenses.filter(e => {
-        if (selectedDate) return e.date === selectedDate;
         return isAllTime || isWithinInterval(parseISO(e.date), interval);
       })
     : [];
@@ -69,7 +83,7 @@ export function getFilteredData(
     date: e.date,
     category: e.category,
     isGroup: true,
-    groupName: e.groupId // We'd need to resolve this if we want names
+    groupName: e.groupId 
   }));
 
   const allExpenses = [
