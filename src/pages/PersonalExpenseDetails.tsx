@@ -4,17 +4,23 @@ import { PageHeader } from "@/components/AppLayout";
 import { SurfaceCard } from "@/components/SurfaceCard";
 import { fmt } from "@/lib/finance";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, PlusCircle, Calendar, Receipt, ChevronRight } from "lucide-react";
+import { ArrowLeft, PlusCircle, Calendar, Receipt, ChevronRight, Edit3 } from "lucide-react";
 import { motion } from "framer-motion";
 import { categoryIcons } from "@/lib/icons";
-
 import { BrandIcon } from "@/components/BrandIcon";
+import { useState } from "react";
+import { PromptModal } from "@/components/Modal";
+import { toast } from "sonner";
 
 export default function PersonalExpenseDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { personal, profile } = useStore();
+  const { personal, profile, updatePersonalExpense } = useStore();
   const cur = profile?.currency || "USD";
+
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [promptValue, setPromptValue] = useState("");
+  const [promptConfig, setPromptConfig] = useState<{ title: string; onSubmit: (val: string) => void; type?: string }>({ title: "", onSubmit: () => {} });
 
   const expense = personal.find((e) => e.id === id);
 
@@ -32,11 +38,75 @@ export default function PersonalExpenseDetails() {
 
   const Icon = categoryIcons[expense.category] || categoryIcons["Other"];
 
+  const handleEditSubEntry = (sub: any) => {
+    // 1. Prompt for Amount
+    setPromptConfig({
+      title: "Edit Amount",
+      type: "number",
+      onSubmit: (amt) => {
+        const newAmt = Number(amt);
+        // 2. Prompt for Date
+        setPromptConfig({
+          title: "Edit Date",
+          type: "date",
+          onSubmit: (chosenDate) => {
+            // 3. Prompt for Note/Description
+            setPromptConfig({
+              title: "Edit Note",
+              type: "text",
+              onSubmit: async (noteText) => {
+                if (sub.id === "original") {
+                  await updatePersonalExpense(expense.id, {
+                    amount: newAmt,
+                    date: chosenDate,
+                    description: noteText || expense.description
+                  });
+                } else {
+                  const updatedSubEntries = expense.subEntries?.map((s) => {
+                    if (s.id === sub.id) {
+                      return { ...s, amount: newAmt, date: chosenDate, note: noteText };
+                    }
+                    return s;
+                  }) || [];
+
+                  const newTotal = updatedSubEntries.reduce((sum, s) => sum + s.amount, 0);
+
+                  await updatePersonalExpense(expense.id, {
+                    amount: newTotal,
+                    subEntries: updatedSubEntries
+                  });
+                }
+
+                setPromptOpen(false);
+                toast.success("Transaction updated!");
+              }
+            });
+            setPromptValue(sub.note || sub.description || "");
+            setPromptOpen(true);
+          }
+        });
+        setPromptValue(sub.date ? new Date(sub.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+        setPromptOpen(true);
+      }
+    });
+    setPromptValue(String(sub.amount));
+    setPromptOpen(true);
+  };
+
+  const listItems = expense.subEntries && expense.subEntries.length > 0
+    ? expense.subEntries
+    : [{
+        id: "original",
+        amount: expense.amount,
+        date: expense.date,
+        note: expense.description
+      }];
+
   return (
     <div className="min-h-screen bg-background pb-32">
       <PageHeader 
         title={expense.description} 
-        subtitle={`${expense.category} · ${new Date(expense.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+        subtitle={`${expense.category} · ${expense.date ? new Date(expense.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "No Date"}`}
         showBack={true}
         showActions={false}
       />
@@ -76,7 +146,7 @@ export default function PersonalExpenseDetails() {
         <div className="space-y-4">
           <h3 className="text-[11px] font-black uppercase tracking-widest text-ink-soft ml-1">Transaction History</h3>
           <div className="space-y-3">
-            {expense.subEntries?.map((sub, idx) => (
+            {listItems.map((sub, idx) => (
               <motion.div 
                 key={sub.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -92,23 +162,37 @@ export default function PersonalExpenseDetails() {
                       <div>
                         <p className="text-sm font-bold text-ink tabular-nums">{fmt(sub.amount, cur)}</p>
                         <p className="text-[10px] font-semibold text-ink-soft">
-                          {new Date(sub.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          {sub.date ? new Date(sub.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "No Date"}
                         </p>
                       </div>
                     </div>
-                    {sub.note && <p className="text-[10px] text-ink-soft italic">{sub.note}</p>}
-                    <ChevronRight className="size-4 text-ink-soft opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex items-center gap-3">
+                      {sub.note && <p className="text-[10px] text-ink-soft italic">{sub.note}</p>}
+                      <button 
+                        onClick={() => handleEditSubEntry(sub)}
+                        className="size-8 rounded-xl bg-surface-soft hover:bg-hairline flex items-center justify-center text-ink-soft hover:text-ink transition-all active:scale-95 shrink-0"
+                        title="Edit Transaction"
+                      >
+                        <Edit3 className="size-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </SurfaceCard>
               </motion.div>
-            )) || (
-              <SurfaceCard padding="lg" className="text-center py-12 border-dashed border-2">
-                <p className="text-sm text-ink-soft italic font-medium">No sub-entries recorded yet.</p>
-              </SurfaceCard>
-            )}
+            ))}
           </div>
         </div>
       </div>
+
+      <PromptModal 
+        isOpen={promptOpen} 
+        onClose={() => setPromptOpen(false)} 
+        title={promptConfig.title}
+        value={promptValue}
+        onChange={setPromptValue}
+        onSubmit={() => promptConfig.onSubmit(promptValue)}
+        type={promptConfig.type}
+      />
     </div>
   );
 }

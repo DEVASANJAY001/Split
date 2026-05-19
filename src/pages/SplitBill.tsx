@@ -48,6 +48,7 @@ export default function SplitBill() {
   const cur = expenseCurrency;
 
   const memberIds = group?.memberIds ?? [];
+  const editId = params.get("edit");
 
   const [title, setTitle] = useState("");
   const [total, setTotal] = useState<number>(0);
@@ -56,8 +57,18 @@ export default function SplitBill() {
   const [selected, setSelected] = useState<string[]>(memberIds);
   const [values, setValues] = useState<Record<string, number>>({});
   const [category, setCategory] = useState<Category>("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (!editId) {
+      if (isPersonal) {
+        setDate("");
+      } else {
+        setDate(new Date().toISOString().slice(0, 10));
+      }
+    }
+  }, [editId, isPersonal]);
   const [isRecurring, setIsRecurring] = useState(false);
   const [interval, setInterval] = useState<RecurringInterval>("Monthly");
   const [catSearch, setCatSearch] = useState("");
@@ -66,7 +77,6 @@ export default function SplitBill() {
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [suggestedName, setSuggestedName] = useState<string | null>(null);
   const identifyTimeout = useRef<NodeJS.Timeout | null>(null);
-  const editId = params.get("edit");
 
   useEffect(() => {
     if (editId) {
@@ -114,7 +124,7 @@ export default function SplitBill() {
 
 
   const valid = (isPersonal
-    ? title.trim().length > 0 && total > 0
+    ? title.trim().length > 0 && total > 0 && date.trim() !== ""
     : title.trim().length > 0 &&
     total > 0 &&
     selected.length > 0 &&
@@ -471,13 +481,22 @@ export default function SplitBill() {
         {/* Date + notes */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-semibold text-ink-soft px-1">Date</label>
+            <label className="text-xs font-semibold text-ink-soft px-1 flex items-center gap-1">
+              Date {isPersonal && <span className="text-red-500 font-bold" title="Required">*</span>}
+            </label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="mt-2 w-full bg-surface-soft rounded-2xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-brand"
+              required={isPersonal}
+              className={cn(
+                "mt-2 w-full bg-surface-soft rounded-2xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-brand",
+                isPersonal && !date && "border-2 border-dashed border-red-400 dark:border-red-500/50 bg-red-50/20"
+              )}
             />
+            {isPersonal && !date && (
+              <span className="text-[10px] text-red-500 font-medium px-1 mt-1 block">Date is required</span>
+            )}
           </div>
           <div>
             <label className="text-xs font-semibold text-ink-soft px-1">Notes</label>

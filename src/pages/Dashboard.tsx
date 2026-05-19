@@ -297,78 +297,89 @@ export default function Dashboard() {
                       const Icon = categoryIcons[e.category] || categoryIcons["Other"];
                       return (
                         <li key={e.id}>
-                          <div className="flex items-center justify-between group/item">
-                            <Link key={e.id} to={`/split?edit=${e.id}`} className="flex items-center justify-between flex-1 min-w-0">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <BrandIcon 
-                                  description={e.description} 
-                                  size="md" 
-                                  fallback={
-                                    <div className="size-10 rounded-full bg-brand/10 text-brand flex items-center justify-center shrink-0">
-                                      <Icon className="size-4" strokeWidth={2} />
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <div className="flex items-center justify-between group/item cursor-pointer">
+                                <div className="flex items-center justify-between flex-1 min-w-0">
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <BrandIcon 
+                                      description={e.description} 
+                                      size="md" 
+                                      fallback={
+                                        <div className="size-10 rounded-full bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                                          <Icon className="size-4" strokeWidth={2} />
+                                        </div>
+                                      } 
+                                    />
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
+                                      <p className="text-[11px] text-ink-soft">{e.category} · {e.date ? new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "No Date"}</p>
                                     </div>
-                                  } 
-                                />
-                                <div className="min-w-0">
-                                  <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
-                                  <p className="text-[11px] text-ink-soft">{e.category} · {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                                  </div>
+                                  <p className="text-sm font-bold tabular-nums text-ink shrink-0 mr-2">{fmt(e.amount, cur)}</p>
                                 </div>
-                              </div>
-                              <p className="text-sm font-bold tabular-nums text-ink shrink-0 mr-2">{fmt(e.amount, cur)}</p>
-                            </Link>
-                            
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
+                                
                                 <button className="size-8 rounded-full bg-surface-soft text-ink-soft flex items-center justify-center shrink-0 hover:bg-surface hover:text-ink transition-all">
                                   <MoreVertical className="size-3.5" />
                                 </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[150px] p-1.5 glass backdrop-blur-xl">
-                                <DropdownMenuItem 
-                                  onClick={() => {
-                                    setSelectedExpense(e);
-                                    setPromptConfig({
-                                      title: `Add to ${e.description}`,
-                                      type: "number",
-                                      onSubmit: (amt) => {
-                                        addSubEntry(e.id, { amount: Number(amt), date: new Date().toISOString() });
-                                        setPromptOpen(false);
-                                        toast.success("Sub-entry added!");
-                                      }
-                                    });
-                                    setPromptValue("");
-                                    setPromptOpen(true);
-                                  }}
-                                  className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft text-brand"
-                                >
-                                  <PlusCircle className="size-3.5" />
-                                  <span className="text-xs font-bold">+ ADD</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => navigate(`/personal/${e.id}`)}
-                                  className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
-                                >
-                                  <Eye className="size-3.5" />
-                                  <span className="text-xs font-bold">View Details</span>
-                                </DropdownMenuItem>
-                                <div className="h-px bg-hairline my-1" />
-                                <DropdownMenuItem 
-                                  onClick={() => navigate(`/split?edit=${e.id}`)}
-                                  className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
-                                >
-                                  <Edit3 className="size-3.5" />
-                                  <span className="text-xs font-bold">Edit</span>
-                                </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    onClick={() => setDeleteId({ id: e.id, isPersonal: true })}
-                                    className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
-                                  >
-                                  <Trash2 className="size-3.5" />
-                                  <span className="text-xs font-bold">Delete</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+                              </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[150px] p-1.5 glass backdrop-blur-xl">
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  setSelectedExpense(e);
+                                  setPromptConfig({
+                                    title: `Add Amount to ${e.description}`,
+                                    type: "number",
+                                    onSubmit: (amt) => {
+                                      setPromptConfig({
+                                        title: `Select Date`,
+                                        type: "date",
+                                        onSubmit: (chosenDate) => {
+                                          addSubEntry(e.id, { 
+                                            amount: Number(amt), 
+                                            date: chosenDate || new Date().toISOString().slice(0, 10) 
+                                          });
+                                          setPromptOpen(false);
+                                          toast.success("Sub-entry added!");
+                                        }
+                                      });
+                                      setPromptValue(new Date().toISOString().slice(0, 10));
+                                      setPromptOpen(true);
+                                    }
+                                  });
+                                  setPromptValue("");
+                                  setPromptOpen(true);
+                                }}
+                                className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft text-brand"
+                              >
+                                <PlusCircle className="size-3.5" />
+                                <span className="text-xs font-bold">+ ADD</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => navigate(`/personal/${e.id}`)}
+                                className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
+                              >
+                                <Eye className="size-3.5" />
+                                <span className="text-xs font-bold">View Details</span>
+                              </DropdownMenuItem>
+                              <div className="h-px bg-hairline my-1" />
+                              <DropdownMenuItem 
+                                onClick={() => navigate(`/split?edit=${e.id}`)}
+                                className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer hover:bg-surface-soft"
+                              >
+                                <Edit3 className="size-3.5" />
+                                <span className="text-xs font-bold">Edit</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => setDeleteId({ id: e.id, isPersonal: true })}
+                                className="rounded-xl flex items-center gap-2 py-2.5 px-3 cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                              >
+                                <Trash2 className="size-3.5" />
+                                <span className="text-xs font-bold">Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </li>
                       );
                     })}
