@@ -25,10 +25,21 @@ export async function loginWithGoogle() {
   } else {
     // Web Google Sign In (already implemented adaptive strategy)
     try {
-      return await signInWithPopup(auth, googleProvider);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("auth/popup-timeout")), 15000)
+      );
+      return await Promise.race([
+        signInWithPopup(auth, googleProvider),
+        timeoutPromise
+      ]);
     } catch (error: any) {
-      // Fall back to redirect only if the popup was blocked by the browser
-      if (error.code === "auth/popup-blocked-by-user" || error.code === "auth/cancelled-popup-request") {
+      console.warn("Google Sign-In Popup failed or timed out:", error);
+      // Fall back to redirect only if the popup was blocked by the browser, cancelled, or timed out
+      if (
+        error.code === "auth/popup-blocked-by-user" || 
+        error.code === "auth/cancelled-popup-request" ||
+        error.message === "auth/popup-timeout"
+      ) {
         return await signInWithRedirect(auth, googleProvider);
       }
       throw error;
