@@ -25,6 +25,12 @@ export default function ProfileSetup() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        if (profile && (profile.completedSetup || (profile.username && profile.displayName))) {
+            navigate("/", { replace: true });
+        }
+    }, [profile, navigate]);
+
+    useEffect(() => {
         if (profile && isInitialLoad) {
             setDisplayName(profile.displayName || auth.currentUser?.displayName || "");
             setUsername(profile.username || "");

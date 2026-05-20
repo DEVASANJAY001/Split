@@ -292,7 +292,7 @@ export const useStore = create<AppState>()(
 
           if (user) {
             const uid = user.uid;
-            set({ userId: uid });
+            set({ userId: uid, loading: true });
 
             // 1. Profile subscription
             const userRef = doc(db, "users", uid);
