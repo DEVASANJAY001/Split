@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
+import { loginWithGoogle } from "@/lib/auth-native";
 import { useStore } from "@/lib/store";
 import { Mail, Lock, LogIn, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -78,7 +79,6 @@ export default function LoginPage() {
     const handleGoogleLogin = async () => {
         setGoogleLoading(true);
         try {
-            const { loginWithGoogle } = await import("@/lib/auth-native");
             await loginWithGoogle();
             toast.success("Welcome back!");
             navigate("/");

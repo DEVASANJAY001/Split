@@ -10,6 +10,7 @@ import { Mail, Lock, UserPlus, User, Eye, EyeOff, RefreshCw, AlertCircle } from 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { fetchSignInMethodsForEmail } from "firebase/auth";
+import { loginWithGoogle } from "@/lib/auth-native";
 
 export default function SignUpPage() {
     const [email, setEmail] = useState("");
@@ -171,7 +172,6 @@ export default function SignUpPage() {
     const handleGoogleLogin = async () => {
         setGoogleLoading(true);
         try {
-            const { loginWithGoogle } = await import("@/lib/auth-native");
             await loginWithGoogle();
             toast.success("Welcome to Split!");
             navigate("/");
