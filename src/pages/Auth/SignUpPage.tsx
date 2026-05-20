@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithRedirect } from "firebase/auth";
 import { auth, db, rtdb, googleProvider } from "@/lib/firebase";
 import { ref, set, get } from "firebase/database";
 import EmailVerification from "@/components/Auth/EmailVerification";
@@ -41,15 +41,6 @@ export default function SignUpPage() {
             }
         }
     }, [userId, authLoading, navigate, step, profile]);
-
-    // Handle Redirect Result for APK/WebView environments
-    useEffect(() => {
-        getRedirectResult(auth).catch((error: any) => {
-            if (error.code !== "auth/redirect-cancelled-by-user") {
-                console.error("Redirect error:", error);
-            }
-        });
-    }, []);
     
     useEffect(() => {
         if (!email || step !== "signup" || !email.includes("@")) {
