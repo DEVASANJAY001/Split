@@ -163,7 +163,7 @@ const App = () => {
           <div className="h-full">
             <Routes>
               <Route path="/get-started" element={<OnboardingRoute><GetStarted /></OnboardingRoute>} />
-              <Route path="/login" element={<LoginPage />} />
+              <Route path="/login" element={<OnboardingRoute><LoginPage /></OnboardingRoute>} />
               <Route path="/signup" element={<OnboardingRoute><SignUpPage /></OnboardingRoute>} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
