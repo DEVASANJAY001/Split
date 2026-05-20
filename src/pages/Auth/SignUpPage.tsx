@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, signInWithRedirect } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db, rtdb, googleProvider } from "@/lib/firebase";
 import { ref, set, get } from "firebase/database";
 import EmailVerification from "@/components/Auth/EmailVerification";
