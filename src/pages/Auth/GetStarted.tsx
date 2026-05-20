@@ -39,7 +39,7 @@ export default function GetStarted() {
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-brand/10 blur-[100px] rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
       {/* Top Header */}
-      <header className="px-6 py-4 flex items-center justify-between z-20">
+      <header className="px-6 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-4 flex items-center justify-between z-20">
         <div className="flex items-center gap-2 font-black italic">
           <div className="size-7 bg-brand rounded-lg flex items-center justify-center shadow-brand shadow-sm">
             <span className="text-brand-foreground font-black text-[10px] italic">S</span>

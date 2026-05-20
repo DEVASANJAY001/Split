@@ -52,7 +52,7 @@ export function GroupChat({ groupId, onClose }: GroupChatProps) {
       </div>
 
       {/* Modern Header */}
-      <header className="px-5 py-4 flex items-center justify-between bg-surface/80 backdrop-blur-2xl border-b border-hairline/50 z-20 relative">
+      <header className="px-5 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-4 flex items-center justify-between bg-surface/80 backdrop-blur-2xl border-b border-hairline/50 z-20 relative">
         <div className="flex items-center gap-4">
           <button 
             onClick={onClose} 

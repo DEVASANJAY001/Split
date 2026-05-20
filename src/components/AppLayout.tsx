@@ -110,7 +110,7 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, showAction
   const { mode, setMode, profile } = useStore();
   const handleAdd = onAdd ?? (() => navigate("/groups?create=true"));
   return (
-    <header className="sticky top-0 z-30 px-5 pt-8 pb-2 mb-3 space-y-4 bg-background/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 px-5 pt-[calc(env(safe-area-inset-top,0px)+2rem)] pb-2 mb-3 space-y-4 bg-background/75 backdrop-blur-xl">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4 min-w-0">
           {showBack && (
