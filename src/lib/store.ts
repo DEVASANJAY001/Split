@@ -195,7 +195,7 @@ interface AppState {
   setMode: (m: AppMode) => void;
   setTheme: (t: "light" | "dark") => void;
   initialize: () => void;
-  addGroup: (g: Omit<Group, "id" | "ownerId">) => Promise<string>;
+  addGroup: (g: Omit<Group, "id" | "ownerId" | "createdAt">) => Promise<string>;
   addExpense: (e: Omit<Expense, "id">) => Promise<string>;
   addSettlement: (s: Omit<Settlement, "id">) => Promise<string>;
   addPersonalExpense: (e: Omit<PersonalExpense, "id">) => Promise<string>;
@@ -222,7 +222,6 @@ interface AppState {
   >;
   markRequestsAsSeen: () => void;
   deleteAccount: () => Promise<void>;
-  addGroup: (group: Omit<Group, "id" | "createdAt">) => Promise<string>;
   updateGroupMembers: (groupId: string, memberIds: string[]) => Promise<void>;
   closeGroup: (groupId: string) => Promise<void>;
   reopenGroup: (groupId: string) => Promise<void>;
@@ -507,15 +506,6 @@ export const useStore = create<AppState>()(
             });
           }
         });
-      },
-      addGroup: async (g) => {
-        const uid = get().userId;
-        if (!uid) throw new Error("Not authenticated");
-        const docRef = await addDoc(collection(db, "groups"), {
-          ...g,
-          createdAt: Date.now(),
-        });
-        return docRef.id;
       },
       addExpense: async (e) => {
         const docRef = await addDoc(collection(db, "expenses"), {
