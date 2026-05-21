@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { fmt } from "@/lib/finance";
-import { Settings, QrCode, X, Pencil, Users, Receipt, Camera, Loader2, CheckCircle2, AlertCircle, Edit2, LogOut } from "lucide-react";
+import { Settings, QrCode, X, Pencil, Users, Receipt, Camera, Loader2, CheckCircle2, AlertCircle, Edit2, LogOut, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ImageCropper from "@/components/ImageCropper";

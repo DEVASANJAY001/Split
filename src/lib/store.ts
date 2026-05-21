@@ -1009,7 +1009,21 @@ export const useStore = create<AppState>()(
 );
 
 export const personById = (people: any[], id: string, profile?: any) => {
-  if (id === profile?.id || id === auth.currentUser?.uid) return profile || { id, name: "You", initials: "Y" };
+  if (id === profile?.id || id === auth.currentUser?.uid) {
+    const p = people?.find((x: any) => x.id === id);
+    const resolvedProfile = profile || useStore.getState().profile;
+    const name = resolvedProfile?.displayName || resolvedProfile?.username || p?.name || "You";
+    const initials = (name === "You" ? "Y" : name.split(" ").map((x: string) => x[0]).join("").slice(0, 2).toUpperCase());
+    return {
+      id,
+      name: "You",
+      displayName: resolvedProfile?.displayName || p?.displayName || "You",
+      email: resolvedProfile?.email || p?.email || "",
+      avatar: resolvedProfile?.avatar || p?.avatar || "",
+      initials: initials,
+      upiId: resolvedProfile?.upiId || p?.upiId || "",
+    };
+  }
   return people?.find((p: any) => p.id === id) || { id, name: "Unknown", initials: "?" };
 };
 
