@@ -23,25 +23,11 @@ export async function loginWithGoogle() {
       throw error;
     }
   } else {
-    // Web Google Sign In (already implemented adaptive strategy)
+    // Web Google Sign In Fallback (uses popup to support local/arbitrary dev domains out of the box)
     try {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("auth/popup-timeout")), 15000)
-      );
-      return await Promise.race([
-        signInWithPopup(auth, googleProvider),
-        timeoutPromise
-      ]);
-    } catch (error: any) {
-      console.warn("Google Sign-In Popup failed or timed out:", error);
-      // Fall back to redirect only if the popup was blocked by the browser, cancelled, or timed out
-      if (
-        error.code === "auth/popup-blocked-by-user" || 
-        error.code === "auth/cancelled-popup-request" ||
-        error.message === "auth/popup-timeout"
-      ) {
-        return await signInWithRedirect(auth, googleProvider);
-      }
+      return await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Google Sign-In Fallback failed:", error);
       throw error;
     }
   }
