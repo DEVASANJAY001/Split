@@ -13,10 +13,10 @@ public class MainActivity extends BridgeActivity {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
-    // NOTE: Do NOT manually call registerPlugin() here.
-    // @capacitor-firebase/authentication uses @CapacitorPlugin annotation
-    // and is auto-registered by Capacitor via capacitor.plugins.json.
-    // Calling registerPlugin() again causes a double-registration crash on startup.
+    // Register our custom Google Sign-In plugin (Credential Manager).
+    // This plugin lives in our own app package so it must be registered manually.
+    // It is NOT an npm package so Capacitor won't auto-discover it.
+    registerPlugin(GoogleSignInPlugin.class);
     super.onCreate(savedInstanceState);
     requestAppPermissions();
   }
@@ -24,30 +24,24 @@ public class MainActivity extends BridgeActivity {
   private void requestAppPermissions() {
     java.util.List<String> permissionsToRequest = new java.util.ArrayList<>();
 
-    // Camera
     if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
         != PackageManager.PERMISSION_GRANTED) {
       permissionsToRequest.add(android.Manifest.permission.CAMERA);
     }
 
-    // Storage — Android 13+ uses READ_MEDIA_IMAGES, older uses READ_EXTERNAL_STORAGE
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_IMAGES)
           != PackageManager.PERMISSION_GRANTED) {
         permissionsToRequest.add(android.Manifest.permission.READ_MEDIA_IMAGES);
       }
+      if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+          != PackageManager.PERMISSION_GRANTED) {
+        permissionsToRequest.add(android.Manifest.permission.POST_NOTIFICATIONS);
+      }
     } else {
       if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE)
           != PackageManager.PERMISSION_GRANTED) {
         permissionsToRequest.add(android.Manifest.permission.READ_EXTERNAL_STORAGE);
-      }
-    }
-
-    // Notifications — Android 13+ requires explicit grant
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
-          != PackageManager.PERMISSION_GRANTED) {
-        permissionsToRequest.add(android.Manifest.permission.POST_NOTIFICATIONS);
       }
     }
 
