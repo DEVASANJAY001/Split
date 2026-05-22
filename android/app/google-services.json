@@ -39,6 +39,14 @@
           }
         },
         {
+          "client_id": "16306937848-qp1h2h0q79k4h88rngbloair380apmnq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.davnsindusrties.split",
+            "certificate_hash": "6f4360074a458cb6a8503228fe8d9d50c2201345"
+          }
+        },
+        {
           "client_id": "16306937848-8sv3bbv62mh7pn5sg3scjtdkl1tnh7h6.apps.googleusercontent.com",
           "client_type": 3
         }
