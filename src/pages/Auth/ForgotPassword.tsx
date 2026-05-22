@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ref, get, set } from "firebase/database";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db, rtdb } from "@/lib/firebase";
-import { sendOTPEmail, resetPassword } from "@/lib/mail";
+import { db } from "@/lib/firebase";
+import { sendOTPEmail, resetPassword, verifyOTP } from "@/lib/mail";
 import EmailVerification from "@/components/Auth/EmailVerification";
 import { Mail, Lock, ArrowLeft, RefreshCw, CheckCircle2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -15,10 +13,6 @@ export default function ForgotPassword() {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
-
-    const generateOTP = () => {
-        return Math.floor(100000 + Math.random() * 900000).toString();
-    };
 
     const [shakeEmail, setShakeEmail] = useState(false);
     const [shakePassword, setShakePassword] = useState(false);
@@ -40,8 +34,7 @@ export default function ForgotPassword() {
         setLoading(true);
         setEmailError("");
         try {
-            const otp = generateOTP();
-            await sendOTPEmail(email, otp, "User", 'reset');
+            await sendOTPEmail(email, "User", 'reset');
             setStep("otp");
             toast.success("Verification code sent!");
         } catch (error: any) {
@@ -55,31 +48,9 @@ export default function ForgotPassword() {
     };
 
     const handleVerifyOtp = async (otp: string) => {
-        // Try exact email first
-        const emailKey = email.replace(/\./g, "_");
-        let otpRef = ref(rtdb, `otp_codes/${emailKey}`);
-        let snapshot = await get(otpRef);
-        
-        // If not found and email is mixed case, try lowercase version
-        if (!snapshot.exists() && email !== email.toLowerCase()) {
-            const lowerEmailKey = email.toLowerCase().replace(/\./g, "_");
-            otpRef = ref(rtdb, `otp_codes/${lowerEmailKey}`);
-            snapshot = await get(otpRef);
-        }
-        
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            if (data.code === otp) {
-                if (Date.now() > data.expiresAt) {
-                    throw new Error("OTP has expired. Please resend.");
-                }
-                setStep("new-password");
-            } else {
-                throw new Error("OTP is wrong");
-            }
-        } else {
-            throw new Error("Verification code not found. Please resend.");
-        }
+        // verifyOTP reads from sessionStorage — works for unauthenticated users
+        verifyOTP(email, otp); // throws descriptive Error on failure
+        setStep("new-password");
     };
 
     const handleResetPassword = async (e: React.FormEvent) => {
@@ -93,7 +64,6 @@ export default function ForgotPassword() {
         setPasswordError("");
         try {
             await resetPassword(email, newPassword);
-            await set(ref(rtdb, `otp_codes/${email.replace(/\./g, "_")}`), null);
             setStep("success");
             toast.success("Password reset successfully!");
         } catch (error: any) {

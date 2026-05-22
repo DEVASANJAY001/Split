@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db, rtdb, googleProvider } from "@/lib/firebase";
-import { ref, set, get } from "firebase/database";
+import { auth, db, googleProvider } from "@/lib/firebase";
 import EmailVerification from "@/components/Auth/EmailVerification";
 import { useStore } from "@/lib/store";
-import { sendOTPEmail } from "@/lib/mail";
+import { sendOTPEmail, verifyOTP } from "@/lib/mail";
 import { Mail, Lock, UserPlus, User, Eye, EyeOff, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -99,66 +98,50 @@ export default function SignUpPage() {
     };
 
     const handleVerifyOtp = async (otp: string) => {
-        const emailKey = email.replace(/\./g, "_");
-        const otpRef = ref(rtdb, `otp_codes/${emailKey}`);
-        const snapshot = await get(otpRef);
-        
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            if (data.code === otp) {
-                if (Date.now() > data.expiresAt) {
-                    throw new Error("OTP has expired. Please resend.");
-                }
-                
-                let user;
-                try {
-                    const authResult = await createUserWithEmailAndPassword(auth, email, password);
-                    user = authResult.user;
-                } catch (authError: any) {
-                    console.error("Auth Creation Error:", authError);
-                    if (authError.code === 'auth/email-already-in-use') {
-                        setStep("signup");
-                        throw new Error("Email already in use. Please log in.");
-                    } else if (authError.code === 'auth/weak-password') {
-                        setStep("signup");
-                        throw new Error("Password is too weak. Must be at least 6 characters.");
-                    } else if (authError.code === 'auth/invalid-email') {
-                        setStep("signup");
-                        throw new Error("Invalid email format.");
-                    } else {
-                        setStep("signup");
-                        throw new Error(authError.message || "Failed to create account in Firebase.");
-                    }
-                }
-                
-                // Use Firestore for user profile consistency
-                const { setDoc, doc } = await import("firebase/firestore");
-                await setDoc(doc(db, "users", user.uid), {
-                    username: `@${name.toLowerCase().replace(/\s/g, "")}`,
-                    displayName: name,
-                    email: email,
-                    avatar: "",
-                    currency: "USD",
-                    isVerified: true,
-                    completedSetup: false,
-                });
+        // verifyOTP reads from sessionStorage — no RTDB needed, works unauthenticated
+        verifyOTP(email, otp); // throws descriptive Error on failure
 
-                // Add to usernames collection for searchability
-                await setDoc(doc(db, "usernames", name.toLowerCase().replace(/\s/g, "")), {
-                    uid: user.uid
-                });
-                
-                await set(otpRef, null);
-                
-                toast.success("Account created and verified!");
-                navigate("/profile-setup");
+        let user;
+        try {
+            const authResult = await createUserWithEmailAndPassword(auth, email, password);
+            user = authResult.user;
+        } catch (authError: any) {
+            console.error("Auth Creation Error:", authError);
+            if (authError.code === 'auth/email-already-in-use') {
+                setStep("signup");
+                throw new Error("Email already in use. Please log in.");
+            } else if (authError.code === 'auth/weak-password') {
+                setStep("signup");
+                throw new Error("Password is too weak. Must be at least 6 characters.");
+            } else if (authError.code === 'auth/invalid-email') {
+                setStep("signup");
+                throw new Error("Invalid email format.");
             } else {
-                throw new Error("OTP is wrong");
+                setStep("signup");
+                throw new Error(authError.message || "Failed to create account in Firebase.");
             }
-        } else {
-            throw new Error("Verification code not found. Please resend.");
         }
+
+        // Save user profile to Firestore
+        const { setDoc, doc } = await import("firebase/firestore");
+        await setDoc(doc(db, "users", user.uid), {
+            username: `@${name.toLowerCase().replace(/\s/g, "")}`,
+            displayName: name,
+            email: email,
+            avatar: "",
+            currency: "USD",
+            isVerified: true,
+            completedSetup: false,
+        });
+
+        await setDoc(doc(db, "usernames", name.toLowerCase().replace(/\s/g, "")), {
+            uid: user.uid
+        });
+
+        toast.success("Account created and verified!");
+        navigate("/profile-setup");
     };
+
 
     const handleResendOtp = async () => {
         try {
