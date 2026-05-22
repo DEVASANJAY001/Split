@@ -274,22 +274,19 @@ export const useStore = create<AppState>()(
       showError: (error) => {
         console.error("Global Error Caught:", error);
         let message = "An unknown error occurred.";
-        let stack = undefined;
-        let code = undefined;
-        let type = undefined;
 
         if (typeof error === "string") {
           message = error;
         } else if (error instanceof Error) {
           message = error.message;
-          stack = error.stack;
         } else if (error && typeof error === "object") {
           message = error.message || error.error || JSON.stringify(error);
-          stack = error.stack;
-          code = error.code || error.errorCode;
-          type = error.type || error.errorType;
         }
-        set({ globalError: { message, stack, code, type } });
+
+        // Show non-intrusive toast instead of screen-blocking error modal
+        toast.error(message, {
+          duration: 5000,
+        });
       },
       clearError: () => set({ globalError: null }),
       setTheme: (t) => {

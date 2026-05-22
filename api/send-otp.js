@@ -1,3 +1,5 @@
+import nodemailer from 'nodemailer';
+
 export default async function handler(req, res) {
   // Set CORS headers — echo origin so CapacitorHttp and WebView both work
   const origin = req.headers.origin || '*';
@@ -28,8 +30,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    const nodemailerModule = await import('nodemailer');
-    const nodemailer = nodemailerModule.default || nodemailerModule;
 
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',

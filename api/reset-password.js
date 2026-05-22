@@ -1,3 +1,5 @@
+import admin from 'firebase-admin';
+
 export default async function handler(req, res) {
   // Set CORS headers early
   const origin = req.headers.origin || '*';
@@ -15,8 +17,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    const adminModule = await import('firebase-admin');
-    const admin = adminModule.default || adminModule;
   try {
     if (!admin.apps.length) {
       if (!process.env.FIREBASE_PRIVATE_KEY) {
