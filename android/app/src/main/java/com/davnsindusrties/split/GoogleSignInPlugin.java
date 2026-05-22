@@ -38,18 +38,21 @@ public class GoogleSignInPlugin extends Plugin {
         try {
             CredentialManager credentialManager = CredentialManager.create(getContext());
 
-            // Build the Google Sign-In request.
-            // setFilterByAuthorizedAccounts(false) → shows ALL Google accounts on device,
-            //   not just ones that previously signed into this app. Needed for sign-up.
-            // setAutoSelectEnabled(false) → always shows the account picker (user choice).
+            // Option 1: Standard bottom-sheet
             GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(false)
                 .setServerClientId(WEB_CLIENT_ID)
                 .setAutoSelectEnabled(false)
                 .build();
 
+            // Option 2: Fallback button dialog (explicit Google account picker)
+            com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption signInWithGoogleOption = 
+                new com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption.Builder(WEB_CLIENT_ID)
+                    .build();
+
             GetCredentialRequest request = new GetCredentialRequest.Builder()
                 .addCredentialOption(googleIdOption)
+                .addCredentialOption(signInWithGoogleOption)
                 .build();
 
             credentialManager.getCredentialAsync(
