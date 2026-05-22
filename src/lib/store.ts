@@ -320,7 +320,42 @@ export const useStore = create<AppState>()(
                   await setDoc(doc(db, "usernames", handle), { uid });
                 }
               } else {
-                set({ profile: null, loading: false });
+                // No Firestore profile yet — auto-create one for Google Sign-In users
+                // so they don't get bounced back to the "create account" setup page on
+                // every launch. Users who signed up with email/password will create their
+                // profile via the OTP + ProfileSetup flow and this branch won't run.
+                const googleUser = auth.currentUser;
+                if (googleUser?.providerData.some(p => p.providerId === "google.com")) {
+                  const displayName = googleUser.displayName || "User";
+                  const email = googleUser.email || "";
+                  const avatar = googleUser.photoURL || "";
+                  // Derive a username from email (strip domain, lowercase, strip non-alphanum)
+                  const rawHandle = (email.split("@")[0] || displayName)
+                    .toLowerCase()
+                    .replace(/[^a-z0-9_]/g, "");
+                  const handle = rawHandle || `user${uid.slice(0, 6)}`;
+
+                  // Check if username is taken; if so, append uid suffix
+                  const usernameSnap = await getDoc(doc(db, "usernames", handle));
+                  const finalHandle = usernameSnap.exists() ? `${handle}${uid.slice(0, 4)}` : handle;
+                  const username = `@${finalHandle}`;
+
+                  const profileData: Profile = {
+                    displayName,
+                    username,
+                    email,
+                    avatar,
+                    currency: "USD",
+                    isVerified: true,
+                    completedSetup: true,
+                  };
+
+                  await setDoc(doc(db, "users", uid), profileData);
+                  await setDoc(doc(db, "usernames", finalHandle), { uid });
+                  // profile will be set by the next onSnapshot trigger
+                } else {
+                  set({ profile: null, loading: false });
+                }
               }
             }, (error) => {
               console.error("Profile fetch error:", error);
@@ -333,9 +368,14 @@ export const useStore = create<AppState>()(
               where("memberIds", "array-contains", uid),
             );
             newUnsubs.push(onSnapshot(groupsQuery, (snapshot) => {
-              const groupsList = snapshot.docs.map(
-                (d) => ({ ...d.data(), id: d.id }) as Group,
-              );
+              const groupsList = snapshot.docs.map((d) => {
+                const data = d.data();
+                return {
+                  ...data,
+                  id: d.id,
+                  memberIds: data.memberIds || [],
+                } as Group;
+              });
               set({ groups: groupsList });
 
               // 3. Dependent subscriptions (Expenses/Settlements)
@@ -869,8 +909,10 @@ export const useStore = create<AppState>()(
       addGroup: async (g) => {
         const uid = get().userId;
         if (!uid) throw new Error("Not authenticated");
+        const memberIds = Array.from(new Set([...(g.memberIds || []), uid]));
         const docRef = await addDoc(collection(db, "groups"), {
           ...g,
+          memberIds,
           ownerId: uid,
           createdAt: Date.now(),
         });

@@ -9,8 +9,8 @@ export default function AboutDAVNS() {
       <div className="px-5 space-y-6">
         <div className="flex flex-col items-center justify-center py-12">
           <div className="w-full flex justify-center mb-8">
-            <img src="/src/assets/davnslogo-b.png" alt="DAVNS Industries" className="h-16 object-contain dark:hidden" />
-            <img src="/src/assets/davnslogo-w.png" alt="DAVNS Industries" className="h-16 object-contain hidden dark:block" />
+            <img src="/davnslogo-b.png" alt="DAVNS Industries" className="h-16 object-contain dark:hidden" />
+            <img src="/davnslogo-w.png" alt="DAVNS Industries" className="h-16 object-contain hidden dark:block" />
           </div>
           <p className="text-xs font-bold text-brand uppercase tracking-widest mt-1">A product by DAVNS</p>
         </div>

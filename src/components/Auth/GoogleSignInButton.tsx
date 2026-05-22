@@ -106,12 +106,15 @@ export default function GoogleSignInButton({ onSuccess, onError, text = "signin_
     setLoading(true);
     try {
       await loginWithGoogle();
-      toast.success("Welcome!");
-      onSuccess();
-    } catch (err: any) {
-      if (err.code !== "auth/popup-closed-by-user" && !err.message?.includes("cancel")) {
-        toast.error(err.message || "Sign-In failed");
+      // On native, onAuthStateChanged in the store drives navigation automatically.
+      // We only call onSuccess() for web popups which resolve synchronously.
+      if (!isNative) {
+        onSuccess();
       }
+    } catch (err: any) {
+      console.error("Google Native Sign-In failed:", err);
+      const errorMessage = typeof err === 'object' ? JSON.stringify(err) : String(err);
+      toast.error(`Sign-In failed: ${errorMessage}`);
       onError(err);
     } finally {
       setLoading(false);

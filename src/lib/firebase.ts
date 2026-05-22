@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, setPersistence, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
@@ -22,10 +22,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Ensure persistent login
-setPersistence(auth, browserLocalPersistence).catch((err) => {
-  console.error("Auth persistence error:", err);
-});
+// Use IndexedDB persistence for Capacitor/native WebView compatibility;
+// fall back to localStorage then in-memory for environments that block IDB.
+setPersistence(auth, indexedDBLocalPersistence)
+  .catch(() => setPersistence(auth, browserLocalPersistence))
+  .catch(() => setPersistence(auth, inMemoryPersistence))
+  .catch((err) => console.error("Auth persistence error:", err));
 export const db = getFirestore(app);
 export const rtdb = getDatabase(app);
 export const storage = getStorage(app);

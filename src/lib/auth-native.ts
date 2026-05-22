@@ -1,34 +1,32 @@
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
-import { 
-  GoogleAuthProvider, 
-  signInWithCredential, 
-  signInWithPopup, 
-  signInWithRedirect 
-} from 'firebase/auth';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import { GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
 
 export async function loginWithGoogle() {
-  if (Capacitor.isNativePlatform()) {
-    try {
-      // Native Google Sign In
-      const user = await GoogleAuth.signIn();
-      if (!user?.authentication?.idToken) {
-        throw new Error("Google Sign-In failed: No ID Token returned from native SDK.");
-      }
-      const credential = GoogleAuthProvider.credential(user.authentication.idToken);
-      return await signInWithCredential(auth, credential);
-    } catch (error) {
-      console.error('Native Google Auth error:', error);
-      throw error;
+  if (!Capacitor.isNativePlatform()) {
+    // Web: use popup flow via Firebase JS SDK
+    return signInWithPopup(auth, googleProvider);
+  }
+
+  try {
+    // Native Android: Use the official @capacitor-firebase/authentication plugin.
+    // This uses Firebase's own native Google Sign-In SDK, which is the most
+    // reliable approach for Play Store builds. skipNativeAuth means we handle
+    // Firebase sign-in ourselves via the JS SDK (for WebView state sync).
+    const result = await FirebaseAuthentication.signInWithGoogle();
+
+    const idToken = result.credential?.idToken;
+    if (!idToken) {
+      throw new Error('Google Sign-In failed: no ID token returned.');
     }
-  } else {
-    // Web Google Sign In Fallback (uses popup to support local/arbitrary dev domains out of the box)
-    try {
-      return await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Google Sign-In Fallback failed:", error);
-      throw error;
-    }
+
+    // Sign in to Firebase JS SDK using the Google credential
+    const credential = GoogleAuthProvider.credential(idToken);
+    return signInWithCredential(auth, credential);
+
+  } catch (err: any) {
+    const msg = err?.message || err?.error || JSON.stringify(err);
+    throw new Error(`Google Sign-In error: ${msg}`);
   }
 }

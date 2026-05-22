@@ -78,6 +78,12 @@ export default function Groups() {
     }
   }, [searchParams, setSearchParams, openModal]);
 
+  useEffect(() => {
+    if (showCreate && userId) {
+      setMembers([userId]);
+    }
+  }, [showCreate, userId]);
+
   const create = async () => {
     if (!name.trim()) return toast.error("Name required");
     if (members.length < 2) return toast.error("Add at least one friend");

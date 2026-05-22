@@ -100,8 +100,8 @@ const OnboardingRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 import { useEffect, useState } from "react";
-import { getRedirectResult } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { Capacitor } from "@capacitor/core";
+import { StatusBar, Style } from "@capacitor/status-bar";
 
 const App = () => {
   const [initializing, setInitializing] = useState(true);
@@ -110,28 +110,25 @@ const App = () => {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
+
+    // Sync Android status bar with the app theme
+    if (Capacitor.isNativePlatform()) {
+      if (theme === "dark") {
+        // Dark background → light (white) status bar icons
+        StatusBar.setStyle({ style: Style.Dark });
+        StatusBar.setBackgroundColor({ color: '#09090b' }); // zinc-950
+      } else {
+        // Light background → dark status bar icons
+        StatusBar.setStyle({ style: Style.Light });
+        StatusBar.setBackgroundColor({ color: '#ffffff' }); // white
+      }
+    }
   }, [theme]);
 
   useEffect(() => {
-    // Crucial for APK/WebView redirect handling
-    const handleRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          console.log("Redirect login successful:", result.user.email);
-        }
-      } catch (error: any) {
-        if (error.code !== "auth/redirect-cancelled-by-user") {
-          console.error("Auth redirect error:", error);
-          toast.error(`Auth Error: ${error.code}. Please check Firebase Authorized Domains.`);
-        }
-      } finally {
-        // Only stop initializing after we've checked for a redirect result
-        setInitializing(false);
-      }
-    };
-
-    handleRedirect();
+    // PKCE flow handles auth inside the app via signInWithCredential.
+    // No redirect result to capture — just unblock the UI immediately.
+    setInitializing(false);
   }, []);
 
   if (initializing) return (
@@ -150,7 +147,7 @@ const App = () => {
       </div>
       <div className="flex flex-col items-center gap-2 animate-pulse">
         <h2 className="text-xl font-bold tracking-tightest italic">split</h2>
-        <p className="text-xs font-black text-ink-soft uppercase tracking-widest">Verifying Session...</p>
+        <p className="text-xs font-black text-ink-soft uppercase tracking-widest">Loading...</p>
       </div>
     </div>
   );
