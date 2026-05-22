@@ -188,6 +188,7 @@ const App = () => {
             </Routes>
           </div>
         </BrowserRouter>
+        <Sonner />
       </TooltipProvider>
     </QueryClientProvider>
   );

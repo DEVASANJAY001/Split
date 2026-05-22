@@ -113,7 +113,7 @@ export default function GoogleSignInButton({ onSuccess, onError, text = "signin_
       }
     } catch (err: any) {
       console.error("Google Native Sign-In failed:", err);
-      const errorMessage = typeof err === 'object' ? JSON.stringify(err) : String(err);
+      const errorMessage = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
       toast.error(`Sign-In failed: ${errorMessage}`);
       onError(err);
     } finally {
