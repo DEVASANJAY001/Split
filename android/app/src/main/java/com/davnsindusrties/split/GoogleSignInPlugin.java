@@ -1,15 +1,8 @@
 package com.davnsindusrties.split;
 
-import android.os.CancellationSignal;
 import android.content.Intent;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.credentials.CredentialManager;
-import androidx.credentials.CredentialManagerCallback;
-import androidx.credentials.CustomCredential;
-import androidx.credentials.GetCredentialRequest;
-import androidx.credentials.GetCredentialResponse;
-import androidx.credentials.exceptions.GetCredentialException;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -20,51 +13,63 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
-import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException;
-import java.util.concurrent.Executors;
 
 /**
- * Custom Capacitor plugin that wraps Android Credential Manager for Google Sign-In,
- * with automatic fallback to GoogleSignInClient chooser when Credential Manager has no accounts.
+ * Custom Capacitor plugin for Google Sign-In using the reliable legacy
+ * GoogleSignInClient SDK. Credential Manager is bypassed entirely because
+ * it throws NoCredentialException on many devices.
+ *
+ * Flow: signIn() → sign out silently → launch account picker →
+ *       onActivityResult → extract idToken → resolve PluginCall
  */
 @CapacitorPlugin(name = "GoogleSignIn")
 public class GoogleSignInPlugin extends Plugin {
 
-    // Web Client ID (OAuth client type 3) from google-services.json
+    // Web Client ID (OAuth client type 3) — must be the Web client, NOT the Android client
     private static final String WEB_CLIENT_ID =
         "16306937848-8sv3bbv62mh7pn5sg3scjtdkl1tnh7h6.apps.googleusercontent.com";
 
-    private ActivityResultLauncher<Intent> googleSignInLauncher;
+    private ActivityResultLauncher<Intent> signInLauncher;
+    private GoogleSignInClient googleSignInClient;
 
     @Override
     public void load() {
-        googleSignInLauncher = bridge.registerForActivityResult(
+        // Build the sign-in options — request an ID token scoped to the web client
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(WEB_CLIENT_ID)
+            .requestEmail()
+            .build();
+
+        googleSignInClient = GoogleSignIn.getClient(getActivity(), gso);
+
+        // Register activity result handler once during load()
+        signInLauncher = bridge.registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 PluginCall savedCall = getSavedCall();
                 if (savedCall == null) return;
 
-                if (result.getResultCode() == android.app.Activity.RESULT_OK) {
-                    try {
-                        Intent data = result.getData();
-                        com.google.android.gms.tasks.Task<GoogleSignInAccount> task =
-                            GoogleSignIn.getSignedInAccountFromIntent(data);
-                        GoogleSignInAccount account = task.getResult(ApiException.class);
-                        String idToken = account.getIdToken();
-                        if (idToken != null && !idToken.isEmpty()) {
-                            JSObject res = new JSObject();
-                            res.put("idToken", idToken);
-                            savedCall.resolve(res);
-                        } else {
-                            savedCall.reject("Google Sign-In: empty ID token received.");
-                        }
-                    } catch (ApiException e) {
-                        savedCall.reject("Google Sign-In failed: " + e.getMessage() + " (Status: " + e.getStatusCode() + ")");
+                try {
+                    // getSignedInAccountFromIntent works for both RESULT_OK and error cases
+                    com.google.android.gms.tasks.Task<GoogleSignInAccount> task =
+                        GoogleSignIn.getSignedInAccountFromIntent(result.getData());
+
+                    GoogleSignInAccount account = task.getResult(ApiException.class);
+                    String idToken = account.getIdToken();
+
+                    if (idToken != null && !idToken.isEmpty()) {
+                        JSObject res = new JSObject();
+                        res.put("idToken", idToken);
+                        savedCall.resolve(res);
+                    } else {
+                        savedCall.reject("Google Sign-In returned an empty ID token. "
+                            + "Ensure the Web Client ID is correct and the SHA-1 is registered in Firebase.");
                     }
-                } else {
-                    savedCall.reject("Google Sign-In was cancelled or failed.");
+                } catch (ApiException e) {
+                    // Status codes: 12501=cancelled, 12500=sign_in_failed, 10=developer_error
+                    savedCall.reject("Google Sign-In failed [status=" + e.getStatusCode() + "]: " + e.getMessage());
+                } catch (Exception e) {
+                    savedCall.reject("Google Sign-In unexpected error: " + e.getMessage());
                 }
             }
         );
@@ -72,104 +77,12 @@ public class GoogleSignInPlugin extends Plugin {
 
     @PluginMethod
     public void signIn(PluginCall call) {
-        try {
-            CredentialManager credentialManager = CredentialManager.create(getContext());
-
-            // Option 1: Standard bottom-sheet
-            GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false)
-                .setServerClientId(WEB_CLIENT_ID)
-                .setAutoSelectEnabled(false)
-                .build();
-
-            // Option 2: Fallback button dialog (explicit Google account picker)
-            com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption signInWithGoogleOption = 
-                new com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption.Builder(WEB_CLIENT_ID)
-                    .build();
-
-            GetCredentialRequest request = new GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
-                .addCredentialOption(signInWithGoogleOption)
-                .build();
-
-            credentialManager.getCredentialAsync(
-                getActivity(),
-                request,
-                new CancellationSignal(),
-                Executors.newSingleThreadExecutor(),
-                new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
-                    @Override
-                    public void onResult(GetCredentialResponse response) {
-                        try {
-                            String idToken = extractIdToken(response);
-                            if (idToken != null && !idToken.isEmpty()) {
-                                JSObject result = new JSObject();
-                                result.put("idToken", idToken);
-                                call.resolve(result);
-                            } else {
-                                call.reject("Google Sign-In failed: empty ID token received.");
-                            }
-                        } catch (GoogleIdTokenParsingException e) {
-                            call.reject("Failed to parse Google ID token: " + e.getMessage());
-                        }
-                    }
-
-                    @Override
-                    public void onError(GetCredentialException e) {
-                        // If Credential Manager fails due to missing credentials, trigger legacy fallback
-                        String type = e.getType();
-                        String message = e.getMessage() != null ? e.getMessage() : "";
-                        if (type.endsWith("NoCredentialException") || message.contains("No credentials available")) {
-                            getActivity().runOnUiThread(() -> {
-                                startLegacySignIn(call);
-                            });
-                        } else {
-                            call.reject(message, type);
-                        }
-                    }
-                }
-            );
-        } catch (Exception e) {
-            call.reject("GoogleSignInPlugin error: " + e.getMessage());
-        }
-    }
-
-    private void startLegacySignIn(PluginCall call) {
         saveCall(call);
-        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(WEB_CLIENT_ID)
-            .requestEmail()
-            .build();
-        GoogleSignInClient mGoogleSignInClient = GoogleSignIn.getClient(getActivity(), gso);
-        
-        // Force account selection dialog by signing out first
-        mGoogleSignInClient.signOut().addOnCompleteListener(task -> {
-            Intent signInIntent = mGoogleSignInClient.getSignInIntent();
-            googleSignInLauncher.launch(signInIntent);
+
+        // Sign out silently first to always force the account picker dialog
+        googleSignInClient.signOut().addOnCompleteListener(task -> {
+            Intent signInIntent = googleSignInClient.getSignInIntent();
+            signInLauncher.launch(signInIntent);
         });
-    }
-
-    /**
-     * Extracts the Google ID token from the credential response.
-     * Handles both direct GoogleIdTokenCredential and CustomCredential wrapper types.
-     */
-    private String extractIdToken(GetCredentialResponse response)
-            throws GoogleIdTokenParsingException {
-        var credential = response.getCredential();
-
-        // Direct type (newer API levels)
-        if (credential instanceof GoogleIdTokenCredential) {
-            return ((GoogleIdTokenCredential) credential).getIdToken();
-        }
-
-        // CustomCredential wrapper (compatibility path across API levels)
-        if (credential instanceof CustomCredential) {
-            CustomCredential custom = (CustomCredential) credential;
-            if (GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(custom.getType())) {
-                return GoogleIdTokenCredential.createFrom(custom.getData()).getIdToken();
-            }
-        }
-
-        return null;
     }
 }
