@@ -25,9 +25,11 @@ import com.google.android.gms.common.api.ApiException;
 @CapacitorPlugin(name = "GoogleSignIn")
 public class GoogleSignInPlugin extends Plugin {
 
-    // Web Client ID (OAuth client type 3) — must be the Web client, NOT the Android client
+    // Firebase auto-created Web Client ID — this is the correct server client for requestIdToken().
+    // Using a manually-created web client causes DEVELOPER_ERROR (status=10).
+    // Found in GCC → OAuth 2.0 Clients → "Web client (auto created by Google Service)"
     private static final String WEB_CLIENT_ID =
-        "16306937848-8sv3bbv62mh7pn5sg3scjtdkl1tnh7h6.apps.googleusercontent.com";
+        "16306937848-5ke01eo4q885rt03k2pl920ap2upj6b0.apps.googleusercontent.com";
 
     private ActivityResultLauncher<Intent> signInLauncher;
     private GoogleSignInClient googleSignInClient;
