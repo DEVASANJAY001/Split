@@ -1,4 +1,4 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, CapacitorHttp } from "@capacitor/core";
 
 const getApiUrl = (path: string) => {
   // On native platforms, absolute URLs to the production backend are required
@@ -10,20 +10,36 @@ const getApiUrl = (path: string) => {
 
 export const sendOTPEmail = async (email: string, name: string, type: 'signup' | 'reset' = 'signup') => {
   try {
-    const response = await fetch(getApiUrl('/api/send-otp'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, name, type }),
-    });
+    if (Capacitor.isNativePlatform()) {
+      const response = await CapacitorHttp.post({
+        url: getApiUrl('/api/send-otp'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: { email, name, type },
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to send verification email');
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(response.data?.error || 'Failed to send verification email');
+      }
+
+      return response.data;
+    } else {
+      const response = await fetch(getApiUrl('/api/send-otp'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, name, type }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send verification email');
+      }
+
+      return await response.json();
     }
-
-    return await response.json();
   } catch (error: any) {
     console.error("Failed to send email:", error);
     throw error;
@@ -32,20 +48,36 @@ export const sendOTPEmail = async (email: string, name: string, type: 'signup' |
 
 export const resetPassword = async (email: string, newPassword: string) => {
   try {
-    const response = await fetch(getApiUrl('/api/reset-password'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, newPassword }),
-    });
+    if (Capacitor.isNativePlatform()) {
+      const response = await CapacitorHttp.post({
+        url: getApiUrl('/api/reset-password'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: { email, newPassword },
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to reset password');
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(response.data?.error || 'Failed to reset password');
+      }
+
+      return response.data;
+    } else {
+      const response = await fetch(getApiUrl('/api/reset-password'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, newPassword }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reset password');
+      }
+
+      return await response.json();
     }
-
-    return await response.json();
   } catch (error: any) {
     console.error("Failed to reset password:", error);
     throw error;
