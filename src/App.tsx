@@ -132,12 +132,25 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    const isBenignError = (msg: string) => {
+      if (!msg) return false;
+      // Firebase RTDB fires PERMISSION_DENIED on unauthenticated background connection — not a real crash
+      if (msg.includes('PERMISSION_DENIED')) return true;
+      // Firebase internal transport errors
+      if (msg.includes('WebChannelConnection') || msg.includes('RPC')) return true;
+      return false;
+    };
+
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       if (event.reason?.name === "NavigationCancelledError") return;
+      const msg = event.reason?.message || String(event.reason);
+      if (isBenignError(msg)) return;
       useStore.getState().showError(event.reason);
     };
 
     const handleWindowError = (event: ErrorEvent) => {
+      const msg = event.error?.message || event.message || '';
+      if (isBenignError(msg)) return;
       useStore.getState().showError(event.error || event.message);
     };
 
