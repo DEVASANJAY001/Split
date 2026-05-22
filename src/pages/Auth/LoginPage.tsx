@@ -67,7 +67,7 @@ export default function LoginPage() {
               } else if (error.code === "auth/too-many-requests") {
                 toast.error("Too many failed attempts. Please try again later.");
             } else {
-                toast.error(error.message);
+                useStore.getState().showError(error);
             }
         } finally {
             setLoading(false);

@@ -88,11 +88,11 @@ export default function SignUpPage() {
                 toast.success("Verification code sent!");
             } catch (err: any) {
                 console.error("Failed to send verification email:", err);
-                toast.error(err.message || "Failed to send verification email");
+                useStore.getState().showError(err);
                 setStep("signup"); // Go back if email failed
             }
         } catch (error: any) {
-            toast.error(error.message);
+            useStore.getState().showError(error);
         } finally {
             setLoading(false);
         }

@@ -240,6 +240,9 @@ interface AppState {
   isModalOpen: boolean;
   openModal: () => void;
   closeModal: () => void;
+  globalError: { message: string; stack?: string; code?: string; type?: string } | null;
+  showError: (error: any) => void;
+  clearError: () => void;
 }
 
 export type SettleMethod = "Cash" | "UPI" | "Bank Transfer" | "Other";
@@ -267,6 +270,28 @@ export const useStore = create<AppState>()(
       theme: "light",
       isModalOpen: false,
       modalCount: 0,
+      globalError: null,
+      showError: (error) => {
+        console.error("Global Error Caught:", error);
+        let message = "An unknown error occurred.";
+        let stack = undefined;
+        let code = undefined;
+        let type = undefined;
+
+        if (typeof error === "string") {
+          message = error;
+        } else if (error instanceof Error) {
+          message = error.message;
+          stack = error.stack;
+        } else if (error && typeof error === "object") {
+          message = error.message || error.error || JSON.stringify(error);
+          stack = error.stack;
+          code = error.code || error.errorCode;
+          type = error.type || error.errorType;
+        }
+        set({ globalError: { message, stack, code, type } });
+      },
+      clearError: () => set({ globalError: null }),
       setTheme: (t) => {
         set({ theme: t });
         document.documentElement.classList.toggle("dark", t === "dark");
