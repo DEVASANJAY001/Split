@@ -2,7 +2,7 @@ import { Capacitor, CapacitorHttp } from "@capacitor/core";
 
 const getApiUrl = (path: string) => {
   const baseUrl = Capacitor.isNativePlatform()
-    ? 'https://splitbeta.vercel.app'
+    ? 'https://splitdavns.vercel.app'
     : '';
   return `${baseUrl}${path}`;
 };
