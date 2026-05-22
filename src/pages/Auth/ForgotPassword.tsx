@@ -36,7 +36,6 @@ export default function ForgotPassword() {
         try {
             await sendOTPEmail(email, "User", 'reset');
             setStep("otp");
-            toast.success("Verification code sent!");
         } catch (error: any) {
             console.error("OTP Send Error:", error);
             toast.error(error.message || "Failed to initiate password reset");

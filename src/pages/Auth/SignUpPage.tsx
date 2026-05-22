@@ -84,7 +84,6 @@ export default function SignUpPage() {
 
             try {
                 await sendOTPEmail(email, name);
-                toast.success("Verification code sent!");
             } catch (err: any) {
                 console.error("Failed to send verification email:", err);
                 useStore.getState().showError(err);
@@ -146,7 +145,6 @@ export default function SignUpPage() {
     const handleResendOtp = async () => {
         try {
             await sendOTPEmail(email, name);
-            toast.success("New code sent!");
         } catch (err: any) {
             console.error("Failed to resend email:", err);
             toast.error(err.message || "Failed to resend email");

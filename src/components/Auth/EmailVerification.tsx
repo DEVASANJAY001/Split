@@ -60,7 +60,6 @@ export default function EmailVerification({ email, onVerify, onResend }: EmailVe
         try {
             await onResend();
             setTimer(30);
-            toast.success("Verification code resent!");
         } catch (error: any) {
             toast.error(error.message);
         } finally {

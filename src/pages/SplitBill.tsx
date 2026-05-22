@@ -157,10 +157,8 @@ export default function SplitBill() {
     if (isPersonal) {
       if (editId) {
         updatePersonalExpense(editId, { description: title.trim(), amount: total, category, date, notes });
-        toast.success("Expense updated!");
       } else {
         addPersonalExpense({ description: title.trim(), amount: total, category, date, notes });
-        toast.success("Expense added!");
       }
       navigate("/");
       return;
@@ -183,10 +181,8 @@ export default function SplitBill() {
 
     if (editId) {
       updateExpense(editId, payload);
-      toast.success("Expense updated!");
     } else {
       addExpense({ ...payload, createdAt: Date.now() });
-      toast.success("Expense split!");
     }
     if (isRecurring) {
       const templateData = isPersonal 
