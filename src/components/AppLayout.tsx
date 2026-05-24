@@ -1,10 +1,11 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { memo } from "react";
+import { memo, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Home, Users, BarChart3, Receipt, Plus, UserPlus, User, ArrowLeft } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { PersonAvatar } from "@/components/Avatar";
 import { Logo } from "@/components/Logo";
+import { toast } from "sonner";
 
 const tabs = [
   { to: "/", label: "Home", icon: Home },
@@ -20,10 +21,37 @@ export default function AppLayout() {
   const { requests, lastSeenRequests, isModalOpen } = useStore();
   const unreadCount = requests.filter(r => r.createdAt > lastSeenRequests).length;
 
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      toast.success("Connection restored!");
+    };
+    const handleOffline = () => {
+      setIsOffline(true);
+      toast.error("You are offline. Working with cached data.");
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   const showNav = ["/", "/groups", "/friends", "/transactions", "/reports"].includes(location.pathname) && !isModalOpen;
 
   return (
     <div className="min-h-screen bg-background relative">
+      {isOffline && (
+        <div className="fixed top-0 inset-x-0 z-[100] bg-warning text-white text-[10px] font-black tracking-widest text-center pt-[calc(env(safe-area-inset-top,0px)+8px)] pb-2 shadow-md animate-in slide-in-from-top duration-300 flex items-center justify-center gap-2 uppercase">
+          <span className="size-1.5 rounded-full bg-white animate-pulse" />
+          Offline Mode · Using Cached Data
+        </div>
+      )}
       {/* Premium Background Elements - fixed so they never affect layout */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute top-[-10%] right-[-10%] size-[50%] bg-brand/5 blur-[120px] rounded-full animate-float" />
@@ -42,7 +70,7 @@ export default function AppLayout() {
         <button
           onClick={() => navigate("/split")}
           aria-label="Add expense"
-          className="fixed bottom-28 right-6 md:right-[calc(50%-18rem)] z-40 size-14 rounded-2xl bg-brand text-brand-foreground flex items-center justify-center shadow-brand hover:scale-105 active:scale-95 transition-all group"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] right-6 md:right-[calc(50%-18rem)] z-40 size-14 rounded-2xl bg-brand text-brand-foreground flex items-center justify-center shadow-brand hover:scale-105 active:scale-95 transition-all group"
         >
           <Plus className="size-6 transition-transform group-hover:rotate-90" strokeWidth={3} />
         </button>
@@ -53,7 +81,7 @@ export default function AppLayout() {
           {/* Glass Finish Blur Ending */}
           <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none z-40" />
           
-          <nav className="fixed bottom-6 left-4 right-4 max-w-md mx-auto z-50 glass rounded-[2.5rem] shadow-2xl pb-safe overflow-hidden">
+          <nav className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+16px)] left-4 right-4 max-w-md mx-auto z-50 glass rounded-[2.5rem] shadow-2xl pb-safe overflow-hidden">
             <div className="flex items-center justify-around h-16 px-4">
               {tabs.map(({ to, label, icon: Icon, hasBadge }) => {
                 return (
@@ -124,11 +152,11 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, showAction
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <Logo />
+              <Logo size="md" className="shadow-sm rounded-xl bg-white/60 dark:bg-transparent p-0.5 border border-hairline/20" />
               <h1 className="text-3xl font-black tracking-tightest text-ink truncate">{title}</h1>
             </div>
             {subtitle && (
-              <p className="text-base text-ink-soft mt-0.5 tracking-tight truncate pl-8">{subtitle}</p>
+              <p className="text-base text-ink-soft mt-0.5 tracking-tight truncate pl-10">{subtitle}</p>
             )}
           </div>
         </div>

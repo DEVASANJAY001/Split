@@ -48,6 +48,14 @@ export default function Profile() {
     }
   }, [profile, editing]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("edit") === "true" && profile) {
+      setDraft(profile);
+      setEditing(true);
+    }
+  }, [profile]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;

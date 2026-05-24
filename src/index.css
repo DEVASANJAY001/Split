@@ -110,6 +110,14 @@
   .pb-nav-clearance {
     padding-bottom: 12rem;
   }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
 }
 
 /* Custom animations */

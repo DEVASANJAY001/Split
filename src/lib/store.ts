@@ -162,6 +162,7 @@ export type Profile = {
   upiId?: string;
   isVerified?: boolean;
   completedSetup?: boolean;
+  dismissedProfileBanner?: boolean;
 };
 
 type AppMode = "group" | "personal";
@@ -208,7 +209,7 @@ interface AppState {
   declineRequest: (id: string) => Promise<void>;
   sendRequest: (
     username: string,
-    extra?: { displayName: string; avatar?: string },
+    extra?: { displayName: string; avatar?: string; targetUid?: string },
   ) => Promise<void>;
   withdrawRequest: (username: string) => Promise<void>;
   removeFriend: (id: string) => Promise<void>;
@@ -330,6 +331,7 @@ export const useStore = create<AppState>()(
                   {
                     id: uid,
                     name: data.displayName || data.username || "User",
+                    username: data.username || "",
                     email: data.email || (data.username ? data.username + "@split.app" : "user@split.app"),
                     avatar: data.avatar || "",
                     initials: (data.displayName || data.username || "U").slice(0, 2).toUpperCase(),
@@ -710,18 +712,21 @@ export const useStore = create<AppState>()(
         await deleteDoc(doc(db, "users", userId, "friend_requests", id));
       },
       sendRequest: async (username, extra) => {
-        const handle = username.replace("@", "").toLowerCase();
         const userId = auth.currentUser?.uid;
         const profile = get().profile;
         if (!userId || !profile) return;
 
         try {
-          const snap = await getDoc(doc(db, "usernames", handle));
-          if (!snap.exists()) {
-            toast.error("User not found");
-            return;
+          let targetUid = extra?.targetUid;
+          if (!targetUid) {
+            const handle = username.replace("@", "").toLowerCase();
+            const snap = await getDoc(doc(db, "usernames", handle));
+            if (!snap.exists()) {
+              toast.error("User not found");
+              return;
+            }
+            targetUid = snap.data().uid;
           }
-          const targetUid = snap.data().uid;
           if (targetUid === userId) {
             toast.error("You cannot add yourself");
             return;
@@ -830,6 +835,18 @@ export const useStore = create<AppState>()(
           if (p.username) {
             const handle = p.username.replace("@", "").toLowerCase();
             await setDoc(doc(db, "usernames", handle), { uid: userId });
+          }
+          // Sync to people registry
+          const updates: any = {};
+          if (p.displayName !== undefined) updates.name = p.displayName;
+          if (p.avatar !== undefined) updates.avatar = p.avatar;
+          if (p.username !== undefined) updates.username = p.username;
+          if (p.displayName !== undefined || p.username !== undefined) {
+            const name = p.displayName || p.username || "User";
+            updates.initials = name.slice(0, 2).toUpperCase();
+          }
+          if (Object.keys(updates).length > 0) {
+            await setDoc(doc(db, "people", userId), updates, { merge: true });
           }
         }
       },

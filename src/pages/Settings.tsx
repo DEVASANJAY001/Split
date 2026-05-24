@@ -201,7 +201,6 @@ export default function Settings() {
             <img src="/davnslogo-b.png" alt="DAVNS" className="h-full object-contain opacity-70 dark:hidden" />
             <img src="/davnslogo-w.png" alt="DAVNS" className="h-full object-contain opacity-70 hidden dark:block" />
           </div>
-          <p className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Version 2.1.0</p>
           <p className="text-[9px] text-ink-soft/60 mt-1">Split by DAVNS Industries</p>
         </div>
       </div>

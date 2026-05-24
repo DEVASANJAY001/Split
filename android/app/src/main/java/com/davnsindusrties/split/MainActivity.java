@@ -5,6 +5,7 @@ import android.os.Bundle;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import android.content.pm.PackageManager;
+import androidx.activity.EdgeToEdge;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -13,6 +14,7 @@ public class MainActivity extends BridgeActivity {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    EdgeToEdge.enable(this);
     // Register our custom Google Sign-In plugin (Credential Manager).
     // This plugin lives in our own app package so it must be registered manually.
     // It is NOT an npm package so Capacitor won't auto-discover it.
@@ -30,18 +32,9 @@ public class MainActivity extends BridgeActivity {
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_IMAGES)
-          != PackageManager.PERMISSION_GRANTED) {
-        permissionsToRequest.add(android.Manifest.permission.READ_MEDIA_IMAGES);
-      }
       if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
           != PackageManager.PERMISSION_GRANTED) {
         permissionsToRequest.add(android.Manifest.permission.POST_NOTIFICATIONS);
-      }
-    } else {
-      if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE)
-          != PackageManager.PERMISSION_GRANTED) {
-        permissionsToRequest.add(android.Manifest.permission.READ_EXTERNAL_STORAGE);
       }
     }
 

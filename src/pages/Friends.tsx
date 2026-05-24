@@ -77,10 +77,10 @@ export default function Friends() {
     return () => clearTimeout(delayDebounceFn);
   }, [q, searchUsers]);
 
-  const handleSend = async (username: string, display: string, avatar?: string) => {
+  const handleSend = async (username: string, display: string, avatar?: string, targetUid?: string) => {
     setProcessingId(username);
     try {
-      await sendRequest(username, { displayName: display, avatar });
+      await sendRequest(username, { displayName: display, avatar, targetUid });
     } finally {
       setProcessingId(null);
     }
@@ -214,7 +214,7 @@ export default function Friends() {
                           disabled={isProcessing}
                           onClick={() => {
                             if (sent) handleWithdraw(r.username);
-                            else handleSend(r.username, r.displayName, r.avatar);
+                            else handleSend(r.username, r.displayName, r.avatar, r.uid);
                           }}
                           className={cn(
                             "px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95",

@@ -111,16 +111,14 @@ const App = () => {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
 
-    // Sync Android status bar with the app theme
+    // Sync Android status bar style with the app theme
     if (Capacitor.isNativePlatform()) {
       if (theme === "dark") {
         // Dark background → light (white) status bar icons
         StatusBar.setStyle({ style: Style.Dark });
-        StatusBar.setBackgroundColor({ color: '#09090b' }); // zinc-950
       } else {
         // Light background → dark status bar icons
         StatusBar.setStyle({ style: Style.Light });
-        StatusBar.setBackgroundColor({ color: '#ffffff' }); // white
       }
     }
   }, [theme]);

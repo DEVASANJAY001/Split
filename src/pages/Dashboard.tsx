@@ -10,7 +10,7 @@ import { ArrowDownLeft, ArrowUpRight, Receipt, Wallet, TrendingDown, TrendingUp,
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { PromptModal, ConfirmModal } from "@/components/Modal";
-import { Trash2, MoreVertical, Edit3, PlusCircle, Eye } from "lucide-react";
+import { Trash2, MoreVertical, Edit3, PlusCircle, Eye, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { BrandIcon } from "@/components/BrandIcon";
@@ -19,7 +19,7 @@ import { PersonalExpense } from "@/lib/store";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { groups, expenses, settlements, people, mode, personal, userId, profile, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal, savingsGoals, deleteExpense, addSubEntry } = useStore();
+  const { groups, expenses, settlements, people, mode, personal, userId, profile, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal, savingsGoals, deleteExpense, addSubEntry, updateProfile } = useStore();
   const cur = profile?.currency || "USD";
 
   const [promptOpen, setPromptOpen] = useState(false);
@@ -83,6 +83,39 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background pb-nav-clearance">
       <PageHeader title="Split" subtitle={mode === "personal" ? "Personal expenses" : "Shared expenses, simplified"} showModeSwitch />
+
+      {profile && (!profile.displayName || !profile.username || !profile.upiId) && !profile.dismissedProfileBanner && (
+        <div className="mx-5 mb-4 animate-in slide-in-from-top duration-300">
+          <div className="bg-brand/10 border border-brand/20 rounded-3xl p-5 flex items-start gap-4 relative overflow-hidden">
+            <div className="size-11 rounded-2xl bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
+              <Sparkles className="size-5" />
+            </div>
+            <div className="flex-1 min-w-0 pr-6">
+              <h4 className="text-sm font-black text-ink tracking-tight">Complete your profile setup</h4>
+              <p className="text-xs text-ink-soft leading-normal mt-1">
+                Add your display name, username, and UPI ID so friends can split bills and request payments.
+              </p>
+              <button
+                onClick={() => navigate("/profile?edit=true")}
+                className="mt-3.5 bg-brand text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl shadow-md shadow-brand/15 hover:opacity-90 active:scale-95 transition-all"
+              >
+                Set up now
+              </button>
+            </div>
+            <button
+              onClick={async () => {
+                await updateProfile({ dismissedProfileBanner: true });
+                toast.success("Prompt dismissed");
+              }}
+              className="absolute top-4 right-4 size-8 rounded-full bg-surface-soft border border-hairline/40 flex items-center justify-center text-ink-soft hover:text-ink active:scale-95 transition-all"
+              aria-label="Dismiss banner"
+            >
+              <X className="size-4" />
+            </button>
+            <div className="absolute -right-10 -bottom-10 size-24 rounded-full bg-brand/5 blur-xl" />
+          </div>
+        </div>
+      )}
 
       <div className="px-5 space-y-4">
         {mode === "personal" ? (

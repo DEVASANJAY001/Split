@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, setPersistence, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
 import { getDatabase } from "firebase/database";
@@ -28,7 +28,11 @@ setPersistence(auth, indexedDBLocalPersistence)
   .catch(() => setPersistence(auth, browserLocalPersistence))
   .catch(() => setPersistence(auth, inMemoryPersistence))
   .catch((err) => console.error("Auth persistence error:", err));
-export const db = getFirestore(app);
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
+});
 export const rtdb = getDatabase(app);
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();

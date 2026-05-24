@@ -57,18 +57,14 @@ export default function SplitBill() {
   const [selected, setSelected] = useState<string[]>(memberIds);
   const [values, setValues] = useState<Record<string, number>>({});
   const [category, setCategory] = useState<Category>("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (!editId) {
-      if (isPersonal) {
-        setDate("");
-      } else {
-        setDate(new Date().toISOString().slice(0, 10));
-      }
+      setDate(new Date().toISOString().slice(0, 10));
     }
-  }, [editId, isPersonal]);
+  }, [editId]);
   const [isRecurring, setIsRecurring] = useState(false);
   const [interval, setInterval] = useState<RecurringInterval>("Monthly");
   const [catSearch, setCatSearch] = useState("");
@@ -129,6 +125,7 @@ export default function SplitBill() {
     total > 0 &&
     selected.length > 0 &&
     group !== undefined &&
+    group.status !== "closed" &&
     (splitMode === "equal" || splitMode === "shares" ? true : Math.abs(diff) < 0.01)) && category !== "";
 
   const onTitleChange = (val: string) => {
@@ -153,6 +150,10 @@ export default function SplitBill() {
   };
 
   const save = () => {
+    if (!isPersonal && group?.status === "closed") {
+      toast.error("This group is closed. You cannot add expenses to it.");
+      return;
+    }
     if (!valid) return toast.error("Please complete the expense");
     if (isPersonal) {
       if (editId) {
@@ -241,25 +242,40 @@ export default function SplitBill() {
       <div className="px-5 space-y-4 pb-32">
         {/* Group selector — group mode only */}
         {!isPersonal && (
-          <div>
-            <label className="text-xs font-semibold text-ink-soft px-1">Group</label>
-            <div className="mt-2 flex gap-2 overflow-x-auto scrollbar-hide -mx-5 px-5">
-              {groups.map((g) => {
-                const Icon = groupIcons[g.type];
-                return (
-                  <button
-                    key={g.id}
-                    onClick={() => onGroupChange(g.id)}
-                    className={cn(
-                      "shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5",
-                      g.id === groupId ? "bg-brand text-brand-foreground shadow-brand" : "bg-surface text-ink-soft shadow-soft",
-                    )}
-                  >
-                    <Icon className="size-3.5" strokeWidth={2.25} /> {g.name}
-                  </button>
-                );
-              })}
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-ink-soft px-1">Group</label>
+              <div className="mt-2 flex gap-2 overflow-x-auto scrollbar-hide -mx-5 px-5">
+                {groups.map((g) => {
+                  const Icon = groupIcons[g.type];
+                  const isClosed = g.status === "closed";
+                  return (
+                    <button
+                      key={g.id}
+                      onClick={() => onGroupChange(g.id)}
+                      className={cn(
+                        "shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5",
+                        g.id === groupId 
+                          ? (isClosed ? "bg-warning text-white shadow-md" : "bg-brand text-brand-foreground shadow-brand")
+                          : "bg-surface text-ink-soft shadow-soft",
+                        isClosed && "opacity-75"
+                      )}
+                    >
+                      <Icon className="size-3.5" strokeWidth={2.25} /> {g.name} {isClosed && "(Closed)"}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            {group?.status === "closed" && (
+              <div className="bg-warning/10 border border-warning/20 rounded-2xl p-4 flex items-center gap-3 text-warning dark:text-warning animate-in slide-in-from-top-1 duration-200">
+                <Users className="size-5 shrink-0" />
+                <p className="text-xs font-bold leading-normal">
+                  This group is closed. You cannot add expenses until it is reopened.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Person } from "@/lib/store";
 
@@ -45,6 +45,14 @@ const getGradient = (name: string) => {
 export const PersonAvatar = memo(function PersonAvatar({ person, size = "md", className, ring }: AvatarProps) {
   const name = person.displayName || person.name || "User";
   const initials = person.initials || name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+  const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    if (imgRef.current?.complete) {
+      setLoaded(true);
+    }
+  }, [person.avatar]);
 
   return (
     <div
@@ -59,17 +67,16 @@ export const PersonAvatar = memo(function PersonAvatar({ person, size = "md", cl
       <span className="select-none">{initials}</span>
       {person.avatar && (
         <img
+          ref={imgRef}
           src={person.avatar}
           alt={name}
-          className="absolute inset-0 size-full object-cover bg-surface-soft transition-opacity duration-300"
+          className={cn(
+            "absolute inset-0 size-full object-cover bg-surface-soft transition-opacity duration-300",
+            loaded ? "opacity-100" : "opacity-0"
+          )}
           loading="lazy"
-          onLoad={(e) => {
-            e.currentTarget.style.opacity = '1';
-          }}
-          onError={(e) => {
-            e.currentTarget.style.opacity = '0';
-          }}
-          style={{ opacity: 0 }}
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(false)}
         />
       )}
     </div>
