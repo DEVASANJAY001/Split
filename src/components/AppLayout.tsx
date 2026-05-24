@@ -153,10 +153,10 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, showAction
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <Logo size="md" className="shadow-sm rounded-xl bg-white/60 dark:bg-transparent p-0.5 border border-hairline/20" />
-              <h1 className="text-3xl font-black tracking-tightest text-ink truncate">{title}</h1>
+              <h1 className="text-2xl font-black tracking-tightest text-ink truncate">{title}</h1>
             </div>
             {subtitle && (
-              <p className="text-base text-ink-soft mt-0.5 tracking-tight truncate pl-10">{subtitle}</p>
+              <p className="text-sm text-ink-soft mt-0.5 tracking-tight truncate pl-10">{subtitle}</p>
             )}
           </div>
         </div>
