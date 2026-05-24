@@ -21,6 +21,7 @@ export default function Transactions() {
   const navigate = useNavigate();
   const { expenses, settlements, personal, groups, people, userId, profile, mode, deleteExpense } = useStore();
   const cur = profile?.currency || "USD";
+  const [typeFilter, setTypeFilter] = useState<"all" | "group" | "personal">("all");
   const [filter, setFilter] = useState<typeof CATS[number]>("All");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [q, setQ] = useState("");
@@ -31,13 +32,12 @@ export default function Transactions() {
     const out: { kind: string, ts: number, date: string, node: React.ReactNode, cat?: string, group?: string }[] = [];
     
     // Group Expenses
-    if (filter === "All" || filter !== "All") {
+    if (typeFilter === "all" || typeFilter === "group") {
       for (const e of expenses) {
         const g = groups.find((x) => x.id === e.groupId);
         if (!g) continue;
         if (filter !== "All" && e.category !== filter) continue;
         if (groupFilter !== "all" && g.id !== groupFilter) continue;
-        if (mode === "personal") continue;
         if (q && !e.description.toLowerCase().includes(q.toLowerCase())) continue;
         if (amountRange && (e.amount < amountRange[0] || e.amount > amountRange[1])) continue;
 
@@ -84,7 +84,7 @@ export default function Transactions() {
     }
 
     // Personal Expenses
-    if (mode === "personal") {
+    if (typeFilter === "all" || typeFilter === "personal") {
       for (const e of personal) {
         if (filter !== "All" && e.category !== filter) continue;
         if (q && !e.description.toLowerCase().includes(q.toLowerCase())) continue;
@@ -157,14 +157,13 @@ export default function Transactions() {
     }
 
     // Settlements
-    if (filter === "All") {
+    if ((typeFilter === "all" || typeFilter === "group") && filter === "All") {
       for (const s of settlements) {
         const g = groups.find((x) => x.id === s.groupId);
         const from = personById(people, s.from);
         const to = personById(people, s.to);
         if (!g || !from || !to) continue;
         if (groupFilter !== "all" && g.id !== groupFilter) continue;
-        if (mode === "personal") continue;
         if (q && !`${from.name} ${to.name} settled`.toLowerCase().includes(q.toLowerCase())) continue;
         out.push({
           kind: "settle", ts: s.createdAt, date: s.date, group: g.name,
@@ -191,7 +190,7 @@ export default function Transactions() {
     }
 
     return out.sort((a, b) => b.ts - a.ts);
-  }, [expenses, settlements, personal, groups, people, userId, profile, filter, groupFilter, mode, q, amountRange, cur, navigate]);
+  }, [expenses, settlements, personal, groups, people, userId, profile, filter, groupFilter, mode, q, amountRange, cur, navigate, typeFilter]);
 
   const grouped = useMemo(() => {
     const g: Record<string, typeof items> = {};
@@ -207,6 +206,24 @@ export default function Transactions() {
       <PageHeader title="Activity" subtitle="Track shared and personal spendings" showActions={false} />
 
       <div className="px-5 space-y-6">
+        {/* Activity Type Selector */}
+        <div className="bg-surface-soft/40 p-1 rounded-2xl border border-hairline flex">
+          {(["all", "group", "personal"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
+              className={cn(
+                "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all capitalize",
+                typeFilter === t
+                  ? "bg-brand text-white shadow-md shadow-brand/10 scale-[1.02]"
+                  : "text-ink-soft hover:text-ink hover:bg-surface-soft/60"
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
         {/* Advanced Filters */}
         <div className="flex flex-col gap-4">
           <div className="relative">
@@ -234,7 +251,7 @@ export default function Transactions() {
             ))}
           </div>
 
-          {mode === "group" && (
+          {(typeFilter === "all" || typeFilter === "group") && groups.length > 0 && (
             <CustomSelect
               value={groupFilter}
               onChange={setGroupFilter}

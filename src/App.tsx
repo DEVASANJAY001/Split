@@ -100,8 +100,9 @@ const OnboardingRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 import { useEffect, useState } from "react";
-import { Capacitor } from "@capacitor/core";
-import { StatusBar, Style } from "@capacitor/status-bar";
+import { Capacitor, registerPlugin } from "@capacitor/core";
+
+const GoogleSignIn = registerPlugin<any>("GoogleSignIn");
 
 const App = () => {
   const [initializing, setInitializing] = useState(true);
@@ -113,13 +114,9 @@ const App = () => {
 
     // Sync Android status bar style with the app theme
     if (Capacitor.isNativePlatform()) {
-      if (theme === "dark") {
-        // Dark background → light (white) status bar icons
-        StatusBar.setStyle({ style: Style.Dark });
-      } else {
-        // Light background → dark status bar icons
-        StatusBar.setStyle({ style: Style.Light });
-      }
+      GoogleSignIn.setStatusBarStyle({ style: theme }).catch((err: any) => {
+        console.error("Failed to set status bar style:", err);
+      });
     }
   }, [theme]);
 

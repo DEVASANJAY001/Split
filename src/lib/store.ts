@@ -163,6 +163,7 @@ export type Profile = {
   isVerified?: boolean;
   completedSetup?: boolean;
   dismissedProfileBanner?: boolean;
+  usernameLastChangedAt?: number;
 };
 
 type AppMode = "group" | "personal";
@@ -371,7 +372,7 @@ export const useStore = create<AppState>()(
                     avatar,
                     currency: "USD",
                     isVerified: true,
-                    completedSetup: true,
+                    completedSetup: false,
                   };
 
                   await setDoc(doc(db, "users", uid), profileData);
@@ -831,6 +832,21 @@ export const useStore = create<AppState>()(
       updateProfile: async (p) => {
         const userId = auth.currentUser?.uid;
         if (userId) {
+          if (p.username && p.username !== get().profile?.username) {
+            if (get().profile?.completedSetup) {
+              const lastChanged = get().profile?.usernameLastChangedAt;
+              if (lastChanged) {
+                const fourteenDaysInMs = 14 * 24 * 60 * 60 * 1000;
+                const timePassed = Date.now() - lastChanged;
+                if (timePassed < fourteenDaysInMs) {
+                  const daysRemaining = Math.ceil((fourteenDaysInMs - timePassed) / (24 * 60 * 60 * 1000));
+                  throw new Error(`You can only change your username once every 14 days. Please try again in ${daysRemaining} day${daysRemaining > 1 ? "s" : ""}.`);
+                }
+              }
+            }
+            p.usernameLastChangedAt = Date.now();
+          }
+
           await setDoc(doc(db, "users", userId), p, { merge: true });
           if (p.username) {
             const handle = p.username.replace("@", "").toLowerCase();

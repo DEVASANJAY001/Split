@@ -6,6 +6,9 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   // No plugin-specific config needed — Google Sign-In is now handled
   // by our custom GoogleSignInPlugin.java using Android Credential Manager.
+  android: {
+    adjustMarginsForEdgeToEdge: 'auto',
+  },
 };
 
 export default config;

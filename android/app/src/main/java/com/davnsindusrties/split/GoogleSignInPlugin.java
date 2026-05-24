@@ -147,4 +147,24 @@ public class GoogleSignInPlugin extends Plugin {
             .build();
         return GoogleSignIn.getClient(getActivity(), gso);
     }
+
+    @PluginMethod
+    public void setStatusBarStyle(PluginCall call) {
+        String style = call.getString("style", "light");
+        getActivity().runOnUiThread(() -> {
+            try {
+                android.view.Window window = getActivity().getWindow();
+                androidx.core.view.WindowInsetsControllerCompat controller =
+                    new androidx.core.view.WindowInsetsControllerCompat(window, window.getDecorView());
+                if ("dark".equals(style)) {
+                    controller.setAppearanceLightStatusBars(false);
+                } else {
+                    controller.setAppearanceLightStatusBars(true);
+                }
+                call.resolve();
+            } catch (Exception e) {
+                call.reject(e.getMessage());
+            }
+        });
+    }
 }

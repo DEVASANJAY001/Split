@@ -25,7 +25,7 @@ export default function ProfileSetup() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (profile && (profile.completedSetup || (profile.username && profile.displayName))) {
+        if (profile && profile.completedSetup) {
             navigate("/", { replace: true });
         }
     }, [profile, navigate]);
