@@ -81,7 +81,7 @@ export default function AppLayout() {
           {/* Glass Finish Blur Ending */}
           <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none z-40" />
           
-          <nav className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+16px)] left-4 right-4 max-w-md mx-auto z-50 glass rounded-[2.5rem] shadow-2xl pb-safe overflow-hidden">
+          <nav className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+16px)] left-4 right-4 max-w-md mx-auto z-50 glass rounded-[2.5rem] shadow-2xl overflow-hidden">
             <div className="flex items-center justify-around h-16 px-4">
               {tabs.map(({ to, label, icon: Icon, hasBadge }) => {
                 return (
@@ -138,7 +138,7 @@ export const PageHeader = memo(function PageHeader({ title, subtitle, showAction
   const { mode, setMode, profile } = useStore();
   const handleAdd = onAdd ?? (() => navigate("/groups?create=true"));
   return (
-    <header className="sticky top-0 z-30 px-5 pt-[calc(env(safe-area-inset-top,0px)+2rem)] pb-2 mb-3 space-y-4 bg-background/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 px-5 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-2 mb-3 space-y-4 bg-background/75 backdrop-blur-xl">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4 min-w-0">
           {showBack && (

@@ -232,7 +232,7 @@ export default function Transactions() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search activity..."
-              className="w-full bg-surface-soft/50 rounded-2xl pl-11 pr-4 py-3 text-sm text-ink outline-none border border-hairline focus:ring-2 focus:ring-brand transition-all"
+              className="w-full bg-surface-soft/50 border border-hairline rounded-2xl pl-11 pr-4 py-3 text-sm text-ink placeholder:text-ink-soft/40 outline-none focus:ring-2 focus:ring-brand transition-all"
             />
           </div>
 

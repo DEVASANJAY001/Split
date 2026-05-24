@@ -164,6 +164,7 @@ export type Profile = {
   completedSetup?: boolean;
   dismissedProfileBanner?: boolean;
   usernameLastChangedAt?: number;
+  upiBannerDismissedAt?: number;
 };
 
 type AppMode = "group" | "personal";

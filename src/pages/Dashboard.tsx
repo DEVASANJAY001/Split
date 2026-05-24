@@ -6,7 +6,7 @@ import { AvatarStack, PersonAvatar } from "@/components/Avatar";
 import { useStore, netBalances, personById } from "@/lib/store";
 import { fmt } from "@/lib/finance";
 import { groupIcons, categoryIcons } from "@/lib/icons";
-import { ArrowDownLeft, ArrowUpRight, Receipt, Wallet, TrendingDown, TrendingUp, Sparkles, Target, Trophy, Plus } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Receipt, Wallet, TrendingDown, TrendingUp, Sparkles, Target, Trophy, Plus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { PromptModal, ConfirmModal } from "@/components/Modal";
@@ -21,6 +21,23 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { groups, expenses, settlements, people, mode, personal, userId, profile, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal, savingsGoals, deleteExpense, addSubEntry, updateProfile } = useStore();
   const cur = profile?.currency || "USD";
+  const [showUpiInput, setShowUpiInput] = useState(false);
+  const [upiInputValue, setUpiInputValue] = useState("");
+
+  const showUpiBanner = useMemo(() => {
+    if (!profile || !profile.completedSetup) return false;
+    if (profile.upiId && profile.upiId.trim() !== "") return false;
+    
+    // Check weekly dismissal:
+    if (profile.upiBannerDismissedAt) {
+      const msDiff = Date.now() - profile.upiBannerDismissedAt;
+      const weekInMs = 7 * 24 * 60 * 60 * 1000;
+      if (msDiff < weekInMs) {
+        return false;
+      }
+    }
+    return true;
+  }, [profile]);
 
   const [promptOpen, setPromptOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -113,6 +130,69 @@ export default function Dashboard() {
               <X className="size-4" />
             </button>
             <div className="absolute -right-10 -bottom-10 size-24 rounded-full bg-brand/5 blur-xl" />
+          </div>
+        </div>
+      )}
+
+      {showUpiBanner && (
+        <div className="mx-5 mb-4 animate-in slide-in-from-top duration-300">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-5 flex items-start gap-4 relative overflow-hidden">
+            <div className="size-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
+              <AlertCircle className="size-5" />
+            </div>
+            <div className="flex-1 min-w-0 pr-6">
+              <h4 className="text-sm font-black text-ink tracking-tight">Add your UPI ID for payments</h4>
+              <p className="text-xs text-ink-soft leading-normal mt-1">
+                You haven't set a UPI ID yet. Add it now so friends can easily scan and settle up with you.
+              </p>
+              {!showUpiInput ? (
+                <button
+                  onClick={() => setShowUpiInput(true)}
+                  className="mt-3 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl shadow-md shadow-amber-500/15 hover:opacity-90 active:scale-95 transition-all"
+                >
+                  Add directly
+                </button>
+              ) : (
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!upiInputValue.trim()) return toast.error("UPI ID cannot be empty");
+                    try {
+                      await updateProfile({ upiId: upiInputValue.trim() });
+                      toast.success("UPI ID updated successfully!");
+                    } catch (err: any) {
+                      toast.error(err.message || "Failed to save");
+                    }
+                  }}
+                  className="mt-3 flex gap-2 animate-in fade-in duration-200"
+                >
+                  <input
+                    type="text"
+                    placeholder="username@upi"
+                    value={upiInputValue}
+                    onChange={(e) => setUpiInputValue(e.target.value)}
+                    className="bg-surface border border-hairline px-3 py-1.5 text-xs font-bold rounded-xl outline-none focus:ring-2 focus:ring-amber-500 flex-1 min-w-0 text-ink"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl shadow-md shrink-0"
+                  >
+                    Save
+                  </button>
+                </form>
+              )}
+            </div>
+            <button
+              onClick={async () => {
+                await updateProfile({ upiBannerDismissedAt: Date.now() });
+                toast.success("Reminder snoozed for a week");
+              }}
+              className="absolute top-4 right-4 size-8 rounded-full bg-surface-soft border border-hairline/40 flex items-center justify-center text-ink-soft hover:text-ink active:scale-95 transition-all"
+              aria-label="Dismiss banner"
+            >
+              <X className="size-4" />
+            </button>
+            <div className="absolute -right-10 -bottom-10 size-24 rounded-full bg-amber-500/5 blur-xl" />
           </div>
         </div>
       )}

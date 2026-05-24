@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "@/lib/store";
-import { User, AtSign, Camera, Check, Loader2, CheckCircle2, AlertCircle, ChevronDown, LogOut } from "lucide-react";
+import { User, AtSign, Camera, Check, Loader2, CheckCircle2, AlertCircle, ChevronDown, LogOut, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ALL_CURRENCIES } from "@/lib/currency-data";
@@ -9,7 +9,7 @@ import { auth } from "@/lib/firebase";
 import ImageCropper from "@/components/ImageCropper";
 
 export default function ProfileSetup() {
-    const { profile, updateProfile, uploadAvatar, loading, isUsernameAvailable } = useStore();
+    const { profile, updateProfile, uploadAvatar, loading, isUsernameAvailable, theme, setTheme } = useStore();
     const [displayName, setDisplayName] = useState("");
     const [username, setUsername] = useState("");
     const [currency, setCurrency] = useState("USD");
@@ -232,6 +232,32 @@ export default function ProfileSetup() {
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-ink-soft">
                                 <ChevronDown className="size-4" />
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-wider text-ink-soft ml-1">App Theme</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setTheme("light")}
+                                className={cn(
+                                    "rounded-2xl py-3.5 px-4 flex items-center justify-center gap-2 border-2 transition-all font-bold text-sm outline-none",
+                                    theme === "light" ? "bg-surface border-brand text-ink shadow-md shadow-brand/10" : "bg-surface-soft border-transparent text-ink-soft hover:bg-surface-soft/80"
+                                )}
+                            >
+                                <Sun className="size-4" /> Light
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setTheme("dark")}
+                                className={cn(
+                                    "rounded-2xl py-3.5 px-4 flex items-center justify-center gap-2 border-2 transition-all font-bold text-sm outline-none",
+                                    theme === "dark" ? "bg-surface border-brand text-ink dark:text-white shadow-md shadow-brand/10" : "bg-surface-soft border-transparent text-ink-soft hover:bg-surface-soft/80"
+                                )}
+                            >
+                                <Moon className="size-4" /> Dark
+                            </button>
                         </div>
                     </div>
 

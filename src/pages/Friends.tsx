@@ -153,20 +153,20 @@ export default function Friends() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search by @username"
-              className="w-full bg-surface-soft border border-hairline rounded-full pl-11 pr-4 py-3 text-sm text-ink placeholder:text-ink-soft outline-none shadow-soft focus:ring-2 focus:ring-brand transition-all"
+              className="w-full bg-surface-soft/50 border border-hairline rounded-2xl pl-11 pr-4 py-3 text-sm text-ink placeholder:text-ink-soft/40 outline-none focus:ring-2 focus:ring-brand transition-all"
             />
           </div>
           <button
             onClick={() => setShowScanner(true)}
             aria-label="Scan QR code"
-            className="size-12 rounded-full bg-ink text-background flex items-center justify-center shrink-0 active:scale-95 transition"
+            className="size-11 rounded-2xl bg-ink text-background flex items-center justify-center shrink-0 active:scale-95 transition"
           >
             <Camera className="size-5" strokeWidth={2.25} />
           </button>
           <button
             onClick={() => setShowQR(true)}
             aria-label="My QR code"
-            className="size-12 rounded-full bg-surface shadow-soft text-ink flex items-center justify-center shrink-0 active:scale-95 transition"
+            className="size-11 rounded-2xl bg-surface border border-hairline shadow-soft text-ink flex items-center justify-center shrink-0 active:scale-95 transition"
           >
             <QrCode className="size-5" strokeWidth={2.25} />
           </button>

@@ -31,6 +31,7 @@ export default function Groups() {
   const [startDate, setStartDate] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [groupSearchQuery, setGroupSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -61,6 +62,13 @@ export default function Groups() {
       return { g, mine: net[userId || ""] ?? 0, total, lastActivity };
     }).sort((a, b) => b.lastActivity - a.lastActivity);
   }, [groups, expenses, settlements, userId]);
+
+  const filteredSummaries = useMemo(() => {
+    return summaries.filter(({ g }) =>
+      g.name.toLowerCase().includes(groupSearchQuery.toLowerCase()) ||
+      (g.description && g.description.toLowerCase().includes(groupSearchQuery.toLowerCase()))
+    );
+  }, [summaries, groupSearchQuery]);
 
   const totalGroupBalance = summaries.reduce((acc, s) => acc + s.mine, 0);
   const totalGroupSpending = summaries.reduce((acc, s) => acc + s.total, 0);
@@ -137,12 +145,23 @@ export default function Groups() {
         />
 
         <div className="px-5 space-y-6">
+          {/* Search container */}
+          <div className="relative">
+            <Search className="size-4 text-ink-soft absolute left-4 top-1/2 -translate-y-1/2" />
+            <input
+              value={groupSearchQuery}
+              onChange={(e) => setGroupSearchQuery(e.target.value)}
+              placeholder="Search groups..."
+              className="w-full bg-surface-soft/50 border border-hairline rounded-2xl pl-11 pr-4 py-3 text-sm text-ink placeholder:text-ink-soft/40 outline-none focus:ring-2 focus:ring-brand transition-all"
+            />
+          </div>
+
           <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-xs font-black text-ink-soft">Your groups</h3>
               <div className="h-px flex-1 bg-hairline/50 ml-4" />
             </div>
-            {summaries.map(({ g, mine, total }) => {
+            {filteredSummaries.map(({ g, mine, total }) => {
               const list = g.memberIds.map((id) => personById(people, id)!).filter(Boolean);
               const Icon = groupIcons[g.type];
               const cur = g.currency || "USD";

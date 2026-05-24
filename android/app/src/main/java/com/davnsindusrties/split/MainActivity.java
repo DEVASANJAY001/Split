@@ -14,12 +14,16 @@ public class MainActivity extends BridgeActivity {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
     EdgeToEdge.enable(this);
     // Register our custom Google Sign-In plugin (Credential Manager).
     // This plugin lives in our own app package so it must be registered manually.
     // It is NOT an npm package so Capacitor won't auto-discover it.
     registerPlugin(GoogleSignInPlugin.class);
     super.onCreate(savedInstanceState);
+    if (getSupportActionBar() != null) {
+      getSupportActionBar().hide();
+    }
     requestAppPermissions();
   }
 

@@ -152,7 +152,7 @@ export default function Settings() {
               icon={Bell}
               title="Notifications"
               subtitle="Expense, balance & settlement alerts"
-              trailing={<Toggle on={notify} onChange={setNotify} />}
+              trailing={<span className="text-[10px] font-black text-brand bg-brand/10 px-2.5 py-1 rounded-full uppercase tracking-widest">Always On</span>}
             />
           </SurfaceCard>
  
@@ -165,11 +165,6 @@ export default function Settings() {
  
         <section className="space-y-3 pt-2">
           <h3 className="text-xs font-bold text-ink-soft uppercase tracking-widest ml-1">Support</h3>
-          <SurfaceCard padding="md">
-            <Link to="/support/tickets" className="w-full">
-              <Row icon={LifeBuoy} title="Support Tickets" subtitle="Get help from our team" trailing={<ChevronRight className="size-4 text-ink-soft" />} />
-            </Link>
-          </SurfaceCard>
           <SurfaceCard padding="md">
             <Link to="/support/help" className="w-full">
               <Row icon={HelpCircle} title="Help Center" subtitle="FAQ and tutorials" trailing={<ChevronRight className="size-4 text-ink-soft" />} />
