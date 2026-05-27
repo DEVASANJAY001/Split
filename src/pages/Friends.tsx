@@ -193,15 +193,7 @@ export default function Friends() {
                   return (
                     <li key={r.username} className="flex items-center justify-between">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="size-10 rounded-full overflow-hidden border border-hairline bg-white shrink-0 shadow-sm">
-                          {r.avatar ? (
-                            <img src={r.avatar} alt="" className="size-full object-cover" />
-                          ) : (
-                            <div className="size-full flex items-center justify-center font-bold text-sm text-brand">
-                              {r.displayName.split(" ").map((p) => p[0]).join("").slice(0, 2)}
-                            </div>
-                          )}
-                        </div>
+                        <PersonAvatar person={{ displayName: r.displayName, avatar: r.avatar }} size="md" />
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-ink truncate">{r.displayName}</p>
                           <p className="text-[11px] text-ink-soft">{r.username}</p>
@@ -307,15 +299,7 @@ export default function Friends() {
                     {requests.map((r) => (
                       <li key={r.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="size-10 rounded-full overflow-hidden border border-hairline bg-surface-soft shrink-0">
-                            {r.fromAvatar ? (
-                              <img src={r.fromAvatar} alt="" className="size-full object-cover" />
-                            ) : (
-                              <div className="size-full flex items-center justify-center font-bold text-sm text-brand">
-                                {r.fromName.split(" ").map((p) => p[0]).join("").slice(0, 2)}
-                              </div>
-                            )}
-                          </div>
+                          <PersonAvatar person={{ displayName: r.fromName, avatar: r.fromAvatar }} size="md" />
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-ink truncate">{r.fromName}</p>
                             <p className="text-[11px] text-ink-soft">{r.fromUsername}</p>
@@ -371,15 +355,7 @@ export default function Friends() {
                       return (
                         <li key={username} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="size-10 rounded-full bg-surface-soft border border-hairline overflow-hidden flex items-center justify-center shadow-sm">
-                              {avatar ? (
-                                <img src={avatar} alt="" className="size-full object-cover" />
-                              ) : (
-                                <div className="size-full flex items-center justify-center text-[10px] font-bold text-brand bg-brand/5">
-                                  {(displayName || "U").split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}
-                                </div>
-                              )}
-                            </div>
+                            <PersonAvatar person={{ displayName: displayName || username, avatar }} size="md" />
                             <div className="min-w-0">
                               <p className="text-sm font-bold text-ink truncate">{displayName}</p>
                               <p className="text-[11px] text-ink-soft truncate">{username}</p>

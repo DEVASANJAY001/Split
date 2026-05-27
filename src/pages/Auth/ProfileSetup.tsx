@@ -135,6 +135,7 @@ export default function ProfileSetup() {
                             <img
                                 src={profile?.avatar || auth.currentUser?.photoURL || ""}
                                 alt=""
+                                referrerPolicy="no-referrer"
                                 className={cn("size-full object-cover", !(profile?.avatar || auth.currentUser?.photoURL) && "hidden")}
                                 key={profile?.avatar || auth.currentUser?.photoURL}
                             />

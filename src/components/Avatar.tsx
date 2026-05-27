@@ -70,6 +70,7 @@ export const PersonAvatar = memo(function PersonAvatar({ person, size = "md", cl
           ref={imgRef}
           src={person.avatar}
           alt={name}
+          referrerPolicy="no-referrer"
           className={cn(
             "absolute inset-0 size-full object-cover bg-surface-soft transition-opacity duration-300",
             loaded ? "opacity-100" : "opacity-0"

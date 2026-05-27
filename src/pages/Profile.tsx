@@ -198,6 +198,7 @@ export default function Profile() {
                   key={profile.avatar} 
                   src={profile.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.displayName || "User"}`} 
                   alt="" 
+                  referrerPolicy="no-referrer"
                   className={cn("size-full object-cover transition-opacity", uploading && "opacity-40")} 
                 />
                 {uploading && (
