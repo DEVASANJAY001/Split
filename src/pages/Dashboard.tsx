@@ -409,33 +409,34 @@ export default function Dashboard() {
                     {recentPersonal.map((e) => {
                       const Icon = categoryIcons[e.category] || categoryIcons["Other"];
                       return (
-                        <li key={e.id}>
+                        <li key={e.id} className="flex items-center justify-between group/item">
+                          <div 
+                            onClick={() => navigate(`/personal/${e.id}`)}
+                            className="flex items-center justify-between flex-1 min-w-0 cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <BrandIcon 
+                                description={e.description} 
+                                size="md" 
+                                fallback={
+                                  <div className="size-10 rounded-full bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                                    <Icon className="size-4" strokeWidth={2} />
+                                  </div>
+                                } 
+                              />
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
+                                <p className="text-[11px] text-ink-soft">{e.category} · {e.date ? new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "No Date"}</p>
+                              </div>
+                            </div>
+                            <p className="text-sm font-bold tabular-nums text-ink shrink-0 mr-2">{fmt(e.amount, cur)}</p>
+                          </div>
+                          
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <div className="flex items-center justify-between group/item cursor-pointer">
-                                <div className="flex items-center justify-between flex-1 min-w-0">
-                                  <div className="flex items-center gap-3 min-w-0">
-                                    <BrandIcon 
-                                      description={e.description} 
-                                      size="md" 
-                                      fallback={
-                                        <div className="size-10 rounded-full bg-brand/10 text-brand flex items-center justify-center shrink-0">
-                                          <Icon className="size-4" strokeWidth={2} />
-                                        </div>
-                                      } 
-                                    />
-                                    <div className="min-w-0">
-                                      <p className="text-sm font-semibold text-ink truncate">{e.description}</p>
-                                      <p className="text-[11px] text-ink-soft">{e.category} · {e.date ? new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "No Date"}</p>
-                                    </div>
-                                  </div>
-                                  <p className="text-sm font-bold tabular-nums text-ink shrink-0 mr-2">{fmt(e.amount, cur)}</p>
-                                </div>
-                                
-                                <button className="size-8 rounded-full bg-surface-soft text-ink-soft flex items-center justify-center shrink-0 hover:bg-surface hover:text-ink transition-all">
-                                  <MoreVertical className="size-3.5" />
-                                </button>
-                              </div>
+                              <button className="size-8 rounded-full bg-surface-soft text-ink-soft flex items-center justify-center shrink-0 hover:bg-surface hover:text-ink transition-all">
+                                <MoreVertical className="size-3.5" />
+                              </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="rounded-2xl shadow-2xl border-hairline min-w-[150px] p-1.5 glass backdrop-blur-xl">
                               <DropdownMenuItem 
